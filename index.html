@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>VANI | Neural Interaction Console</title>
+    <!-- Premium Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="boot-loader">
+      <div class="loader-logo"></div>
+    </div>
+    <!-- Ambient Texture & Glow -->
+    <div class="ambient-texture"></div>
+    <div class="neon-ambient-glow"></div>
+
+    <div id="app">
+      <!-- ========================================== -->
+      <!-- MODULE 1: AUTHENTICATION PANELS            -->
+      <!-- ========================================== -->
+      <div
+        id="auth-view-wrapper"
+        class="view-section active"
+        style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background: var(--bg-deep);
+          z-index: 9999;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        "
+      >
+        <!-- LOGIN SCREEN -->
+        <section
+          id="login-screen"
+          class="glass-panel"
+          style="
+            padding: 40px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+          "
+        >
+          <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
+            VANI
+          </h1>
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 25px;
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            "
+          >
+            Access System Matrix
+          </p>
+
+          <form id="login-form" class="form-group">
+            <input
+              id="login-mobile"
+              type="tel"
+              maxlength="10"
+              placeholder="Mobile Number"
+              required
+            />
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Encryption Key"
+              required
+            />
+            <button
+              type="submit"
+              class="glow-btn full-width"
+              style="margin-top: 15px"
+            >
+              Execute Uplink
+            </button>
+          </form>
+
+          <p
+            style="
+              margin-top: 25px;
+              color: var(--text-muted);
+              font-size: 0.9rem;
+            "
+          >
+            Not Registered Yet? <br />
+            <a
+              href="#"
+              id="go-to-register"
+              style="
+                color: var(--neon-primary);
+                text-decoration: none;
+                font-weight: 600;
+                margin-top: 5px;
+                display: inline-block;
+              "
+              >Register User➔</a
+            >
+          </p>
+        </section>
+
+        <!-- REGISTER SCREEN -->
+        <section
+          id="register-screen"
+          class="glass-panel hidden"
+          style="
+            padding: 40px;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+          "
+        >
+          <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
+            VANI
+          </h1>
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.9rem;
+              margin-bottom: 25px;
+              text-transform: uppercase;
+              letter-spacing: 2px;
+            "
+          >
+            Register User
+          </p>
+
+          <form id="register-form" class="form-group">
+            <input
+              type="text"
+              id="reg-name"
+              placeholder="First Name"
+              required
+            />
+            <input
+              type="text"
+              id="reg-mobile"
+              placeholder="Mobile Number"
+              maxlength="10"
+              pattern="\d{10}"
+              required
+            />
+            <input
+              type="email"
+              id="reg-email"
+              placeholder="Email Address"
+              required
+            />
+            <select id="reg-gender" required>
+              <option value="">Select Gender</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+            </select>
+            <input
+              type="password"
+              id="reg-password"
+              placeholder="Password (Min 6 chars)"
+              minlength="6"
+              required
+            />
+            <button
+              type="submit"
+              class="glow-btn full-width"
+              style="margin-top: 15px"
+            >
+              Provision Account
+            </button>
+          </form>
+
+          <p
+            style="
+              margin-top: 25px;
+              color: var(--text-muted);
+              font-size: 0.9rem;
+            "
+          >
+            Already User? <br />
+            <a
+              href="#"
+              id="go-to-login"
+              style="
+                color: var(--neon-primary);
+                text-decoration: none;
+                font-weight: 600;
+                margin-top: 5px;
+                display: inline-block;
+              "
+              >Sign In Instead ➔</a
+            >
+          </p>
+        </section>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- MODULE 2: MAIN CONSOLE INTERFACE           -->
+      <!-- ========================================== -->
+      <section id="chat-screen" class="chat-container hidden">
+        <!-- Left Sidebar Navigation (Glass Drawer) -->
+        <nav class="side-nav" id="sidebarMenu">
+          <div class="nav-header">
+            <h1 class="brand-logo">VANI</h1>
+          </div>
+
+          <div class="nav-menu">
+            <a href="#" class="menu-item active-menu" data-view="VIEW-CHATS">
+              <span class="menu-icon">⎔</span> Chats
+            </a>
+            <a href="#" class="menu-item" data-view="VIEW-CONTACTS">
+              <span class="menu-icon">👥</span> Contacts
+            </a>
+            <a href="#" class="menu-item" data-view="VIEW-SETTINGS">
+              <span class="menu-icon">⎈</span> Settings
+            </a>
+            <a href="#" class="menu-item" id="logoutBtn">
+              <i class="fas fa-sign-out-alt"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+
+          <div class="nav-footer">
+            <!-- Operator Profiler Card -->
+            <div
+              class="operator-profile-card glass-panel"
+              id="profileCard"
+              onclick="location.reload()"
+              title="Reboot Interface"
+            >
+              <img
+                id="my-avatar"
+                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Vani"
+                alt="Node"
+              />
+              <div class="user-info-text">
+                <h4 id="my-name">Operator</h4>
+                <p id="my-mobile-display">Syncing...</p>
+              </div>
+            </div>
+          </div>
+        </nav>
+
+        <!-- Main Content Matrix -->
+        <main class="main-viewport">
+          <!-- Mobile Header (Visible only on smaller screens) -->
+          <header class="mobile-header">
+            <div class="hamburger" id="hamburgerBtn">
+              <span></span><span></span><span></span>
+            </div>
+            <h1 class="brand-logo mobile-logo">VANI</h1>
+          </header>
+
+          <div class="view-manager" id="mainContainer">
+            <!-- VIEW A: CHATS -->
+            <div id="VIEW-CHATS" class="view-section active">
+              <div class="view-header">
+                <h2>Your Chat History</h2>
+              </div>
+              <div class="chat-layout-engine">
+                <!-- Chat List (WhatsApp Style Master View) -->
+                <aside class="list-panel glass-panel">
+                  <ul id="contacts-list" class="lb-list">
+                    <!-- Populated by script.js -->
+                  </ul>
+                </aside>
+
+                <!-- Active Chat Window (WhatsApp Style Detail View) -->
+                <section class="chat-area-viewport glass-panel">
+                  <div id="active-chat-header" class="chat-header-bar hidden">
+                    <!-- NEW: Premium Mobile Back Button -->
+                    <button id="mobile-back-btn" class="mobile-back-btn">
+                      <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                      </svg>
+                    </button>
+
+                    <img
+                      id="chat-target-avatar"
+                      src=""
+                      alt="Target"
+                      class="header-avatar"
+                      style="width: 42px; height: 42px; border-radius: 12px"
+                    />
+                    <div class="header-metadata-text" style="flex: 1">
+                      <h3
+                        id="chat-with-name"
+                        style="font-size: 1.1rem; font-weight: 600"
+                      >
+                        Select Node
+                      </h3>
+                      <p
+                        id="chat-with-status"
+                        class="status-subtext"
+                        style="font-size: 0.8rem; font-family: monospace"
+                      >
+                        Online
+                      </p>
+                    </div>
+                  </div>
+
+                  <div id="chat-box" class="chat-box-stream">
+                    <!-- Populated by script.js -->
+                  </div>
+
+                  <div
+                    id="message-input-bar"
+                    class="message-input-console hidden"
+                  >
+                    <input
+                      type="text"
+                      id="msg-input"
+                      placeholder="Type your Message here"
+                      autocomplete="off"
+                    />
+                    <button id="send-msg-btn" class="glow-btn">
+                      Send Message
+                    </button>
+                  </div>
+                </section>
+              </div>
+            </div>
+            <section id="VIEW-PROFILE" class="view-section">
+              <div class="glass-panel profile-panel">
+                <img id="profile-avatar" class="profile-avatar" />
+
+                <h2 id="profile-name"></h2>
+
+                <p id="profile-mobile"></p>
+
+                <p id="profile-email"></p>
+
+                <button class="glow-btn" id="logoutProfileBtn">Logout</button>
+              </div>
+            </section>
+            <!-- VIEW B: CONTACTS -->
+            <div id="VIEW-CONTACTS" class="view-section">
+              <div class="view-header">
+                <h2>Node Directory</h2>
+                <p>Manage external communication endpoints</p>
+              </div>
+              <div class="contacts-directory-grid">
+                <!-- Add Contact Form -->
+                <div
+                  class="glass-panel add-contact-card"
+                  style="padding: 25px; align-self: start"
+                >
+                  <h3 style="font-size: 1.1rem; margin-bottom: 10px">
+                    Provision New Contact
+                  </h3>
+                  <div class="form-group">
+                    <input
+                      type="text"
+                      id="new-contact-mobile"
+                      placeholder="Mobile Number"
+                      maxlength="10"
+                    />
+                    <input
+                      type="text"
+                      id="new-contact-name"
+                      placeholder="Contact Name"
+                    />
+                    <button id="add-contact-btn" class="glow-btn full-width">
+                      Add New Contact
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- VIEW C: SETTINGS (THEMES) -->
+            <div id="VIEW-SETTINGS" class="view-section">
+              <div class="view-header">
+                <h2>Matrix Calibration</h2>
+                <p>Select your interface emission spectrum</p>
+              </div>
+              <div class="theme-grid-box" id="themeButtonsContainer">
+                <!-- Dynamically populated by Theme Engine -->
+              </div>
+            </div>
+          </div>
+        </main>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- UI INTERACTION & THEME ENGINE              -->
+    <!-- ========================================== -->
+    <script>
+      // 1. Menu Navigation Logic (For HTML UI)
+      const menuItems = document.querySelectorAll(".menu-item");
+      const views = document.querySelectorAll(".view-manager .view-section");
+      const hamburger = document.getElementById("hamburgerBtn");
+      const sidebar = document.getElementById("sidebarMenu");
+
+      menuItems.forEach((item) => {
+        item.addEventListener("click", (e) => {
+          e.preventDefault();
+          menuItems.forEach((m) => m.classList.remove("active-menu"));
+          views.forEach((v) => v.classList.remove("active"));
+
+          item.classList.add("active-menu");
+          const targetView = document.getElementById(
+            item.getAttribute("data-view"),
+          );
+          if (targetView) targetView.classList.add("active");
+
+          if (window.innerWidth < 992) {
+            sidebar.classList.remove("open");
+            hamburger.classList.remove("active");
+          }
+        });
+      });
+
+      hamburger.addEventListener("click", () => {
+        hamburger.classList.toggle("active");
+        sidebar.classList.toggle("open");
+      });
+
+      // 2. Premium Neon Theme Engine
+      const neonThemes = [
+        { name: "Cyberpunk Pink", hex: "#ff007f" },
+        { name: "Matrix Green", hex: "#00ff41" },
+        { name: "Plasma Purple", hex: "#b026ff" },
+        { name: "Quantum Blue", hex: "#00f3ff" },
+        { name: "Solar Flare", hex: "#ffaa00" },
+        { name: "Toxic Glow", hex: "#ccff00" },
+        { name: "Neon Violet", hex: "#7a00ff" },
+        { name: "Synthwave Cyan", hex: "#0ff0fc" },
+        { name: "Blood Moon", hex: "#ff003c" },
+        { name: "Abyssal Blue", hex: "#0055ff" },
+        { name: "Galactic Orchid", hex: "#da70d6" },
+        { name: "Hyper Gold", hex: "#ffd700" },
+        { name: "Radioactive Lime", hex: "#39ff14" },
+        { name: "Deep Space Indigo", hex: "#4b0082" },
+        { name: "Crimson Forge", hex: "#dc143c" },
+        { name: "Arctic Ice", hex: "#a0e6ff" },
+        { name: "Nebula Magenta", hex: "#ff00ff" },
+        { name: "Void Blacklight", hex: "#8a2be2" },
+        { name: "Hologram Mint", hex: "#98ff98" },
+        { name: "Supernova Orange", hex: "#ff4500" },
+        { name: "Tritium Glow", hex: "#7fff00" },
+        { name: "Vaporwave Pink", hex: "#ff71ce" },
+        { name: "Cobalt Core", hex: "#0047ab" },
+        { name: "Phosphor Yellow", hex: "#ffff00" },
+        { name: "Astral Teal", hex: "#008080" },
+        { name: "Stellar Peach", hex: "#ffcba4" },
+        { name: "Ionized Rose", hex: "#ff007f" },
+        { name: "Cherenkov Blue", hex: "#00bfff" },
+        { name: "Dark Matter Grey", hex: "#a9a9a9" },
+        { name: "Obsidian Ruby", hex: "#e0115f" },
+        { name: "Lucid Emerald", hex: "#50c878" },
+      ];
+
+      function applyTheme(hexColor) {
+        document.documentElement.style.setProperty("--neon-primary", hexColor);
+        const r = parseInt(hexColor.slice(1, 3), 16);
+        const g = parseInt(hexColor.slice(3, 5), 16);
+        const b = parseInt(hexColor.slice(5, 7), 16);
+        document.documentElement.style.setProperty(
+          "--neon-rgb",
+          `${r}, ${g}, ${b}`,
+        );
+      }
+
+      const themeContainer = document.getElementById("themeButtonsContainer");
+      neonThemes.forEach((theme) => {
+        const btn = document.createElement("button");
+        btn.className = "theme-btn";
+        btn.textContent = theme.name;
+        btn.style.borderColor = theme.hex;
+        btn.style.boxShadow = `0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${theme.hex}40`;
+        btn.style.color = "#fff";
+
+        btn.addEventListener("mouseenter", () => {
+          btn.style.boxShadow = `0 0 20px ${theme.hex}, inset 0 0 15px ${theme.hex}`;
+          btn.style.backgroundColor = `${theme.hex}20`;
+        });
+        btn.addEventListener("mouseleave", () => {
+          btn.style.boxShadow = `0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${theme.hex}40`;
+          btn.style.backgroundColor = "transparent";
+        });
+
+        btn.addEventListener("click", () => applyTheme(theme.hex));
+        if (themeContainer) themeContainer.appendChild(btn);
+      });
+
+      // Force Random Theme on Every Reload
+      window.addEventListener("DOMContentLoaded", () => {
+        const randomTheme =
+          neonThemes[Math.floor(Math.random() * neonThemes.length)];
+        applyTheme(randomTheme.hex);
+      });
+    </script>
+
+    <!-- ========================================== -->
+    <!-- DATABASE LOGIC (MUST BE AT THE BOTTOM)     -->
+    <!-- ========================================== -->
+
+    <!-- 1. Supabase Core Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- 2. Your Application Logic -->
+    <script src="script.js"></script>
+  </body>
+</html>
