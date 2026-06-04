@@ -336,17 +336,59 @@ const initRealtime = () => {
 // ==========================================================
 // 6. INIT & UTILS
 // ==========================================================
-(() => {
-  document.body.insertAdjacentHTML("beforeend", `<button id="scroll-bottom-btn" class="scroll-bottom-btn" onclick="document.getElementById('chat-box')?.scrollTo({top: document.getElementById('chat-box').scrollHeight, behavior: 'smooth'})">↓</button>`);
-})();
 
-const origApplyTheme = window.applyTheme;
-if (origApplyTheme) {
-  window.applyTheme = (hex) => { origApplyTheme(hex); localStorage.setItem("vani-theme", hex); };
-  window.addEventListener("DOMContentLoaded", () => { const s = localStorage.getItem("vani-theme"); if (s) origApplyTheme(s); });
+const neonThemes = [
+  { name: "Cyberpunk Pink", hex: "#ff007f" }, { name: "Matrix Green", hex: "#00ff41" },
+  { name: "Plasma Purple", hex: "#b026ff" }, { name: "Quantum Blue", hex: "#00f3ff" },
+  { name: "Solar Flare", hex: "#ffaa00" }, { name: "Toxic Glow", hex: "#ccff00" },
+  { name: "Neon Violet", hex: "#7a00ff" }, { name: "Synthwave Cyan", hex: "#0ff0fc" },
+  { name: "Blood Moon", hex: "#ff003c" }, { name: "Abyssal Blue", hex: "#0055ff" },
+  { name: "Galactic Orchid", hex: "#da70d6" }, { name: "Hyper Gold", hex: "#ffd700" },
+  { name: "Radioactive Lime", hex: "#39ff14" }, { name: "Deep Space Indigo", hex: "#4b0082" },
+  { name: "Crimson Forge", hex: "#dc143c" }, { name: "Arctic Ice", hex: "#a0e6ff" },
+  { name: "Nebula Magenta", hex: "#ff00ff" }, { name: "Void Blacklight", hex: "#8a2be2" },
+  { name: "Hologram Mint", hex: "#98ff98" }, { name: "Supernova Orange", hex: "#ff4500" },
+  { name: "Tritium Glow", hex: "#7fff00" }, { name: "Vaporwave Pink", hex: "#ff71ce" },
+  { name: "Cobalt Core", hex: "#0047ab" }, { name: "Phosphor Yellow", hex: "#ffff00" },
+  { name: "Astral Teal", hex: "#008080" }, { name: "Stellar Peach", hex: "#ffcba4" },
+  { name: "Ionized Rose", hex: "#ff007f" }, { name: "Cherenkov Blue", hex: "#00bfff" },
+  { name: "Dark Matter Grey", hex: "#a9a9a9" }, { name: "Obsidian Ruby", hex: "#e0115f" },
+  { name: "Lucid Emerald", hex: "#50c878" }
+];
+
+const applyTheme = (hex) => {
+  document.documentElement.style.setProperty("--neon-primary", hex);
+  document.documentElement.style.setProperty("--neon-rgb", `${parseInt(hex.slice(1,3),16)}, ${parseInt(hex.slice(3,5),16)}, ${parseInt(hex.slice(5,7),16)}`);
+  localStorage.setItem("vani-theme", hex);
+};
+
+// Generate Settings Theme Buttons dynamically
+const themeContainer = $("themeButtonsContainer");
+if (themeContainer) {
+  neonThemes.forEach(t => {
+    const btn = document.createElement("button");
+    btn.className = "theme-btn";
+    btn.textContent = t.name;
+    btn.style.cssText = `border-color:${t.hex}; color:#fff; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`;
+    btn.onmouseenter = () => btn.style.cssText = `border-color:${t.hex}; color:#000; background:${t.hex}; box-shadow:0 0 20px ${t.hex}, inset 0 0 15px ${t.hex};`;
+    btn.onmouseleave = () => btn.style.cssText = `border-color:${t.hex}; color:#fff; background:transparent; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`;
+    btn.onclick = () => applyTheme(t.hex);
+    themeContainer.appendChild(btn);
+  });
 }
 
+// App Boot & Random Theme Execution
 window.addEventListener("DOMContentLoaded", async () => {
+  // Try to load saved theme, otherwise apply a random one
+  const savedTheme = localStorage.getItem("vani-theme");
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  } else {
+    const randomTheme = neonThemes[Math.floor(Math.random() * neonThemes.length)];
+    applyTheme(randomTheme.hex);
+  }
+
+  // Boot Supabase & Session
   if (typeof supabase === "undefined") {
     const s = document.createElement("script");
     s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
