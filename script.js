@@ -416,13 +416,6 @@ const initRealtime = () => {
 // ==========================================================
 // 6. INIT & UTILS
 // ==========================================================
-// Inject Scroll Bottom Button
-(() => {
-  document.body.insertAdjacentHTML(
-    "beforeend",
-    `<button id="scroll-bottom-btn" class="scroll-bottom-btn" onclick="document.getElementById('chat-box')?.scrollTo({top: document.getElementById('chat-box').scrollHeight, behavior: 'smooth'})">↓</button>`,
-  );
-})();
 
 // Theme Persistence Hook
 const origApplyTheme = window.applyTheme;
