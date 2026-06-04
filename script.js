@@ -137,50 +137,6 @@ const logout = async () => {
 $("my-avatar")?.parentElement?.addEventListener("dblclick", logout);
 
 // ==========================================================
-// 3. NAVIGATION & UI VIEWS
-// ==========================================================
-$$(".menu-item").forEach((item) => {
-  item.addEventListener("click", (e) => {
-    if (item.id === "logoutBtn") return;
-    e.preventDefault();
-    $$(".menu-item").forEach((m) => m.classList.remove("active-menu"));
-    $$(".view-section").forEach((v) => v.classList.remove("active"));
-
-    item.classList.add("active-menu");
-    $(item.dataset.view)?.classList.add("active");
-    if (window.innerWidth <= 992) {
-      $("sidebarMenu")?.classList.remove("open");
-      $("hamburgerBtn")?.classList.remove("active");
-    }
-  });
-});
-
-$("hamburgerBtn")?.addEventListener("click", () => {
-  $("hamburgerBtn").classList.toggle("active");
-  $("sidebarMenu").classList.toggle("open");
-});
-
-$("mobile-back-btn")?.addEventListener("click", () => {
-  document
-    .querySelector(".chat-layout-engine")
-    ?.classList.remove("mobile-chat-active");
-  State.activeContact = "";
-  ["active-chat-header", "message-input-bar"].forEach((id) =>
-    $(id).classList.add("hidden"),
-  );
-  $$("#contacts-list li").forEach((li) => li.classList.remove("active"));
-});
-
-$("profileCard")?.addEventListener("click", () => {
-  $$(".view-section").forEach((v) => v.classList.remove("active"));
-  $("VIEW-PROFILE")?.classList.add("active");
-  $("profile-avatar").src = State.profile.avatar_url;
-  $("profile-name").textContent = State.profile.name;
-  $("profile-mobile").textContent = `+91 ${State.profile.mobile}`;
-  $("profile-email").textContent = State.profile.email;
-});
-
-// ==========================================================
 // 3. NAVIGATION, OVERLAY & UI VIEWS
 // ==========================================================
 // Inject the mobile overlay natively
@@ -230,6 +186,65 @@ $("profileCard")?.addEventListener("click", () => {
   $("profile-email").textContent = State.profile.email;
   if (window.innerWidth <= 992) toggleMobileMenu(true);
 });
+
+// ==========================================================
+// 4. CONTACTS ENGINE
+// ==========================================================
+$("add-contact-btn")?.addEventListener("click", async () => {
+  const contact = $("new-contact-mobile").value.trim(), name = $("new-contact-name").value.trim();
+  if (contact.length !== 10 || !name || contact === State.mobile) return alert("Invalid or self contact.");
+  try {
+    await supabaseClient.from("contacts").insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+    $("new-contact-mobile").value = $("new-contact-name").value = "";
+    await syncContacts();
+    alert("Contact linked successfully.");
+  } catch (err) { alert(err.message); }
+});
+
+const syncContacts = async () => {
+  const [{ data: c }, { data: p }, { data: u }] = await Promise.all([
+    supabaseClient.from("contacts").select("*").eq("mobile", State.mobile).order("name", { ascending: true }),
+    supabaseClient.from("profiles").select("mobile, avatar_url, name"),
+    supabaseClient.from("messages").select("sender_mobile").eq("recipient_mobile", State.mobile).eq("is_read", false)
+  ]);
+
+  const regMap = Object.fromEntries(p?.map(x => [x.mobile, x]) || []);
+  const unreadMap = u?.reduce((acc, msg) => { acc[msg.sender_mobile] = (acc[msg.sender_mobile] || 0) + 1; return acc; }, {}) || {};
+  renderContacts(c || [], regMap, unreadMap);
+};
+
+const renderContacts = (contacts, regMap, unreadMap) => {
+  const list = $("contacts-list"), grid = document.querySelector(".contacts-directory-grid");
+  if (list) list.innerHTML = contacts.length ? "" : `<li class="placeholder-item" style="text-align:center;color:var(--text-muted);">No contacts found.</li>`;
+  if (grid) $$(".directory-card").forEach(c => c.remove());
+
+  contacts.forEach(c => {
+    const p = regMap[c.contact], unread = unreadMap[c.contact] || 0;
+    const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
+
+    if (list) {
+      const li = document.createElement("li");
+      li.className = State.activeContact === c.contact ? "active" : "";
+      li.dataset.mobile = c.contact;
+      li.innerHTML = `<img src="${avatar}" style="width:45px;height:45px;border-radius:12px;"/><div style="flex:1;"><h4 style="font-size:1rem;font-weight:600;">${c.name}</h4><p style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div>${unread > 0 ? `<div style="min-width:22px;height:22px;background:var(--neon-primary);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">${unread}</div>` : ""}`;
+      li.onclick = () => openChat(c.contact, c.name, avatar, !!p);
+      list.appendChild(li);
+    }
+
+    if (grid) {
+      grid.insertAdjacentHTML("beforeend", `<div class="glass-panel directory-card" style="padding:25px;"><div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button><button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button></div></div>`);
+      const card = grid.lastElementChild;
+      card.querySelector(".open-chat-btn").onclick = () => { openChat(c.contact, c.name, avatar, !!p); $('[data-view="VIEW-CHATS"]')?.click(); };
+      card.querySelector(".delete-contact-btn").onclick = async () => {
+        if (!confirm(`Delete ${c.name}?`)) return;
+        await supabaseClient.from("contacts").delete().match({ mobile: State.mobile, contact: c.contact });
+        if (State.activeContact === c.contact) { State.activeContact = ""; $("chat-box").innerHTML = ""; ["active-chat-header", "message-input-bar"].forEach(id => $(id).classList.add("hidden")); }
+        syncContacts();
+      };
+    }
+  });
+};
+
 // ==========================================================
 // 5. CHAT ENGINE & REALTIME
 // ==========================================================
