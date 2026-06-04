@@ -29,6 +29,10 @@ const sanitize = (s) =>
 const playSound = () =>
   new Audio("assets/sounds/message.mp3").play().catch(() => {});
 
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
+
 // ==========================================================
 // 2. AUTHENTICATION & SESSION
 // ==========================================================
