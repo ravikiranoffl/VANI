@@ -573,3 +573,32 @@ input, select {
     padding: 18px 25px !important; /* Larger call-to-action buttons */
     font-size: 1rem;
 }
+/* ========================================================== */
+/* --- MOBILE SCROLL & VIEWPORT FIX --- */
+/* ========================================================== */
+
+/* 1. Force Dynamic Viewport Height on Core Containers */
+body, 
+.chat-container, 
+.main-viewport {
+    height: 100dvh !important;
+    min-height: -webkit-fill-available; /* Fallback for older iOS */
+}
+
+/* 2. Adjust View Manager for Mobile Header */
+@media (max-width: 992px) {
+    .view-manager {
+        height: calc(100dvh - 70px) !important; 
+    }
+    
+    /* Push the scroll button up so it doesn't hide behind the input bar */
+    .scroll-bottom-btn {
+        bottom: 110px !important;
+        right: 15px !important;
+    }
+    
+    /* iOS Safe Area Padding (Native App Feel) */
+    .message-input-console {
+        padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
+    }
+}
