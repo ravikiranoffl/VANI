@@ -3,7 +3,7 @@
 // ==========================================================
 const supabaseClient = supabase.createClient(
   "https://gxuqhaxboagwsktoupyv.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU"
 );
 
 const State = { mobile: "", profile: null, activeContact: "", channel: null };
@@ -24,7 +24,7 @@ const sanitize = (s) =>
         ">": "&gt;",
         '"': "&quot;",
         "'": "&#039;",
-      })[m],
+      })[m]
   );
 const playSound = () =>
   new Audio("assets/sounds/message.mp3").play().catch(() => {});
@@ -61,6 +61,7 @@ const evalSession = async () => {
     await syncContacts();
     initRealtime();
   } catch (err) {
+    console.error("SESSION ERROR:", err); // Added this to help catch ghost users!
     toggleUI(false);
   } finally {
     $("boot-loader")?.remove();
@@ -132,7 +133,7 @@ const logout = async () => {
   location.reload();
 };
 ["logoutBtn", "logoutProfileBtn"].forEach((id) =>
-  $(id)?.addEventListener("click", logout),
+  $(id)?.addEventListener("click", logout)
 );
 $("my-avatar")?.parentElement?.addEventListener("dblclick", logout);
 
@@ -251,7 +252,7 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 const openChat = async (mobile, name, avatar, isReg) => {
   State.activeContact = mobile;
   $$("#contacts-list li").forEach((li) =>
-    li.classList.toggle("active", li.dataset.mobile === mobile),
+    li.classList.toggle("active", li.dataset.mobile === mobile)
   );
 
   $("chat-with-name").textContent = name;
@@ -260,7 +261,7 @@ const openChat = async (mobile, name, avatar, isReg) => {
   $("chat-with-status").style.color = isReg ? "var(--neon-primary)" : "#ff3366";
 
   ["active-chat-header", "message-input-bar"].forEach((id) =>
-    $(id).classList.remove("hidden"),
+    $(id).classList.remove("hidden")
   );
   if (window.innerWidth <= 992) {
     document
@@ -285,7 +286,7 @@ const loadHistory = async () => {
     .from("messages")
     .select("*")
     .or(
-      `and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`,
+      `and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`
     )
     .order("created_at", { ascending: true });
 
@@ -318,7 +319,7 @@ const appendBubble = (msg, autoScroll = true) => {
             });
     box.insertAdjacentHTML(
       "beforeend",
-      `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`,
+      `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`
     );
     box.dataset.lastDate = dStr;
   }
@@ -326,7 +327,7 @@ const appendBubble = (msg, autoScroll = true) => {
   const isMe = msg.sender_mobile === State.mobile;
   box.insertAdjacentHTML(
     "beforeend",
-    `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:70%;padding:12px 18px;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;"><span style="font-size:0.95rem;line-height:1.5;word-break:break-word;flex:1;">${sanitize(msg.content)}</span><span style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;white-space:nowrap;opacity:.7;">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div></div></div>`,
+    `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:70%;padding:12px 18px;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;"><span style="font-size:0.95rem;line-height:1.5;word-break:break-word;flex:1;">${sanitize(msg.content)}</span><span style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;white-space:nowrap;opacity:.7;">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div></div></div>`
   );
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
@@ -348,7 +349,7 @@ const sendMsg = async () => {
 $("send-msg-btn")?.addEventListener("click", sendMsg);
 $("msg-input")?.addEventListener(
   "keydown",
-  (e) => e.key === "Enter" && sendMsg(),
+  (e) => e.key === "Enter" && sendMsg()
 );
 
 const initRealtime = () => {
@@ -376,7 +377,7 @@ const initRealtime = () => {
           appendBubble(msg, true);
           if (msg.recipient_mobile === State.mobile) playSound();
         } else syncContacts();
-      },
+      }
     )
     .subscribe();
 };
@@ -384,6 +385,11 @@ const initRealtime = () => {
 // ==========================================================
 // 6. INIT & UTILS
 // ==========================================================
+
+// Scroll Button Injection
+(() => {
+  document.body.insertAdjacentHTML("beforeend", `<button id="scroll-bottom-btn" class="scroll-bottom-btn" onclick="document.getElementById('chat-box')?.scrollTo({top: document.getElementById('chat-box').scrollHeight, behavior: 'smooth'})">↓</button>`);
+})();
 
 // Theme Persistence Hook
 const origApplyTheme = window.applyTheme;
