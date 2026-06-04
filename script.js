@@ -189,15 +189,39 @@ $("add-contact-btn")?.addEventListener("click", async () => {
 });
 
 const syncContacts = async () => {
-  const [{ data: c }, { data: p }, { data: u }] = await Promise.all([
+  // 1. Fetch saved contacts, all profiles, AND all message history
+  const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
     supabaseClient.from("contacts").select("*").eq("mobile", State.mobile).order("name", { ascending: true }),
     supabaseClient.from("profiles").select("mobile, avatar_url, name"),
-    supabaseClient.from("messages").select("sender_mobile").eq("recipient_mobile", State.mobile).eq("is_read", false)
+    supabaseClient.from("messages").select("sender_mobile, recipient_mobile, is_read").or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`)
   ]);
 
   const regMap = Object.fromEntries(p?.map(x => [x.mobile, x]) || []);
-  const unreadMap = u?.reduce((acc, msg) => { acc[msg.sender_mobile] = (acc[msg.sender_mobile] || 0) + 1; return acc; }, {}) || {};
-  renderContacts(c || [], regMap, unreadMap);
+  const unreadMap = {};
+  const activeNumbers = new Set();
+
+  // 2. Map unread counts and collect EVERY number you've ever chatted with
+  m?.forEach(msg => {
+    if (msg.recipient_mobile === State.mobile && !msg.is_read) unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
+    if (msg.sender_mobile !== State.mobile) activeNumbers.add(msg.sender_mobile);
+    if (msg.recipient_mobile !== State.mobile) activeNumbers.add(msg.recipient_mobile);
+  });
+
+  const finalContacts = [...(c || [])];
+  const savedNumbers = new Set(finalContacts.map(x => x.contact));
+
+  // 3. Inject unsaved numbers into the UI dynamically
+  activeNumbers.forEach(num => {
+    if (!savedNumbers.has(num)) {
+      finalContacts.push({ 
+        contact: num, 
+        name: regMap[num]?.name || `+91 ${num}`,
+        mobile: State.mobile 
+      });
+    }
+  });
+
+  renderContacts(finalContacts, regMap, unreadMap);
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
