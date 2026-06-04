@@ -15,45 +15,33 @@ const toggleUI = (show) => {
   $("chat-screen")?.classList.toggle("hidden", !show);
 };
 const sanitize = (s) =>
-  s.replace(
-    /[&<>"']/g,
-    (m) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;",
-      })[m]
-  );
-const playSound = () =>
-  new Audio("assets/sounds/message.mp3").play().catch(() => {});
+  s.replace( /[&<>"']/g, (m) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"})[m] );
+const playSound = () => new Audio("assets/sounds/message.mp3").play().catch(() => {});
 
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
 
 // ==========================================================
-// 2. AUTHENTICATION & SESSION
+// 2. BULLETPROOF AUTHENTICATION & SESSION
 // ==========================================================
 const evalSession = async () => {
   try {
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
-    if (!session) throw "No session";
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session) throw new Error("No active session.");
 
-    const { data: p } = await supabaseClient
+    // EXPLICIT ERROR CHECK: Fetch profile
+    const { data: p, error: profileErr } = await supabaseClient
       .from("profiles")
       .select("*")
       .eq("id", session.user.id)
       .single();
-    if (!p) throw "No profile";
+      
+    if (profileErr) throw new Error(`Database Error: ${profileErr.message}`);
+    if (!p) throw new Error("Ghost User: Profile data is missing.");
 
     Object.assign(State, { profile: p, mobile: p.mobile });
-    $("my-avatar").src =
-      p.avatar_url ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
+    $("my-avatar").src = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
     $("my-name").textContent = p.name;
     $("my-mobile-display").textContent = `+91 ${p.mobile}`;
 
@@ -61,7 +49,7 @@ const evalSession = async () => {
     await syncContacts();
     initRealtime();
   } catch (err) {
-    console.error("SESSION ERROR:", err); // Added this to help catch ghost users!
+    console.error("SESSION REJECTED:", err.message);
     toggleUI(false);
   } finally {
     $("boot-loader")?.remove();
@@ -75,28 +63,31 @@ const handleAuth = async (e, isLogin) => {
     const password = $(isLogin ? "login-password" : "reg-password").value;
 
     if (isLogin) {
-      const { data: p } = await supabaseClient
+      // EXPLICIT ERROR CHECK: Fetch email for login
+      const { data: p, error: fetchErr } = await supabaseClient
         .from("profiles")
         .select("email")
         .eq("mobile", mobile)
         .single();
-      if (!p) throw new Error("Mobile not registered.");
-      const { error } = await supabaseClient.auth.signInWithPassword({
+        
+      if (fetchErr || !p) throw new Error("Mobile not registered. Please register first.");
+      
+      const { error: authErr } = await supabaseClient.auth.signInWithPassword({
         email: p.email,
         password,
       });
-      if (error) throw error;
+      if (authErr) throw authErr;
+      
     } else {
-      const email = $("reg-email").value.trim(),
-        name = $("reg-name").value.trim();
-      const {
-        data: { user },
-        error,
-      } = await supabaseClient.auth.signUp({ email, password });
-      if (error) throw error;
+      const email = $("reg-email").value.trim();
+      const name = $("reg-name").value.trim();
+      
+      const { data: { user }, error: signUpErr } = await supabaseClient.auth.signUp({ email, password });
+      if (signUpErr) throw signUpErr;
 
-      if (user)
-        await supabaseClient.from("profiles").insert([
+      if (user) {
+        // EXPLICIT ERROR CHECK: Insert profile
+        const { error: insertErr } = await supabaseClient.from("profiles").insert([
           {
             id: user.id,
             name,
@@ -106,12 +97,17 @@ const handleAuth = async (e, isLogin) => {
             avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
           },
         ]);
-      alert("Operator Provisioned");
+        
+        if (insertErr) {
+          throw new Error(`Profile creation blocked by database: ${insertErr.message}. RLS might be enabled.`);
+        }
+      }
+      alert("Operator Provisioned! Attempting Uplink...");
     }
     e.target.reset();
     await evalSession();
   } catch (err) {
-    alert(`Auth failed: ${err.message}`);
+    alert(`Auth Error: ${err.message}`);
   }
 };
 
@@ -140,10 +136,8 @@ $("my-avatar")?.parentElement?.addEventListener("dblclick", logout);
 // ==========================================================
 // 3. NAVIGATION, OVERLAY & UI VIEWS
 // ==========================================================
-// Inject the mobile overlay natively
 document.body.insertAdjacentHTML("beforeend", `<div id="mobile-overlay" class="mobile-overlay"></div>`);
 
-// Centralized Menu Logic
 const toggleMobileMenu = (forceClose = false) => {
   const isOpening = !$("sidebarMenu").classList.contains("open") && !forceClose;
   $("hamburgerBtn")?.classList.toggle("active", isOpening);
@@ -151,7 +145,6 @@ const toggleMobileMenu = (forceClose = false) => {
   $("mobile-overlay")?.classList.toggle("active", isOpening);
 };
 
-// Hamburger & Overlay Listeners
 $("hamburgerBtn")?.addEventListener("click", () => toggleMobileMenu());
 $("mobile-overlay")?.addEventListener("click", () => toggleMobileMenu(true));
 
@@ -159,14 +152,10 @@ $$(".menu-item").forEach(item => {
   item.addEventListener("click", e => {
     if (item.id === "logoutBtn") return;
     e.preventDefault();
-    
-    // Switch Active States
     $$(".menu-item").forEach(m => m.classList.remove("active-menu"));
     $$(".view-section").forEach(v => v.classList.remove("active"));
     item.classList.add("active-menu");
     $(item.dataset.view)?.classList.add("active");
-    
-    // Smoothly close menu on mobile after selection
     if (window.innerWidth <= 992) toggleMobileMenu(true);
   });
 });
@@ -195,11 +184,12 @@ $("add-contact-btn")?.addEventListener("click", async () => {
   const contact = $("new-contact-mobile").value.trim(), name = $("new-contact-name").value.trim();
   if (contact.length !== 10 || !name || contact === State.mobile) return alert("Invalid or self contact.");
   try {
-    await supabaseClient.from("contacts").insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+    const { error } = await supabaseClient.from("contacts").insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+    if (error) throw error;
     $("new-contact-mobile").value = $("new-contact-name").value = "";
     await syncContacts();
     alert("Contact linked successfully.");
-  } catch (err) { alert(err.message); }
+  } catch (err) { alert(`Contact Error: ${err.message}`); }
 });
 
 const syncContacts = async () => {
@@ -251,51 +241,33 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 // ==========================================================
 const openChat = async (mobile, name, avatar, isReg) => {
   State.activeContact = mobile;
-  $$("#contacts-list li").forEach((li) =>
-    li.classList.toggle("active", li.dataset.mobile === mobile)
-  );
+  $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
 
   $("chat-with-name").textContent = name;
   $("chat-target-avatar").src = avatar;
   $("chat-with-status").textContent = isReg ? "Connected" : "Offline";
   $("chat-with-status").style.color = isReg ? "var(--neon-primary)" : "#ff3366";
 
-  ["active-chat-header", "message-input-bar"].forEach((id) =>
-    $(id).classList.remove("hidden")
-  );
+  ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
   if (window.innerWidth <= 992) {
-    document
-      .querySelector(".chat-layout-engine")
-      ?.classList.add("mobile-chat-active");
+    document.querySelector(".chat-layout-engine")?.classList.add("mobile-chat-active");
     $("sidebarMenu")?.classList.remove("open");
     $("hamburgerBtn")?.classList.remove("active");
   }
 
-  await supabaseClient.from("messages").update({ is_read: true }).match({
-    sender_mobile: mobile,
-    recipient_mobile: State.mobile,
-    is_read: false,
-  });
+  await supabaseClient.from("messages").update({ is_read: true }).match({ sender_mobile: mobile, recipient_mobile: State.mobile, is_read: false });
   await syncContacts();
   loadHistory();
 };
 
 const loadHistory = async () => {
   if (!State.activeContact) return;
-  const { data } = await supabaseClient
-    .from("messages")
-    .select("*")
-    .or(
-      `and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`
-    )
-    .order("created_at", { ascending: true });
+  const { data } = await supabaseClient.from("messages").select("*").or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`).order("created_at", { ascending: true });
 
   const box = $("chat-box");
-  box.innerHTML = "";
-  box.dataset.lastDate = "";
+  box.innerHTML = ""; box.dataset.lastDate = "";
 
-  if (!data?.length)
-    return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
+  if (!data?.length) return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
   data.forEach((msg) => appendBubble(msg, false));
   box.scrollTop = box.scrollHeight;
 };
@@ -304,31 +276,15 @@ const appendBubble = (msg, autoScroll = true) => {
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
-  const d = new Date(msg.created_at),
-    dStr = d.toDateString();
+  const d = new Date(msg.created_at), dStr = d.toDateString();
   if (box.dataset.lastDate !== dStr) {
-    const label =
-      dStr === new Date().toDateString()
-        ? "Today"
-        : dStr === new Date(Date.now() - 864e5).toDateString()
-          ? "Yesterday"
-          : d.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            });
-    box.insertAdjacentHTML(
-      "beforeend",
-      `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`
-    );
+    const label = dStr === new Date().toDateString() ? "Today" : dStr === new Date(Date.now() - 864e5).toDateString() ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    box.insertAdjacentHTML("beforeend", `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`);
     box.dataset.lastDate = dStr;
   }
 
   const isMe = msg.sender_mobile === State.mobile;
-  box.insertAdjacentHTML(
-    "beforeend",
-    `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:70%;padding:12px 18px;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;"><span style="font-size:0.95rem;line-height:1.5;word-break:break-word;flex:1;">${sanitize(msg.content)}</span><span style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;white-space:nowrap;opacity:.7;">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div></div></div>`
-  );
+  box.insertAdjacentHTML("beforeend", `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:70%;padding:12px 18px;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;"><span style="font-size:0.95rem;line-height:1.5;word-break:break-word;flex:1;">${sanitize(msg.content)}</span><span style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;white-space:nowrap;opacity:.7;">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div></div></div>`);
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
 
@@ -336,75 +292,40 @@ const sendMsg = async () => {
   const content = $("msg-input").value.trim();
   if (!content || !State.activeContact) return;
   $("msg-input").value = "";
-  await supabaseClient.from("messages").insert([
-    {
-      sender_mobile: State.mobile,
-      recipient_mobile: State.activeContact,
-      content,
-      is_read: false,
-    },
-  ]);
+  const { error } = await supabaseClient.from("messages").insert([{ sender_mobile: State.mobile, recipient_mobile: State.activeContact, content, is_read: false }]);
+  if(error) alert(`Send Error: ${error.message}`);
 };
 
 $("send-msg-btn")?.addEventListener("click", sendMsg);
-$("msg-input")?.addEventListener(
-  "keydown",
-  (e) => e.key === "Enter" && sendMsg()
-);
+$("msg-input")?.addEventListener("keydown", (e) => e.key === "Enter" && sendMsg());
 
 const initRealtime = () => {
   State.channel?.unsubscribe();
-  State.channel = supabaseClient
-    .channel("public:messages")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "messages" },
-      async (p) => {
-        const msg = p.new || p.old;
-        if (!msg?.sender_mobile) return;
-
-        const isCurr =
-          (msg.sender_mobile === State.mobile &&
-            msg.recipient_mobile === State.activeContact) ||
-          (msg.sender_mobile === State.activeContact &&
-            msg.recipient_mobile === State.mobile);
-        if (isCurr && p.eventType === "INSERT") {
-          if (msg.recipient_mobile === State.mobile)
-            await supabaseClient
-              .from("messages")
-              .update({ is_read: true })
-              .eq("id", msg.id);
-          appendBubble(msg, true);
-          if (msg.recipient_mobile === State.mobile) playSound();
-        } else syncContacts();
-      }
-    )
-    .subscribe();
+  State.channel = supabaseClient.channel("public:messages").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, async (p) => {
+      const msg = p.new || p.old;
+      if (!msg?.sender_mobile) return;
+      const isCurr = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact) || (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
+      if (isCurr && p.eventType === "INSERT") {
+        if (msg.recipient_mobile === State.mobile) await supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id);
+        appendBubble(msg, true);
+        if (msg.recipient_mobile === State.mobile) playSound();
+      } else syncContacts();
+    }).subscribe();
 };
 
 // ==========================================================
 // 6. INIT & UTILS
 // ==========================================================
-
-// Scroll Button Injection
 (() => {
   document.body.insertAdjacentHTML("beforeend", `<button id="scroll-bottom-btn" class="scroll-bottom-btn" onclick="document.getElementById('chat-box')?.scrollTo({top: document.getElementById('chat-box').scrollHeight, behavior: 'smooth'})">↓</button>`);
 })();
 
-// Theme Persistence Hook
 const origApplyTheme = window.applyTheme;
 if (origApplyTheme) {
-  window.applyTheme = (hex) => {
-    origApplyTheme(hex);
-    localStorage.setItem("vani-theme", hex);
-  };
-  window.addEventListener("DOMContentLoaded", () => {
-    const s = localStorage.getItem("vani-theme");
-    if (s) origApplyTheme(s);
-  });
+  window.applyTheme = (hex) => { origApplyTheme(hex); localStorage.setItem("vani-theme", hex); };
+  window.addEventListener("DOMContentLoaded", () => { const s = localStorage.getItem("vani-theme"); if (s) origApplyTheme(s); });
 }
 
-// App Boot
 window.addEventListener("DOMContentLoaded", async () => {
   if (typeof supabase === "undefined") {
     const s = document.createElement("script");
