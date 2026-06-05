@@ -278,54 +278,28 @@
                 </aside>
 
                 <!-- Active Chat Window (WhatsApp Style Detail View) -->
-                <section class="chat-area-viewport glass-panel">
+               <section class="chat-area-viewport glass-panel">
+                  
                   <div id="active-chat-header" class="chat-header-bar hidden">
-                    <!-- NEW: Premium Mobile Back Button -->
-                    <button id="mobile-back-btn" class="mobile-back-btn">
-                      <svg
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      >
+                    <button id="mobile-back-btn" class="mobile-back-btn" style="margin-right: 15px; background: transparent; border: none; color: var(--text-main); padding: 5px; display: flex; cursor: pointer;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="19" y1="12" x2="5" y2="12"></line>
                         <polyline points="12 19 5 12 12 5"></polyline>
                       </svg>
                     </button>
 
-                    <img
-                      id="chat-target-avatar"
-                      src=""
-                      alt="Target"
-                      class="header-avatar"
-                      style="width: 42px; height: 42px; border-radius: 12px"
-                    />
-                    <div class="header-metadata-text" style="flex: 1">
-                      <h3
-                        id="chat-with-name"
-                        style="font-size: 1.1rem; font-weight: 600"
-                      >
-                        Select Node
-                      </h3>
-                      <p
-                        id="chat-with-status"
-                        class="status-subtext"
-                        style="font-size: 0.8rem; font-family: monospace"
-                      >
-                        Online
-                      </p>
+                    <img id="chat-target-avatar" src="" alt="Target" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
+                    
+                    <div class="header-metadata-text" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                      <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Select Node</h3>
+                      <p id="chat-with-status" style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
                     </div>
                   </div>
 
                   <div id="chat-box" class="chat-box-stream">
-                    <!-- Populated by script.js -->
-                  </div>
+                    </div>
 
-                 <div id="message-input-bar" class="message-input-console hidden">
+                  <div id="message-input-bar" class="message-input-console hidden">
                     <input
                       type="text"
                       id="msg-input"
@@ -338,7 +312,7 @@
                     />
                     
                     <button id="send-msg-btn" class="glow-btn icon-send-btn">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="22" y1="2" x2="11" y2="13"></line>
                         <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
                       </svg>
