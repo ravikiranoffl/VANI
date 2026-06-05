@@ -602,3 +602,157 @@ body,
         padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
     }
 }
+/* ========================================================== */
+/* --- FINAL POLISH: WHATSAPP BUBBLES & SEND BUTTON --- */
+/* ========================================================== */
+
+/* Sleek Square Send Button */
+.icon-send-btn {
+    padding: 0 !important;
+    width: 54px !important;
+    height: 54px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.icon-send-btn svg {
+    transform: translateX(-1px) translateY(1px); /* Optical center alignment */
+}
+
+/* WhatsApp Bubble Architecture */
+.chat-bubble {
+    position: relative !important;
+    padding: 8px 12px 20px 12px !important; /* Extra bottom padding for the floating time */
+    display: block !important; 
+}
+
+.chat-bubble-content {
+    display: block !important;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.chat-bubble-time {
+    position: absolute;
+    bottom: 4px;
+    right: 12px;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-family: monospace;
+    opacity: 0.7;
+    white-space: nowrap;
+}
+/* ========================================================== */
+/* --- THE ANCHORED MOBILE FULL-SCREEN FIX --- */
+/* ========================================================== */
+
+@media (max-width: 992px) {
+    /* 1. Hide the bulky desktop header */
+    #VIEW-CHATS .view-header {
+        display: none !important;
+    }
+
+    /* 2. The Four-Corner Anchor (Traps the UI inside the visible screen) */
+    .chat-layout-engine.mobile-chat-active .chat-area-viewport {
+        position: fixed !important;
+        top: 0 !important;
+        bottom: 0 !important; /* Pins to bottom instead of using height */
+        left: 0 !important;
+        right: 0 !important;
+        height: auto !important; 
+        width: auto !important;
+        z-index: 9999 !important;
+        border-radius: 0 !important; 
+        display: flex !important;
+        flex-direction: column !important;
+        background: var(--bg-deep) !important;
+        overflow: hidden !important; /* THE LOCK: Disables page scrolling */
+    }
+
+    /* 3. Protect the Header */
+    .chat-layout-engine.mobile-chat-active .chat-header-bar {
+        flex-shrink: 0 !important;
+        border-radius: 0 !important;
+        padding-top: max(15px, env(safe-area-inset-top)) !important; 
+    }
+
+    /* 4. The Middle Scroll Zone */
+    .chat-layout-engine.mobile-chat-active .chat-box-stream {
+        flex: 1 1 auto !important; 
+        height: 0 !important; /* Forces the browser to calculate from the available space */
+        overflow-y: auto !important; /* Allows ONLY the messages to scroll */
+        padding-bottom: 10px !important;
+    }
+
+    /* 5. Protect and Pin the Input Bar */
+    .chat-layout-engine.mobile-chat-active .message-input-console {
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+        padding-bottom: max(15px, env(safe-area-inset-bottom)) !important; 
+        background: var(--bg-deep) !important; /* Prevents text from showing under the bar */
+    }
+}
+.chat-bubble {
+    /* Guarantees the bubble is always wide enough for the timestamp */
+    min-width: 95px !important; 
+}
+/* ========================================================== */
+/* --- ADVANCED SETTINGS & CINEMATIC MODE ENGINE --- */
+/* ========================================================== */
+
+.setting-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Premium Matrix Toggle Switch */
+.matrix-switch {
+  position: relative;
+  display: inline-block;
+  width: 54px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.matrix-switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.matrix-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.matrix-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #4a5568;
+  transition: cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.4s; /* Bouncy, premium snap */
+  border-radius: 50%;
+}
+
+.matrix-switch input:checked + .matrix-slider {
+  background-color: rgba(var(--neon-rgb), 0.15);
+  border-color: var(--neon-primary);
+}
+
+.matrix-switch input:checked + .matrix-slider:before {
+  transform: translateX(26px);
+  background-color: var(--neon-primary);
+  box-shadow: 0 0 12px var(--neon-primary);
+}

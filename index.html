@@ -218,17 +218,18 @@
 
           <div class="nav-menu">
             <a href="#" class="menu-item active-menu" data-view="VIEW-CHATS">
-              <span class="menu-icon">⎔</span> Chats
+              <span class="menu-icon">💬</span> Chats
             </a>
             <a href="#" class="menu-item" data-view="VIEW-CONTACTS">
-              <span class="menu-icon">👥</span> Contacts
+              <span class="menu-icon">☎️</span> Contacts
             </a>
             <a href="#" class="menu-item" data-view="VIEW-SETTINGS">
-              <span class="menu-icon">⎈</span> Settings
+              <span class="menu-icon">⚙️</span> Settings
             </a>
             <a href="#" class="menu-item" id="logoutBtn">
               <i class="fas fa-sign-out-alt"></i>
-              <span>Logout</span>
+              <span class="menu-icon">⏻</span>
+              Logout
             </a>
           </div>
 
@@ -237,8 +238,7 @@
             <div
               class="operator-profile-card glass-panel"
               id="profileCard"
-              onclick="location.reload()"
-              title="Reboot Interface"
+              title="View Profile"
             >
               <img
                 id="my-avatar"
@@ -391,11 +391,83 @@
             </div>
 
             <!-- VIEW C: SETTINGS (THEMES) -->
+            <!-- VIEW C: SETTINGS (THEMES & BEHAVIOR) -->
             <div id="VIEW-SETTINGS" class="view-section">
               <div class="view-header">
                 <h2>Matrix Calibration</h2>
                 <p>Select your interface emission spectrum</p>
               </div>
+
+              <!-- NEW: Dynamic Automation Settings -->
+              <div
+                class="settings-controls glass-panel"
+                style="padding: 25px; margin-bottom: 25px"
+              >
+                <!-- Toggle 1: Random Boot -->
+                <div class="setting-row">
+                  <div style="flex: 1; padding-right: 20px">
+                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">
+                      Random Theme on Boot
+                    </h3>
+                    <p
+                      style="
+                        font-size: 0.85rem;
+                        color: var(--text-muted);
+                        margin: 0;
+                        line-height: 1.4;
+                      "
+                    >
+                      Automatically overrides your saved theme with a random
+                      spectrum every time the system connects.
+                    </p>
+                  </div>
+                  <label class="matrix-switch">
+                    <input type="checkbox" id="toggle-random-boot" />
+                    <span class="matrix-slider"></span>
+                  </label>
+                </div>
+
+                <hr
+                  style="
+                    border: 0;
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
+                    margin: 20px 0;
+                  "
+                />
+
+                <!-- Toggle 2: Cinematic Mode -->
+                <div class="setting-row">
+                  <div style="flex: 1; padding-right: 20px">
+                    <h3
+                      style="
+                        font-size: 1.1rem;
+                        margin: 0 0 5px 0;
+                        color: #00f3ff;
+                        text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
+                      "
+                    >
+                      Cinematic Auto-Cycle
+                    </h3>
+                    <p
+                      style="
+                        font-size: 0.85rem;
+                        color: var(--text-muted);
+                        margin: 0;
+                        line-height: 1.4;
+                      "
+                    >
+                      Disables manual overrides. Smoothly and continuously
+                      cycles through the entire color matrix in real-time.
+                    </p>
+                  </div>
+                  <label class="matrix-switch">
+                    <input type="checkbox" id="toggle-cinematic-mode" />
+                    <span class="matrix-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Manual Theme Grid -->
               <div class="theme-grid-box" id="themeButtonsContainer">
                 <!-- Dynamically populated by Theme Engine -->
               </div>

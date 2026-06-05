@@ -3,7 +3,7 @@
 // ==========================================================
 const supabaseClient = supabase.createClient(
   "https://gxuqhaxboagwsktoupyv.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
 );
 
 const State = { mobile: "", profile: null, activeContact: "", channel: null };
@@ -15,15 +15,28 @@ const toggleUI = (show) => {
   $("chat-screen")?.classList.toggle("hidden", !show);
 };
 const sanitize = (s) =>
-  s.replace( /[&<>"']/g, (m) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"})[m] );
-const playSound = () => new Audio("assets/sounds/message.mp3").play().catch(() => {});
+  s.replace(
+    /[&<>"']/g,
+    (m) =>
+      ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;",
+      })[m],
+  );
+const playSound = () =>
+  new Audio("assets/sounds/message.mp3").play().catch(() => {});
 
 // ==========================================================
 // 2. BULLETPROOF AUTHENTICATION & SESSION
 // ==========================================================
 const evalSession = async () => {
   try {
-    const { data: { session } } = await supabaseClient.auth.getSession();
+    const {
+      data: { session },
+    } = await supabaseClient.auth.getSession();
     if (!session) throw new Error("No active session.");
 
     // EXPLICIT ERROR CHECK: Fetch profile
@@ -32,12 +45,14 @@ const evalSession = async () => {
       .select("*")
       .eq("id", session.user.id)
       .single();
-      
+
     if (profileErr) throw new Error(`Database Error: ${profileErr.message}`);
     if (!p) throw new Error("Ghost User: Profile data is missing.");
 
     Object.assign(State, { profile: p, mobile: p.mobile });
-    $("my-avatar").src = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
+    $("my-avatar").src =
+      p.avatar_url ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
     $("my-name").textContent = p.name;
     $("my-mobile-display").textContent = `+91 ${p.mobile}`;
 
@@ -65,37 +80,44 @@ const handleAuth = async (e, isLogin) => {
         .select("email")
         .eq("mobile", mobile)
         .single();
-        
-      if (fetchErr || !p) throw new Error("Mobile not registered. Please register first.");
-      
+
+      if (fetchErr || !p)
+        throw new Error("Mobile not registered. Please register first.");
+
       const { error: authErr } = await supabaseClient.auth.signInWithPassword({
         email: p.email,
         password,
       });
       if (authErr) throw authErr;
-      
     } else {
       const email = $("reg-email").value.trim();
       const name = $("reg-name").value.trim();
-      
-      const { data: { user }, error: signUpErr } = await supabaseClient.auth.signUp({ email, password });
+
+      const {
+        data: { user },
+        error: signUpErr,
+      } = await supabaseClient.auth.signUp({ email, password });
       if (signUpErr) throw signUpErr;
 
       if (user) {
         // EXPLICIT ERROR CHECK: Insert profile
-        const { error: insertErr } = await supabaseClient.from("profiles").insert([
-          {
-            id: user.id,
-            name,
-            mobile,
-            email,
-            gender: $("reg-gender").value,
-            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-          },
-        ]);
-        
+        const { error: insertErr } = await supabaseClient
+          .from("profiles")
+          .insert([
+            {
+              id: user.id,
+              name,
+              mobile,
+              email,
+              gender: $("reg-gender").value,
+              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+            },
+          ]);
+
         if (insertErr) {
-          throw new Error(`Profile creation blocked by database: ${insertErr.message}. RLS might be enabled.`);
+          throw new Error(
+            `Profile creation blocked by database: ${insertErr.message}. RLS might be enabled.`,
+          );
         }
       }
       alert("Operator Provisioned! Attempting Uplink...");
@@ -125,14 +147,17 @@ const logout = async () => {
   location.reload();
 };
 ["logoutBtn", "logoutProfileBtn"].forEach((id) =>
-  $(id)?.addEventListener("click", logout)
+  $(id)?.addEventListener("click", logout),
 );
 $("my-avatar")?.parentElement?.addEventListener("dblclick", logout);
 
 // ==========================================================
 // 3. NAVIGATION, OVERLAY & UI VIEWS
 // ==========================================================
-document.body.insertAdjacentHTML("beforeend", `<div id="mobile-overlay" class="mobile-overlay"></div>`);
+document.body.insertAdjacentHTML(
+  "beforeend",
+  `<div id="mobile-overlay" class="mobile-overlay"></div>`,
+);
 
 const toggleMobileMenu = (forceClose = false) => {
   const isOpening = !$("sidebarMenu").classList.contains("open") && !forceClose;
@@ -144,12 +169,12 @@ const toggleMobileMenu = (forceClose = false) => {
 $("hamburgerBtn")?.addEventListener("click", () => toggleMobileMenu());
 $("mobile-overlay")?.addEventListener("click", () => toggleMobileMenu(true));
 
-$$(".menu-item").forEach(item => {
-  item.addEventListener("click", e => {
+$$(".menu-item").forEach((item) => {
+  item.addEventListener("click", (e) => {
     if (item.id === "logoutBtn") return;
     e.preventDefault();
-    $$(".menu-item").forEach(m => m.classList.remove("active-menu"));
-    $$(".view-section").forEach(v => v.classList.remove("active"));
+    $$(".menu-item").forEach((m) => m.classList.remove("active-menu"));
+    $$(".view-section").forEach((v) => v.classList.remove("active"));
     item.classList.add("active-menu");
     $(item.dataset.view)?.classList.add("active");
     if (window.innerWidth <= 992) toggleMobileMenu(true);
@@ -157,14 +182,18 @@ $$(".menu-item").forEach(item => {
 });
 
 $("mobile-back-btn")?.addEventListener("click", () => {
-  document.querySelector(".chat-layout-engine")?.classList.remove("mobile-chat-active");
+  document
+    .querySelector(".chat-layout-engine")
+    ?.classList.remove("mobile-chat-active");
   State.activeContact = "";
-  ["active-chat-header", "message-input-bar"].forEach(id => $(id).classList.add("hidden"));
-  $$("#contacts-list li").forEach(li => li.classList.remove("active"));
+  ["active-chat-header", "message-input-bar"].forEach((id) =>
+    $(id).classList.add("hidden"),
+  );
+  $$("#contacts-list li").forEach((li) => li.classList.remove("active"));
 });
 
 $("profileCard")?.addEventListener("click", () => {
-  $$(".view-section").forEach(v => v.classList.remove("active"));
+  $$(".view-section").forEach((v) => v.classList.remove("active"));
   $("VIEW-PROFILE")?.classList.add("active");
   $("profile-avatar").src = State.profile.avatar_url;
   $("profile-name").textContent = State.profile.name;
@@ -174,64 +203,102 @@ $("profileCard")?.addEventListener("click", () => {
 });
 
 // ==========================================================
-// 4. CONTACTS ENGINE
+// 4. CONTACTS ENGINE (Now with Timestamp Sorting)
 // ==========================================================
 $("add-contact-btn")?.addEventListener("click", async () => {
-  const contact = $("new-contact-mobile").value.trim(), name = $("new-contact-name").value.trim();
-  if (contact.length !== 10 || !name || contact === State.mobile) return alert("Invalid or self contact.");
+  const contact = $("new-contact-mobile").value.trim(),
+    name = $("new-contact-name").value.trim();
+  if (contact.length !== 10 || !name || contact === State.mobile)
+    return alert("Invalid or self contact.");
   try {
-    const { error } = await supabaseClient.from("contacts").insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+    const { error } = await supabaseClient
+      .from("contacts")
+      .insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
     if (error) throw error;
     $("new-contact-mobile").value = $("new-contact-name").value = "";
     await syncContacts();
     alert("Contact linked successfully.");
-  } catch (err) { alert(`Contact Error: ${err.message}`); }
+  } catch (err) {
+    alert(`Contact Error: ${err.message}`);
+  }
 });
 
 const syncContacts = async () => {
-  // 1. Fetch saved contacts, all profiles, AND all message history
+  // 1. Fetch contacts, profiles, and messages
   const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
-    supabaseClient.from("contacts").select("*").eq("mobile", State.mobile).order("name", { ascending: true }),
+    supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
     supabaseClient.from("profiles").select("mobile, avatar_url, name"),
-    supabaseClient.from("messages").select("sender_mobile, recipient_mobile, is_read").or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`)
+    supabaseClient
+      .from("messages")
+      .select("sender_mobile, recipient_mobile, is_read, created_at")
+      .or(
+        `sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`,
+      ),
   ]);
 
-  const regMap = Object.fromEntries(p?.map(x => [x.mobile, x]) || []);
+  const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
   const unreadMap = {};
   const activeNumbers = new Set();
+  const latestMsgMap = {}; // NEW: Tracks the newest message timestamp for sorting
 
-  // 2. Map unread counts and collect EVERY number you've ever chatted with
-  m?.forEach(msg => {
-    if (msg.recipient_mobile === State.mobile && !msg.is_read) unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
-    if (msg.sender_mobile !== State.mobile) activeNumbers.add(msg.sender_mobile);
-    if (msg.recipient_mobile !== State.mobile) activeNumbers.add(msg.recipient_mobile);
+  // 2. Map unread counts and calculate latest message timestamps
+  m?.forEach((msg) => {
+    const otherParty =
+      msg.sender_mobile === State.mobile
+        ? msg.recipient_mobile
+        : msg.sender_mobile;
+
+    if (msg.recipient_mobile === State.mobile && !msg.is_read) {
+      unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
+    }
+
+    activeNumbers.add(otherParty);
+
+    const msgTime = new Date(msg.created_at).getTime();
+    if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
+      latestMsgMap[otherParty] = msgTime; // Save the most recent timestamp
+    }
   });
 
   const finalContacts = [...(c || [])];
-  const savedNumbers = new Set(finalContacts.map(x => x.contact));
+  const savedNumbers = new Set(finalContacts.map((x) => x.contact));
 
-  // 3. Inject unsaved numbers into the UI dynamically
-  activeNumbers.forEach(num => {
+  // 3. Inject unsaved numbers
+  activeNumbers.forEach((num) => {
     if (!savedNumbers.has(num)) {
-      finalContacts.push({ 
-        contact: num, 
+      finalContacts.push({
+        contact: num,
         name: regMap[num]?.name || `+91 ${num}`,
-        mobile: State.mobile 
+        mobile: State.mobile,
       });
     }
+  });
+
+  // 4. SORTING ENGINE: Reorder array so latest chat is at the top (descending order)
+  finalContacts.sort((a, b) => {
+    const timeA = latestMsgMap[a.contact] || 0;
+    const timeB = latestMsgMap[b.contact] || 0;
+    return timeB - timeA;
   });
 
   renderContacts(finalContacts, regMap, unreadMap);
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
-  const list = $("contacts-list"), grid = document.querySelector(".contacts-directory-grid");
-  if (list) list.innerHTML = contacts.length ? "" : `<li class="placeholder-item" style="text-align:center;color:var(--text-muted);">No contacts found.</li>`;
-  if (grid) $$(".directory-card").forEach(c => c.remove());
+  const list = $("contacts-list"),
+    grid = document.querySelector(".contacts-directory-grid");
+  if (list)
+    list.innerHTML = contacts.length
+      ? ""
+      : `<li class="placeholder-item" style="text-align:center;color:var(--text-muted);">No contacts found.</li>`;
+  if (grid) $$(".directory-card").forEach((c) => c.remove());
 
-  contacts.forEach(c => {
-    const p = regMap[c.contact], unread = unreadMap[c.contact] || 0;
-    const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
+  contacts.forEach((c) => {
+    const p = regMap[c.contact],
+      unread = unreadMap[c.contact] || 0;
+    const avatar =
+      p?.avatar_url ||
+      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
 
     if (list) {
       const li = document.createElement("li");
@@ -243,15 +310,34 @@ const renderContacts = (contacts, regMap, unreadMap) => {
     }
 
     if (grid) {
-      grid.insertAdjacentHTML("beforeend", `<div class="glass-panel directory-card" style="padding:25px;"><div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button><button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button></div></div>`);
-      const card = grid.lastElementChild;
-      card.querySelector(".open-chat-btn").onclick = () => { openChat(c.contact, c.name, avatar, !!p); $('[data-view="VIEW-CHATS"]')?.click(); };
+      // FIXED: Generate nodes safely to avoid DOM selection bugs
+      const card = document.createElement("div");
+      card.className = "glass-panel directory-card";
+      card.style.cssText = "padding:25px;";
+      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button><button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button></div>`;
+
+      // FIXED: Proper querySelector logic for menu switching
+      card.querySelector(".open-chat-btn").onclick = () => {
+        openChat(c.contact, c.name, avatar, !!p);
+        document.querySelector('[data-view="VIEW-CHATS"]')?.click();
+      };
+
       card.querySelector(".delete-contact-btn").onclick = async () => {
         if (!confirm(`Delete ${c.name}?`)) return;
-        await supabaseClient.from("contacts").delete().match({ mobile: State.mobile, contact: c.contact });
-        if (State.activeContact === c.contact) { State.activeContact = ""; $("chat-box").innerHTML = ""; ["active-chat-header", "message-input-bar"].forEach(id => $(id).classList.add("hidden")); }
+        await supabaseClient
+          .from("contacts")
+          .delete()
+          .match({ mobile: State.mobile, contact: c.contact });
+        if (State.activeContact === c.contact) {
+          State.activeContact = "";
+          $("chat-box").innerHTML = "";
+          ["active-chat-header", "message-input-bar"].forEach((id) =>
+            $(id).classList.add("hidden"),
+          );
+        }
         syncContacts();
       };
+      grid.appendChild(card);
     }
   });
 };
@@ -261,33 +347,59 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 // ==========================================================
 const openChat = async (mobile, name, avatar, isReg) => {
   State.activeContact = mobile;
-  $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
+  $$("#contacts-list li").forEach((li) =>
+    li.classList.toggle("active", li.dataset.mobile === mobile),
+  );
 
   $("chat-with-name").textContent = name;
   $("chat-target-avatar").src = avatar;
   $("chat-with-status").textContent = isReg ? "Connected" : "Offline";
   $("chat-with-status").style.color = isReg ? "var(--neon-primary)" : "#ff3366";
 
-  ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
+  ["active-chat-header", "message-input-bar"].forEach((id) =>
+    $(id).classList.remove("hidden"),
+  );
   if (window.innerWidth <= 992) {
-    document.querySelector(".chat-layout-engine")?.classList.add("mobile-chat-active");
+    document
+      .querySelector(".chat-layout-engine")
+      ?.classList.add("mobile-chat-active");
     $("sidebarMenu")?.classList.remove("open");
     $("hamburgerBtn")?.classList.remove("active");
   }
 
-  await supabaseClient.from("messages").update({ is_read: true }).match({ sender_mobile: mobile, recipient_mobile: State.mobile, is_read: false });
-  await syncContacts();
-  loadHistory();
-};
+  // 1. Instantly wipe old messages (Blank canvas, no distracting text)
+  $("chat-box").innerHTML = "";
 
+  // 2. IMMEDIATELY trigger the message fetch (Bypasses the 1-second wait)
+  loadHistory();
+
+  // 3. Process read-receipts silently in the background so it doesn't block the UI
+  supabaseClient
+    .from("messages")
+    .update({ is_read: true })
+    .match({
+      sender_mobile: mobile,
+      recipient_mobile: State.mobile,
+      is_read: false,
+    })
+    .then(() => syncContacts());
+};
 const loadHistory = async () => {
   if (!State.activeContact) return;
-  const { data } = await supabaseClient.from("messages").select("*").or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`).order("created_at", { ascending: true });
+  const { data } = await supabaseClient
+    .from("messages")
+    .select("*")
+    .or(
+      `and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`,
+    )
+    .order("created_at", { ascending: true });
 
   const box = $("chat-box");
-  box.innerHTML = ""; box.dataset.lastDate = "";
+  box.innerHTML = "";
+  box.dataset.lastDate = "";
 
-  if (!data?.length) return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
+  if (!data?.length)
+    return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
   data.forEach((msg) => appendBubble(msg, false));
   box.scrollTop = box.scrollHeight;
 };
@@ -296,15 +408,35 @@ const appendBubble = (msg, autoScroll = true) => {
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
-  const d = new Date(msg.created_at), dStr = d.toDateString();
+  const d = new Date(msg.created_at),
+    dStr = d.toDateString();
+
+  // 1. Generate the Date Label (Today/Yesterday)
   if (box.dataset.lastDate !== dStr) {
-    const label = dStr === new Date().toDateString() ? "Today" : dStr === new Date(Date.now() - 864e5).toDateString() ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-    box.insertAdjacentHTML("beforeend", `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`);
+    const label =
+      dStr === new Date().toDateString()
+        ? "Today"
+        : dStr === new Date(Date.now() - 864e5).toDateString()
+          ? "Yesterday"
+          : d.toLocaleDateString("en-IN", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            });
+    box.insertAdjacentHTML(
+      "beforeend",
+      `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`,
+    );
     box.dataset.lastDate = dStr;
   }
 
+  // 2. Generate the WhatsApp-Style Chat Bubble
   const isMe = msg.sender_mobile === State.mobile;
-  box.insertAdjacentHTML("beforeend", `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:70%;padding:12px 18px;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:8px;"><span style="font-size:0.95rem;line-height:1.5;word-break:break-word;flex:1;">${sanitize(msg.content)}</span><span style="font-size:0.65rem;color:var(--text-muted);font-family:monospace;white-space:nowrap;opacity:.7;">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div></div></div>`);
+  box.insertAdjacentHTML(
+    "beforeend",
+    `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div class="chat-bubble-content">${sanitize(msg.content)}</div><div class="chat-bubble-time">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div></div>`,
+  );
+
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
 
@@ -312,25 +444,66 @@ const sendMsg = async () => {
   const content = $("msg-input").value.trim();
   if (!content || !State.activeContact) return;
   $("msg-input").value = "";
-  const { error } = await supabaseClient.from("messages").insert([{ sender_mobile: State.mobile, recipient_mobile: State.activeContact, content, is_read: false }]);
-  if(error) alert(`Send Error: ${error.message}`);
+  const { error } = await supabaseClient.from("messages").insert([
+    {
+      sender_mobile: State.mobile,
+      recipient_mobile: State.activeContact,
+      content,
+      is_read: false,
+    },
+  ]);
+  if (error) alert(`Send Error: ${error.message}`);
 };
 
 $("send-msg-btn")?.addEventListener("click", sendMsg);
-$("msg-input")?.addEventListener("keydown", (e) => e.key === "Enter" && sendMsg());
+$("msg-input")?.addEventListener(
+  "keydown",
+  (e) => e.key === "Enter" && sendMsg(),
+);
 
+// NEW: Robust Multi-Table Subscription Handler
 const initRealtime = () => {
   State.channel?.unsubscribe();
-  State.channel = supabaseClient.channel("public:messages").on("postgres_changes", { event: "*", schema: "public", table: "messages" }, async (p) => {
-      const msg = p.new || p.old;
-      if (!msg?.sender_mobile) return;
-      const isCurr = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact) || (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
-      if (isCurr && p.eventType === "INSERT") {
-        if (msg.recipient_mobile === State.mobile) await supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id);
-        appendBubble(msg, true);
-        if (msg.recipient_mobile === State.mobile) playSound();
-      } else syncContacts();
-    }).subscribe();
+  State.channel = supabaseClient
+    .channel("public-db-changes")
+    // Watch for new messages to update chats & bump latest message to top
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "messages" },
+      async (p) => {
+        const msg = p.new || p.old;
+        if (!msg?.sender_mobile) return;
+
+        const isCurr =
+          (msg.sender_mobile === State.mobile &&
+            msg.recipient_mobile === State.activeContact) ||
+          (msg.sender_mobile === State.activeContact &&
+            msg.recipient_mobile === State.mobile);
+
+        if (isCurr && p.eventType === "INSERT") {
+          if (msg.recipient_mobile === State.mobile) {
+            await supabaseClient
+              .from("messages")
+              .update({ is_read: true })
+              .eq("id", msg.id);
+          }
+          appendBubble(msg, true);
+          if (msg.recipient_mobile === State.mobile) playSound();
+        }
+
+        // Always sync contacts on message updates to rearrange the order
+        syncContacts();
+      },
+    )
+    // Watch for new/deleted contacts to update directories without reloading
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "contacts" },
+      () => {
+        syncContacts();
+      },
+    )
+    .subscribe();
 };
 
 // ==========================================================
@@ -338,57 +511,180 @@ const initRealtime = () => {
 // ==========================================================
 
 const neonThemes = [
-  { name: "Cyberpunk Pink", hex: "#ff007f" }, { name: "Matrix Green", hex: "#00ff41" },
-  { name: "Plasma Purple", hex: "#b026ff" }, { name: "Quantum Blue", hex: "#00f3ff" },
-  { name: "Solar Flare", hex: "#ffaa00" }, { name: "Toxic Glow", hex: "#ccff00" },
-  { name: "Neon Violet", hex: "#7a00ff" }, { name: "Synthwave Cyan", hex: "#0ff0fc" },
-  { name: "Blood Moon", hex: "#ff003c" }, { name: "Abyssal Blue", hex: "#0055ff" },
-  { name: "Galactic Orchid", hex: "#da70d6" }, { name: "Hyper Gold", hex: "#ffd700" },
-  { name: "Radioactive Lime", hex: "#39ff14" }, { name: "Deep Space Indigo", hex: "#4b0082" },
-  { name: "Crimson Forge", hex: "#dc143c" }, { name: "Arctic Ice", hex: "#a0e6ff" },
-  { name: "Nebula Magenta", hex: "#ff00ff" }, { name: "Void Blacklight", hex: "#8a2be2" },
-  { name: "Hologram Mint", hex: "#98ff98" }, { name: "Supernova Orange", hex: "#ff4500" },
-  { name: "Tritium Glow", hex: "#7fff00" }, { name: "Vaporwave Pink", hex: "#ff71ce" },
-  { name: "Cobalt Core", hex: "#0047ab" }, { name: "Phosphor Yellow", hex: "#ffff00" },
-  { name: "Astral Teal", hex: "#008080" }, { name: "Stellar Peach", hex: "#ffcba4" },
-  { name: "Ionized Rose", hex: "#ff007f" }, { name: "Cherenkov Blue", hex: "#00bfff" },
-  { name: "Dark Matter Grey", hex: "#a9a9a9" }, { name: "Obsidian Ruby", hex: "#e0115f" },
-  { name: "Lucid Emerald", hex: "#50c878" }
+  { name: "Cyberpunk Pink", hex: "#ff007f" },
+  { name: "Matrix Green", hex: "#00ff41" },
+  { name: "Plasma Purple", hex: "#b026ff" },
+  { name: "Quantum Blue", hex: "#00f3ff" },
+  { name: "Solar Flare", hex: "#ffaa00" },
+  { name: "Toxic Glow", hex: "#ccff00" },
+  { name: "Neon Violet", hex: "#7a00ff" },
+  { name: "Synthwave Cyan", hex: "#0ff0fc" },
+  { name: "Blood Moon", hex: "#ff003c" },
+  { name: "Abyssal Blue", hex: "#0055ff" },
+  { name: "Galactic Orchid", hex: "#da70d6" },
+  { name: "Hyper Gold", hex: "#ffd700" },
+  { name: "Radioactive Lime", hex: "#39ff14" },
+  { name: "Deep Space Indigo", hex: "#4b0082" },
+  { name: "Crimson Forge", hex: "#dc143c" },
+  { name: "Arctic Ice", hex: "#a0e6ff" },
+  { name: "Nebula Magenta", hex: "#ff00ff" },
+  { name: "Void Blacklight", hex: "#8a2be2" },
+  { name: "Hologram Mint", hex: "#98ff98" },
+  { name: "Supernova Orange", hex: "#ff4500" },
+  { name: "Tritium Glow", hex: "#7fff00" },
+  { name: "Vaporwave Pink", hex: "#ff71ce" },
+  { name: "Cobalt Core", hex: "#0047ab" },
+  { name: "Phosphor Yellow", hex: "#ffff00" },
+  { name: "Astral Teal", hex: "#008080" },
+  { name: "Stellar Peach", hex: "#ffcba4" },
+  { name: "Ionized Rose", hex: "#ff007f" },
+  { name: "Cherenkov Blue", hex: "#00bfff" },
+  { name: "Dark Matter Grey", hex: "#a9a9a9" },
+  { name: "Obsidian Ruby", hex: "#e0115f" },
+  { name: "Lucid Emerald", hex: "#50c878" },
 ];
 
 const applyTheme = (hex) => {
   document.documentElement.style.setProperty("--neon-primary", hex);
-  document.documentElement.style.setProperty("--neon-rgb", `${parseInt(hex.slice(1,3),16)}, ${parseInt(hex.slice(3,5),16)}, ${parseInt(hex.slice(5,7),16)}`);
+  document.documentElement.style.setProperty(
+    "--neon-rgb",
+    `${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)}`,
+  );
   localStorage.setItem("vani-theme", hex);
 };
 
 // Generate Settings Theme Buttons dynamically
 const themeContainer = $("themeButtonsContainer");
 if (themeContainer) {
-  neonThemes.forEach(t => {
+  neonThemes.forEach((t) => {
     const btn = document.createElement("button");
     btn.className = "theme-btn";
     btn.textContent = t.name;
     btn.style.cssText = `border-color:${t.hex}; color:#fff; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`;
-    btn.onmouseenter = () => btn.style.cssText = `border-color:${t.hex}; color:#000; background:${t.hex}; box-shadow:0 0 20px ${t.hex}, inset 0 0 15px ${t.hex};`;
-    btn.onmouseleave = () => btn.style.cssText = `border-color:${t.hex}; color:#fff; background:transparent; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`;
+    btn.onmouseenter = () =>
+      (btn.style.cssText = `border-color:${t.hex}; color:#000; background:${t.hex}; box-shadow:0 0 20px ${t.hex}, inset 0 0 15px ${t.hex};`);
+    btn.onmouseleave = () =>
+      (btn.style.cssText = `border-color:${t.hex}; color:#fff; background:transparent; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`);
     btn.onclick = () => applyTheme(t.hex);
     themeContainer.appendChild(btn);
   });
 }
+// ==========================================================
+// 7. ADVANCED AUTOMATION & 60FPS CINEMATIC ENGINE
+// ==========================================================
 
-// App Boot & Random Theme Execution
-window.addEventListener("DOMContentLoaded", async () => {
-  // Try to load saved theme, otherwise apply a random one
-  const savedTheme = localStorage.getItem("vani-theme");
-  if (savedTheme) {
-    applyTheme(savedTheme);
-  } else {
-    const randomTheme = neonThemes[Math.floor(Math.random() * neonThemes.length)];
-    applyTheme(randomTheme.hex);
+let cinematicFrameId = null;
+let cinematicStartTime = null;
+
+// Mathematical converter to turn smooth Light/Color waves into strict RGB codes
+const hslToRgb = (h, s, l) => {
+  s /= 100;
+  l /= 100;
+  const k = (n) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n) =>
+    l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
+  return [
+    Math.round(255 * f(0)),
+    Math.round(255 * f(8)),
+    Math.round(255 * f(4)),
+  ];
+};
+
+// The 60 Frames-Per-Second Render Loop
+const cinematicLoop = (timestamp) => {
+  if (!cinematicStartTime) cinematicStartTime = timestamp;
+  const elapsed = timestamp - cinematicStartTime;
+
+  // 25-Second Seamless Loop
+  const cycle = (elapsed % 25000) / 25000;
+  const hue = cycle * 360;
+
+  // The "Dimming" Physics (Breathes between 50% and 35% brightness)
+  const lightness = 50 + 15 * Math.cos(cycle * Math.PI * 2);
+
+  // Calculate exact RGB
+  const [r, g, b] = hslToRgb(hue, 100, lightness);
+
+  // Surgically inject the new colors directly into the CSS variables
+  document.documentElement.style.setProperty(
+    "--neon-primary",
+    `rgb(${r}, ${g}, ${b})`,
+  );
+  document.documentElement.style.setProperty("--neon-rgb", `${r}, ${g}, ${b}`);
+
+  // Request the next frame
+  cinematicFrameId = requestAnimationFrame(cinematicLoop);
+};
+
+const enableCinematicMode = () => {
+  // Lock out the Settings UI
+  $("toggle-random-boot").disabled = true;
+  $("toggle-random-boot").parentElement.classList.add("theme-locked");
+  $$(".theme-btn").forEach((btn) => btn.classList.add("theme-locked"));
+
+  // Ignite the render engine
+  if (!cinematicFrameId) {
+    cinematicStartTime = null; // Reset timer
+    cinematicFrameId = requestAnimationFrame(cinematicLoop);
+  }
+};
+
+const disableCinematicMode = () => {
+  // Unlock the Settings UI
+  $("toggle-random-boot").disabled = false;
+  $("toggle-random-boot").parentElement.classList.remove("theme-locked");
+  $$(".theme-btn").forEach((btn) => btn.classList.remove("theme-locked"));
+
+  // Kill the render engine
+  if (cinematicFrameId) {
+    cancelAnimationFrame(cinematicFrameId);
+    cinematicFrameId = null;
   }
 
-  // Boot Supabase & Session
+  // Snap back to a valid theme
+  if ($("toggle-random-boot").checked) {
+    const randomTheme =
+      neonThemes[Math.floor(Math.random() * neonThemes.length)];
+    applyTheme(randomTheme.hex);
+  } else {
+    const savedTheme = localStorage.getItem("vani-theme");
+    applyTheme(savedTheme || neonThemes[0].hex);
+  }
+};
+
+const bootThemeEngine = () => {
+  const prefRandomBoot = localStorage.getItem("vani-random-boot") !== "false";
+  const prefCinematic = localStorage.getItem("vani-cinematic") === "true";
+  const savedTheme = localStorage.getItem("vani-theme");
+
+  const randomToggle = $("toggle-random-boot");
+  const cinematicToggle = $("toggle-cinematic-mode");
+
+  if (randomToggle) randomToggle.checked = prefRandomBoot;
+  if (cinematicToggle) cinematicToggle.checked = prefCinematic;
+
+  if (prefCinematic) {
+    enableCinematicMode();
+  } else {
+    disableCinematicMode();
+  }
+
+  randomToggle?.addEventListener("change", (e) => {
+    localStorage.setItem("vani-random-boot", e.target.checked);
+  });
+
+  cinematicToggle?.addEventListener("change", (e) => {
+    const isOn = e.target.checked;
+    localStorage.setItem("vani-cinematic", isOn);
+    isOn ? enableCinematicMode() : disableCinematicMode();
+  });
+};
+
+// --- SYSTEM BOOT SEQUENCE ---
+window.addEventListener("DOMContentLoaded", async () => {
+  bootThemeEngine();
+
   if (typeof supabase === "undefined") {
     const s = document.createElement("script");
     s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
