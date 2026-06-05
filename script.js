@@ -525,8 +525,10 @@ const initRealtime = () => {
     console.log(`🔌 Initializing Realtime for User: ${State.mobile}`);
 
     // Clean up any old ghost subscriptions
+    // Clean up any old ghost subscriptions safely
     if (State.channel) {
-        State.channel.unsubscribe();
+        supabaseClient.removeChannel(State.channel);
+        State.channel = null;
     }
 
     State.channel = supabaseClient
@@ -765,6 +767,31 @@ $("msg-input")?.addEventListener("focus", () => {
             box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
         }
     }, 300); // 300ms allows the keyboard sliding animation to finish
+});
+
+// ==========================================================
+// 🛡️ ANTI-SLEEP & TAB THROTTLING WAKE-UP ENGINE
+// ==========================================================
+document.addEventListener("visibilitychange", async () => {
+    // When the user switches back to this tab from another tab or app
+    if (document.visibilityState === "visible") {
+        if (State && State.mobile) {
+            console.log("🔄 VANI Waking up from background... Resyncing matrix.");
+            
+            // 1. Fetch any messages that were sent while the tab was asleep
+            await syncContacts(); 
+            if (State.activeContact) {
+                await loadHistory();
+            }
+            
+            // 2. Force a reboot of the Realtime socket to ensure it isn't frozen
+            if (typeof initRealtime === "function") {
+                initRealtime(); 
+            }
+        }
+    } else {
+        console.log("💤 VANI Tab hidden. Browser may throttle connection.");
+    }
 });
 
 // --- SYSTEM BOOT SEQUENCE ---
