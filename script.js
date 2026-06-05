@@ -224,64 +224,56 @@ $("add-contact-btn")?.addEventListener("click", async () => {
 });
 
 const syncContacts = async () => {
-  // 1. Fetch contacts, profiles, and messages
-  const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
-    supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
-    supabaseClient.from("profiles").select("mobile, avatar_url, name"),
-    supabaseClient
-      .from("messages")
-      .select("sender_mobile, recipient_mobile, is_read, created_at")
-      .or(
-        `sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`,
-      ),
-  ]);
+  try {
+    // 1. Fetch contacts, profiles, and messages
+    const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
+      supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
+      supabaseClient.from("profiles").select("mobile, avatar_url, name"),
+      supabaseClient
+        .from("messages")
+        .select("sender_mobile, recipient_mobile, is_read, created_at")
+        .or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`),
+    ]);
 
-  const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
-  const unreadMap = {};
-  const activeNumbers = new Set();
-  const latestMsgMap = {}; // NEW: Tracks the newest message timestamp for sorting
+    const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
+    const unreadMap = {};
+    const activeNumbers = new Set();
+    const latestMsgMap = {}; 
 
-  // 2. Map unread counts and calculate latest message timestamps
-  m?.forEach((msg) => {
-    const otherParty =
-      msg.sender_mobile === State.mobile
-        ? msg.recipient_mobile
-        : msg.sender_mobile;
+    // 2. Map unread counts and calculate latest message timestamps
+    m?.forEach((msg) => {
+      const otherParty = msg.sender_mobile === State.mobile ? msg.recipient_mobile : msg.sender_mobile;
+      if (msg.recipient_mobile === State.mobile && !msg.is_read) {
+        unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
+      }
+      activeNumbers.add(otherParty);
+      const msgTime = new Date(msg.created_at).getTime();
+      if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
+        latestMsgMap[otherParty] = msgTime; 
+      }
+    });
 
-    if (msg.recipient_mobile === State.mobile && !msg.is_read) {
-      unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
-    }
+    const finalContacts = [...(c || [])];
+    const savedNumbers = new Set(finalContacts.map((x) => x.contact));
 
-    activeNumbers.add(otherParty);
+    // 3. Inject unsaved numbers
+    activeNumbers.forEach((num) => {
+      if (!savedNumbers.has(num)) {
+        finalContacts.push({ contact: num, name: regMap[num]?.name || `+91 ${num}`, mobile: State.mobile });
+      }
+    });
 
-    const msgTime = new Date(msg.created_at).getTime();
-    if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
-      latestMsgMap[otherParty] = msgTime; // Save the most recent timestamp
-    }
-  });
+    // 4. SORTING ENGINE
+    finalContacts.sort((a, b) => {
+      const timeA = latestMsgMap[a.contact] || 0;
+      const timeB = latestMsgMap[b.contact] || 0;
+      return timeB - timeA;
+    });
 
-  const finalContacts = [...(c || [])];
-  const savedNumbers = new Set(finalContacts.map((x) => x.contact));
-
-  // 3. Inject unsaved numbers
-  activeNumbers.forEach((num) => {
-    if (!savedNumbers.has(num)) {
-      finalContacts.push({
-        contact: num,
-        name: regMap[num]?.name || `+91 ${num}`,
-        mobile: State.mobile,
-      });
-    }
-  });
-
-  // 4. SORTING ENGINE: Reorder array so latest chat is at the top (descending order)
-  finalContacts.sort((a, b) => {
-    const timeA = latestMsgMap[a.contact] || 0;
-    const timeB = latestMsgMap[b.contact] || 0;
-    return timeB - timeA;
-  });
-
-  renderContacts(finalContacts, regMap, unreadMap);
+    renderContacts(finalContacts, regMap, unreadMap);
+  } catch (error) {
+    console.error("Background sync isolated and recovered from failure:", error);
+  }
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
@@ -343,63 +335,42 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 };
 
 // ==========================================================
-// 5. CHAT ENGINE & REALTIME
+// 5. CHAT ENGINE & REALTIME (Optimistic UI Upgrade)
 // ==========================================================
 const openChat = async (mobile, name, avatar, isReg) => {
   State.activeContact = mobile;
-  $$("#contacts-list li").forEach((li) =>
-    li.classList.toggle("active", li.dataset.mobile === mobile),
-  );
+  $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
 
   $("chat-with-name").textContent = name;
   $("chat-target-avatar").src = avatar;
   $("chat-with-status").textContent = isReg ? "Connected" : "Offline";
   $("chat-with-status").style.color = isReg ? "var(--neon-primary)" : "#ff3366";
 
-  ["active-chat-header", "message-input-bar"].forEach((id) =>
-    $(id).classList.remove("hidden"),
-  );
+  ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
   if (window.innerWidth <= 992) {
-    document
-      .querySelector(".chat-layout-engine")
-      ?.classList.add("mobile-chat-active");
+    document.querySelector(".chat-layout-engine")?.classList.add("mobile-chat-active");
     $("sidebarMenu")?.classList.remove("open");
     $("hamburgerBtn")?.classList.remove("active");
   }
 
-  // 1. Instantly wipe old messages (Blank canvas, no distracting text)
   $("chat-box").innerHTML = "";
-
-  // 2. IMMEDIATELY trigger the message fetch (Bypasses the 1-second wait)
   loadHistory();
 
-  // 3. Process read-receipts silently in the background so it doesn't block the UI
-  supabaseClient
-    .from("messages")
-    .update({ is_read: true })
-    .match({
-      sender_mobile: mobile,
-      recipient_mobile: State.mobile,
-      is_read: false,
-    })
-    .then(() => syncContacts());
+  supabaseClient.from("messages").update({ is_read: true }).match({
+    sender_mobile: mobile,
+    recipient_mobile: State.mobile,
+    is_read: false,
+  }).then(() => syncContacts());
 };
+
 const loadHistory = async () => {
   if (!State.activeContact) return;
-  const { data } = await supabaseClient
-    .from("messages")
-    .select("*")
-    .or(
-      `and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`,
-    )
-    .order("created_at", { ascending: true });
+  const { data } = await supabaseClient.from("messages").select("*").or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`).order("created_at", { ascending: true });
 
   const box = $("chat-box");
-  box.innerHTML = "";
-  box.dataset.lastDate = "";
+  box.innerHTML = ""; box.dataset.lastDate = "";
 
-  if (!data?.length)
-    return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
+  if (!data?.length) return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
   data.forEach((msg) => appendBubble(msg, false));
   box.scrollTop = box.scrollHeight;
 };
@@ -408,101 +379,102 @@ const appendBubble = (msg, autoScroll = true) => {
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
-  const d = new Date(msg.created_at),
-    dStr = d.toDateString();
+  // 🛡️ THE DUPLICATE SHIELD: Prevents Realtime from cloning messages we already drew
+  if (msg.id && box.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
-  // 1. Generate the Date Label (Today/Yesterday)
+  const d = new Date(msg.created_at), dStr = d.toDateString();
+
   if (box.dataset.lastDate !== dStr) {
-    const label =
-      dStr === new Date().toDateString()
-        ? "Today"
-        : dStr === new Date(Date.now() - 864e5).toDateString()
-          ? "Yesterday"
-          : d.toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            });
-    box.insertAdjacentHTML(
-      "beforeend",
-      `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`,
-    );
+    const label = dStr === new Date().toDateString() ? "Today" : dStr === new Date(Date.now() - 864e5).toDateString() ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    box.insertAdjacentHTML("beforeend", `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`);
     box.dataset.lastDate = dStr;
   }
 
-  // 2. Generate the WhatsApp-Style Chat Bubble
   const isMe = msg.sender_mobile === State.mobile;
   box.insertAdjacentHTML(
     "beforeend",
-    `<div class="message-enter" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div class="chat-bubble-content">${sanitize(msg.content)}</div><div class="chat-bubble-time">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div></div>`,
+    `<div class="message-enter" data-msg-id="${msg.id}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div class="chat-bubble-content">${sanitize(msg.content)}</div><div class="chat-bubble-time">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div></div>`
   );
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
 
-const sendMsg = async () => {
+const sendMsg = async (e) => {
+  if (e) e.preventDefault(); // STOPS silent layout reloads
   const content = $("msg-input").value.trim();
   if (!content || !State.activeContact) return;
-  $("msg-input").value = "";
-  const { error } = await supabaseClient.from("messages").insert([
+  
+  $("msg-input").value = ""; 
+
+  // ⚡ OPTIMISTIC UI: Draw the bubble instantly before the DB even responds
+  const tempId = "temp-" + Date.now();
+  const optimisticMsg = {
+     id: tempId,
+     sender_mobile: State.mobile,
+     recipient_mobile: State.activeContact,
+     content: content,
+     created_at: new Date().toISOString()
+  };
+  appendBubble(optimisticMsg, true);
+  syncContacts(); // Instantly bump this chat to the top
+
+  // 💾 BACKGROUND DB UPLOAD
+  const { data, error } = await supabaseClient.from("messages").insert([
     {
       sender_mobile: State.mobile,
       recipient_mobile: State.activeContact,
       content,
       is_read: false,
     },
-  ]);
-  if (error) alert(`Send Error: ${error.message}`);
+  ]).select().single(); // Ask DB to return the final generated row
+
+  if (error) {
+      alert(`Send Error: ${error.message}`);
+      $(`[data-msg-id="${tempId}"]`)?.remove(); // Wipe the fake bubble if offline
+      return;
+  }
+
+  // 🔄 SILENT SWAP: Replace our temporary ID with the real Database UUID
+  const bubble = document.querySelector(`[data-msg-id="${tempId}"]`);
+  if (bubble) bubble.dataset.msgId = data.id;
 };
 
-$("send-msg-btn")?.addEventListener("click", sendMsg);
-$("msg-input")?.addEventListener(
-  "keydown",
-  (e) => e.key === "Enter" && sendMsg(),
-);
+// Listeners securely pass the event object to block reloads
+$("send-msg-btn")?.addEventListener("click", (e) => sendMsg(e));
+$("msg-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        sendMsg(e);
+    }
+});
 
-// NEW: Robust Multi-Table Subscription Handler
+// 📡 BULLETPROOF REALTIME ENGINE
 const initRealtime = () => {
   State.channel?.unsubscribe();
   State.channel = supabaseClient
     .channel("public-db-changes")
-    // Watch for new messages to update chats & bump latest message to top
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "messages" },
-      async (p) => {
-        const msg = p.new || p.old;
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
+        const msg = p.new;
         if (!msg?.sender_mobile) return;
 
-        const isCurr =
-          (msg.sender_mobile === State.mobile &&
-            msg.recipient_mobile === State.activeContact) ||
-          (msg.sender_mobile === State.activeContact &&
-            msg.recipient_mobile === State.mobile);
+        const isCurr = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact) || 
+                       (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
 
-        if (isCurr && p.eventType === "INSERT") {
+        if (isCurr) {
           if (msg.recipient_mobile === State.mobile) {
-            await supabaseClient
-              .from("messages")
-              .update({ is_read: true })
-              .eq("id", msg.id);
+            // Update read receipts completely in the background
+            supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id).then(() => syncContacts());
+            playSound();
           }
-          appendBubble(msg, true);
-          if (msg.recipient_mobile === State.mobile) playSound();
+          // The Duplicate Shield ignores this if we just sent it ourselves
+          appendBubble(msg, true); 
+        } else if (msg.recipient_mobile === State.mobile) {
+            playSound(); 
         }
 
-        // Always sync contacts on message updates to rearrange the order
         syncContacts();
-      },
-    )
-    // Watch for new/deleted contacts to update directories without reloading
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "contacts" },
-      () => {
-        syncContacts();
-      },
-    )
+    })
+    .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => syncContacts())
     .subscribe();
 };
 
