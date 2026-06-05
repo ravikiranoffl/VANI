@@ -235,6 +235,13 @@ $("profileCard")?.addEventListener("click", () => {
 // ==========================================================
 // 4. CONTACTS ENGINE (Now with Timestamp Sorting)
 // ==========================================================
+
+
+const refreshContactsUI = async () => {
+    // We re-run syncContacts, which contains your sorting logic
+    await syncContacts(); 
+};
+
 $("add-contact-btn")?.addEventListener("click", async () => {
   const contact = $("new-contact-mobile").value.trim(),
     name = $("new-contact-name").value.trim();
@@ -254,56 +261,28 @@ $("add-contact-btn")?.addEventListener("click", async () => {
 });
 
 const syncContacts = async () => {
-  try {
-    // 1. Fetch contacts, profiles, and messages
-    const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
-      supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
-      supabaseClient.from("profiles").select("mobile, avatar_url, name"),
-      supabaseClient
-        .from("messages")
-        .select("sender_mobile, recipient_mobile, is_read, created_at")
-        .or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`),
-    ]);
+  const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
+    supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
+    supabaseClient.from("profiles").select("mobile, avatar_url, name"),
+    supabaseClient.from("messages").select("sender_mobile, recipient_mobile, is_read, created_at").or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`),
+  ]);
 
-    const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
-    const unreadMap = {};
-    const activeNumbers = new Set();
-    const latestMsgMap = {}; 
+  const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
+  const latestMsgMap = {}; 
 
-    // 2. Map unread counts and calculate latest message timestamps
-    m?.forEach((msg) => {
-      const otherParty = msg.sender_mobile === State.mobile ? msg.recipient_mobile : msg.sender_mobile;
-      if (msg.recipient_mobile === State.mobile && !msg.is_read) {
-        unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
-      }
-      activeNumbers.add(otherParty);
-      const msgTime = new Date(msg.created_at).getTime();
-      if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
-        latestMsgMap[otherParty] = msgTime; 
-      }
-    });
+  m?.forEach((msg) => {
+    const otherParty = msg.sender_mobile === State.mobile ? msg.recipient_mobile : msg.sender_mobile;
+    const msgTime = new Date(msg.created_at).getTime();
+    if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
+      latestMsgMap[otherParty] = msgTime; 
+    }
+  });
 
-    const finalContacts = [...(c || [])];
-    const savedNumbers = new Set(finalContacts.map((x) => x.contact));
+  const finalContacts = [...(c || [])];
+  // Sorting Engine: Reorder array based on the latest message timestamp[cite: 2]
+  finalContacts.sort((a, b) => (latestMsgMap[b.contact] || 0) - (latestMsgMap[a.contact] || 0));
 
-    // 3. Inject unsaved numbers
-    activeNumbers.forEach((num) => {
-      if (!savedNumbers.has(num)) {
-        finalContacts.push({ contact: num, name: regMap[num]?.name || `+91 ${num}`, mobile: State.mobile });
-      }
-    });
-
-    // 4. SORTING ENGINE
-    finalContacts.sort((a, b) => {
-      const timeA = latestMsgMap[a.contact] || 0;
-      const timeB = latestMsgMap[b.contact] || 0;
-      return timeB - timeA;
-    });
-
-    renderContacts(finalContacts, regMap, unreadMap);
-  } catch (error) {
-    console.error("Background sync isolated and recovered from failure:", error);
-  }
+  renderContacts(finalContacts, regMap, {});
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
@@ -395,35 +374,80 @@ const openChat = async (mobile, name, avatar, isReg) => {
 
 const loadHistory = async () => {
   if (!State.activeContact) return;
-  const { data } = await supabaseClient.from("messages").select("*").or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`).order("created_at", { ascending: true });
+  
+  // LIMIT is used to keep the app fast regardless of database size
+  const { data } = await supabaseClient
+    .from("messages")
+    .select("*")
+    .or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`)
+    .order("created_at", { ascending: false }) // Fetch newest first
+    .limit(50); // Get only the last 50 messages[cite: 2]
 
   const box = $("chat-box");
-  box.innerHTML = ""; box.dataset.lastDate = "";
+  box.innerHTML = "";
+  box.dataset.lastLabel = ""; // Reset date tracking
 
-  if (!data?.length) return (box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No communication history found.</p></div>`);
-  data.forEach((msg) => appendBubble(msg, false));
-  box.scrollTop = box.scrollHeight;
+  if (!data?.length) {
+    box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No history found.</p></div>`;
+  } else {
+    // Reverse data so chronological order is restored for rendering
+    data.reverse().forEach((msg) => appendBubble(msg, false));
+    box.scrollTop = box.scrollHeight;
+  }
 };
 
 const appendBubble = (msg, autoScroll = true) => {
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
-  // 🛡️ THE DUPLICATE SHIELD: Prevents Realtime from cloning messages we already drew
+  // 🛡️ THE DUPLICATE SHIELD
   if (msg.id && box.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
-  const d = new Date(msg.created_at), dStr = d.toDateString();
+  const msgDate = new Date(msg.created_at);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
 
-  if (box.dataset.lastDate !== dStr) {
-    const label = dStr === new Date().toDateString() ? "Today" : dStr === new Date(Date.now() - 864e5).toDateString() ? "Yesterday" : d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-    box.insertAdjacentHTML("beforeend", `<div style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:8px 16px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.8rem;backdrop-filter:blur(10px);">${label}</div></div>`);
-    box.dataset.lastDate = dStr;
+  // 1. DYNAMIC DATE LABEL LOGIC
+  const getLabel = (d) => {
+    if (d.toDateString() === today.toDateString()) return "Today";
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  const currentLabel = getLabel(msgDate);
+  const lastLabel = box.dataset.lastLabel;
+
+  // 2. Inject Date Divider if the boundary has shifted
+  if (lastLabel !== currentLabel) {
+    box.insertAdjacentHTML(
+      "beforeend",
+      `<div class="date-divider" style="display:flex;justify-content:center;margin:20px 0;">
+        <div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);
+                    border:1px solid var(--glass-border);color:var(--text-muted);
+                    font-size:0.75rem;backdrop-filter:blur(10px);letter-spacing:0.5px;">
+          ${currentLabel}
+        </div>
+      </div>`
+    );
+    box.dataset.lastLabel = currentLabel;
   }
 
+  // 3. Render Message Bubble
   const isMe = msg.sender_mobile === State.mobile;
   box.insertAdjacentHTML(
     "beforeend",
-    `<div class="message-enter" data-msg-id="${msg.id}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;"><div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};backdrop-filter:blur(10px);"><div class="chat-bubble-content">${sanitize(msg.content)}</div><div class="chat-bubble-time">${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div></div></div>`
+    `<div class="message-enter" data-msg-id="${msg.id}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+       <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
+                                      border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
+                                      border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
+                                      backdrop-filter:blur(10px);padding:10px 14px;">
+         <div class="chat-bubble-content">${sanitize(msg.content)}</div>
+         <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
+           ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+         </div>
+       </div>
+     </div>`
   );
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
