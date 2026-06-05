@@ -800,10 +800,26 @@ body,
     width: 100%;
 }
 /* ========================================================== */
-/* --- ULTIMATE MOBILE UI OVERHAUL & KEYBOARD FIXES --- */
+/* --- ULTIMATE MOBILE UI OVERHAUL & FULL-SCREEN LOCK --- */
 /* ========================================================== */
 
-/* 1. Force the Input and Send Button to stay on the same row */
+/* 1. The WhatsApp-Style Send Button */
+.icon-send-btn {
+    width: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important; 
+    flex-shrink: 0 !important;
+    margin-left: 10px !important; 
+}
+
+.icon-send-btn svg {
+    transform: translateX(-1px) translateY(1px); /* Optical center */
+}
+
 @media (max-width: 768px) {
     .message-input-console {
         flex-direction: row !important; 
@@ -812,24 +828,13 @@ body,
     }
 }
 
-/* 2. The WhatsApp-Style Send Button */
-.icon-send-btn {
-    width: 48px !important;
-    height: 48px !important;
-    padding: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 50% !important; /* Perfect circle */
-    flex-shrink: 0 !important;
-    margin: 0 0 0 10px !important; /* Spacing from input */
+/* 2. THE KEY TO THE ESCAPE: Break the "Transform Trap" */
+#VIEW-CHATS.active {
+    transform: none !important;
+    filter: none !important;
 }
 
-.icon-send-btn svg {
-    transform: translateX(-1px) translateY(1px); /* Optical centering for the arrow */
-}
-
-/* 3. True Full-Screen Mobile Chat (Covers Top Header Completely) */
+/* 3. True Full-Screen Mobile Chat (Buries Top Header Completely) */
 @media (max-width: 992px) {
     .chat-layout-engine.mobile-chat-active .chat-area-viewport {
         position: fixed !important;
@@ -838,9 +843,8 @@ body,
         left: 0 !important;
         right: 0 !important;
         width: 100vw !important;
-        /* dvh (Dynamic Viewport Height) naturally resizes when the keyboard opens! */
         height: 100dvh !important; 
-        z-index: 99999 !important; /* Guaranteed to cover the mobile-header */
+        z-index: 999999 !important; /* Extreme z-index overrides everything */
         background: var(--bg-deep) !important;
         display: flex !important;
         flex-direction: column !important;
@@ -850,24 +854,27 @@ body,
 
     /* 4. Native App Top Header Positioning */
     .chat-layout-engine.mobile-chat-active .chat-header-bar {
+        flex: 0 0 auto !important; /* Locks header size */
         padding-top: max(15px, env(safe-area-inset-top)) !important;
-        background: rgba(10, 10, 15, 0.98) !important; /* Solid background hides scrolling text */
+        background: rgba(10, 10, 15, 0.98) !important;
         border-bottom: 1px solid var(--glass-border) !important;
         z-index: 10 !important;
     }
 
-    /* 5. Smooth Keyboard Scrolling constraints */
+    /* 5. The Flex-Lock: Guarantees input stays on screen */
     .chat-layout-engine.mobile-chat-active .chat-box-stream {
-        flex: 1 1 auto !important;
-        height: 0 !important;
+        flex: 1 1 0% !important; /* Forces messages to yield space to the input */
         overflow-y: auto !important;
         padding-bottom: 15px !important;
-        -webkit-overflow-scrolling: touch !important; /* iOS momentum scroll */
+        -webkit-overflow-scrolling: touch !important; 
     }
 
+    /* 6. Lock the Input Bar to the exact bottom of the screen */
     .chat-layout-engine.mobile-chat-active .message-input-console {
+        flex: 0 0 auto !important; /* Locks input size */
         background: var(--bg-deep) !important;
-        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; /* SafeArea fix */
+        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; 
+        border-top: 1px solid var(--glass-border) !important;
         z-index: 10 !important;
     }
 }
