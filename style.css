@@ -863,23 +863,29 @@ body,
         padding: 0 !important;
     }
 
-    /* 5. TOP HEADER (Locked to Top) */
+    /* 5. TOP HEADER (Immovable, Stapled to the Roof) */
     body.in-mobile-chat .chat-header-bar {
+        position: absolute !important; /* Detaches from layout */
+        top: 0 !important; /* Locks to the absolute top edge */
+        left: 0 !important;
+        width: 100vw !important;
+        z-index: 9999 !important; /* Keeps it above everything */
         display: flex !important;
-        flex: 0 0 auto !important;
-        width: 100% !important;
-        background: #08080b !important;
+        background: rgba(8, 8, 11, 0.95) !important; /* Slight transparency */
+        backdrop-filter: blur(10px) !important;
+        -webkit-backdrop-filter: blur(10px) !important;
         padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px !important;
         border-bottom: 1px solid rgba(255,255,255,0.1) !important;
         box-sizing: border-box !important;
     }
 
-    /* 6. MESSAGES AREA (Flexible Scrollable Middle) */
+    /* 6. MESSAGES AREA (Pushed down to clear the stapled header) */
     body.in-mobile-chat .chat-box-stream {
         flex: 1 1 auto !important;
         width: 100% !important;
         overflow-y: auto !important;
-        padding: 15px !important;
+        /* 95px Top Padding prevents the first messages from hiding under the fixed header */
+        padding: 95px 15px 15px 15px !important; 
         box-sizing: border-box !important;
         -webkit-overflow-scrolling: touch !important;
     }
