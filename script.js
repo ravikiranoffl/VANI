@@ -503,43 +503,70 @@ $("msg-input")?.addEventListener("keydown", (e) => {
     }
 });
 
-// 📡 BULLETPROOF REALTIME ENGINE
+// 📡 THE DIAGNOSTIC REALTIME ENGINE
 const initRealtime = () => {
-  State.channel?.unsubscribe();
-  State.channel = supabaseClient
-    .channel("public-db-changes")
-    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (p) => {
-        const msg = p.new;
-        if (!msg?.sender_mobile) return;
+    // 1. Verify State before we even try to connect
+    if (!State || !State.mobile) {
+        console.error("❌ REALTIME ABORTED: State.mobile is missing. You must log in first!");
+        return;
+    }
 
-        // Are we currently staring at the person who just messaged us?
-        const isCurrentlyViewingChat = 
-          (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
-        
-        // Did we just send this message ourselves from another device?
-        const isMyOwnMessage = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact);
+    console.log(`🔌 Initializing Realtime for User: ${State.mobile}`);
 
-        if (isCurrentlyViewingChat) {
-          // SCENARIO A: We are in the chat. 
-          // 1. Play soft receive pop. 2. Mark as read instantly. 3. Draw bubble. (NO BADGES)
-          playSound("receive");
-          supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id).then(() => syncContacts());
-          appendBubble(msg, true); 
-          
-        } else if (isMyOwnMessage) {
-          // We sent this. Just draw it on screen.
-          appendBubble(msg, true);
-          syncContacts();
-          
-        } else if (msg.recipient_mobile === State.mobile) {
-          // SCENARIO B: We are NOT in the chat.
-          // 1. Play loud notification ping. 2. Do NOT mark read. 3. Update sidebar to show Neon Badge!
-          playSound("receive");
-          syncContacts(); 
-        }
-    })
-    .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => syncContacts())
-    .subscribe();
+    // Clean up any old ghost subscriptions
+    if (State.channel) {
+        State.channel.unsubscribe();
+    }
+
+    State.channel = supabaseClient
+        .channel("vani-realtime-channel") // Changed name to ensure a fresh socket
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
+            const msg = p.new;
+            
+            console.log("-----------------------------------------");
+            console.log("📥 NEW MESSAGE DETECTED IN DATABASE!");
+            console.log("Payload:", msg);
+            console.log("Current App State -> My Mobile:", State.mobile, "| Looking at Contact:", State.activeContact);
+            
+            if (!msg?.sender_mobile) {
+                console.warn("⚠️ Invalid message payload received.");
+                return;
+            }
+
+            // Using Loose Equality (==) to prevent String/Number mismatches
+            const isCurrentlyViewingChat = (msg.sender_mobile == State.activeContact && msg.recipient_mobile == State.mobile);
+            const isMyOwnMessage = (msg.sender_mobile == State.mobile && msg.recipient_mobile == State.activeContact);
+            const isForMeButImElsewhere = (msg.recipient_mobile == State.mobile && msg.sender_mobile != State.activeContact);
+
+            if (isCurrentlyViewingChat) {
+                console.log("✅ SCENARIO A: You are viewing this chat. Appending bubble and playing receive ping.");
+                playSound("receive");
+                await supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id);
+                appendBubble(msg, true);
+                await refreshContactsUI(); // Force sidebar update
+            } 
+            else if (isMyOwnMessage) {
+                console.log("✅ SCENARIO B: You sent this from another device. Appending bubble.");
+                appendBubble(msg, true);
+                await refreshContactsUI();
+            } 
+            else if (isForMeButImElsewhere) {
+                console.log("✅ SCENARIO C: Message is for you, but you are looking at another screen. Playing ping.");
+                playSound("receive");
+                await refreshContactsUI();
+            } 
+            else {
+                console.log("🛑 SCENARIO D: Message is completely unrelated to your current view. Ignoring.");
+            }
+            console.log("-----------------------------------------");
+        })
+        .subscribe((status, err) => {
+            if (status === 'SUBSCRIBED') {
+                console.log("🟢 VANI REALTIME IS LIVE AND LISTENING.");
+            } else {
+                console.error("🔴 VANI REALTIME FAILED. Status:", status, "Error:", err);
+            }
+        });
 };
 
 // ==========================================================
