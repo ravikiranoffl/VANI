@@ -325,18 +325,23 @@
                     <!-- Populated by script.js -->
                   </div>
 
-                  <div
-                    id="message-input-bar"
-                    class="message-input-console hidden"
-                  >
+                  <div id="message-input-bar" class="message-input-console hidden">
                     <input
                       type="text"
                       id="msg-input"
-                      placeholder="Type your Message here"
+                      name="chat-message-input"
+                      placeholder="Type a message..."
                       autocomplete="off"
+                      data-lpignore="true"
+                      data-form-type="other"
+                      spellcheck="true"
                     />
-                    <button id="send-msg-btn" class="glow-btn">
-                      Send Message
+                    
+                    <button id="send-msg-btn" class="glow-btn icon-send-btn">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                      </svg>
                     </button>
                   </div>
                 </section>

@@ -746,6 +746,16 @@ const bootThemeEngine = () => {
   audioToggle?.addEventListener("change", (e) => localStorage.setItem("vani-audio", e.target.checked));
 };
 
+// ⌨️ MOBILE KEYBOARD FIX: Automatically scroll to bottom when keyboard opens
+$("msg-input")?.addEventListener("focus", () => {
+    setTimeout(() => {
+        const box = $("chat-box");
+        if (box) {
+            box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+        }
+    }, 300); // 300ms allows the keyboard sliding animation to finish
+});
+
 // --- SYSTEM BOOT SEQUENCE ---
 window.addEventListener("DOMContentLoaded", async () => {
   bootThemeEngine();
