@@ -14,6 +14,7 @@ const toggleUI = (show) => {
   $("auth-view-wrapper")?.classList.toggle("hidden", show);
   $("chat-screen")?.classList.toggle("hidden", !show);
 };
+
 const sanitize = (s) =>
   s.replace(
     /[&<>"']/g,
@@ -26,8 +27,37 @@ const sanitize = (s) =>
         "'": "&#039;",
       })[m],
   );
-const playSound = () =>
-  new Audio("assets/sounds/message.mp3").play().catch(() => {});
+
+const playSound = (type) => {
+  // Check settings before playing
+  if (localStorage.getItem("vani-audio") === "false") return;
+  
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === "send") {
+      // The WhatsApp "Tick" (Short, low frequency pop)
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.05);
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+      osc.start(); osc.stop(ctx.currentTime + 0.05);
+    } else if (type === "receive") {
+      // The Instagram "Ping" (Higher frequency chime)
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+      osc.start(); osc.stop(ctx.currentTime + 0.3);
+    }
+  } catch(e) { console.warn("Audio blocked by browser."); }
+};
 
 // ==========================================================
 // 2. BULLETPROOF AUTHENTICATION & SESSION
@@ -405,6 +435,7 @@ const sendMsg = async (e) => {
   if (!content || !State.activeContact) return;
   
   $("msg-input").value = ""; 
+  playSound("send");
 
   // ⚡ OPTIMISTIC UI: Draw the bubble instantly before the DB even responds
   const tempId = "temp-" + Date.now();
@@ -457,22 +488,31 @@ const initRealtime = () => {
         const msg = p.new;
         if (!msg?.sender_mobile) return;
 
-        const isCurr = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact) || 
-                       (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
+        // Are we currently staring at the person who just messaged us?
+        const isCurrentlyViewingChat = 
+          (msg.sender_mobile === State.activeContact && msg.recipient_mobile === State.mobile);
+        
+        // Did we just send this message ourselves from another device?
+        const isMyOwnMessage = (msg.sender_mobile === State.mobile && msg.recipient_mobile === State.activeContact);
 
-        if (isCurr) {
-          if (msg.recipient_mobile === State.mobile) {
-            // Update read receipts completely in the background
-            supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id).then(() => syncContacts());
-            playSound();
-          }
-          // The Duplicate Shield ignores this if we just sent it ourselves
+        if (isCurrentlyViewingChat) {
+          // SCENARIO A: We are in the chat. 
+          // 1. Play soft receive pop. 2. Mark as read instantly. 3. Draw bubble. (NO BADGES)
+          playSound("receive");
+          supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id).then(() => syncContacts());
           appendBubble(msg, true); 
+          
+        } else if (isMyOwnMessage) {
+          // We sent this. Just draw it on screen.
+          appendBubble(msg, true);
+          syncContacts();
+          
         } else if (msg.recipient_mobile === State.mobile) {
-            playSound(); 
+          // SCENARIO B: We are NOT in the chat.
+          // 1. Play loud notification ping. 2. Do NOT mark read. 3. Update sidebar to show Neon Badge!
+          playSound("receive");
+          syncContacts(); 
         }
-
-        syncContacts();
     })
     .on("postgres_changes", { event: "*", schema: "public", table: "contacts" }, () => syncContacts())
     .subscribe();
@@ -628,13 +668,15 @@ const disableCinematicMode = () => {
 const bootThemeEngine = () => {
   const prefRandomBoot = localStorage.getItem("vani-random-boot") !== "false";
   const prefCinematic = localStorage.getItem("vani-cinematic") === "true";
-  const savedTheme = localStorage.getItem("vani-theme");
+  const prefAudio = localStorage.getItem("vani-audio") !== "false"; // NEW
 
   const randomToggle = $("toggle-random-boot");
   const cinematicToggle = $("toggle-cinematic-mode");
+  const audioToggle = $("toggle-system-audio"); // NEW
 
   if (randomToggle) randomToggle.checked = prefRandomBoot;
   if (cinematicToggle) cinematicToggle.checked = prefCinematic;
+  if (audioToggle) audioToggle.checked = prefAudio; // NEW
 
   if (prefCinematic) {
     enableCinematicMode();
@@ -642,15 +684,15 @@ const bootThemeEngine = () => {
     disableCinematicMode();
   }
 
-  randomToggle?.addEventListener("change", (e) => {
-    localStorage.setItem("vani-random-boot", e.target.checked);
-  });
-
+  randomToggle?.addEventListener("change", (e) => localStorage.setItem("vani-random-boot", e.target.checked));
   cinematicToggle?.addEventListener("change", (e) => {
     const isOn = e.target.checked;
     localStorage.setItem("vani-cinematic", isOn);
     isOn ? enableCinematicMode() : disableCinematicMode();
   });
+  
+  // NEW: Save audio preference
+  audioToggle?.addEventListener("change", (e) => localStorage.setItem("vani-audio", e.target.checked));
 };
 
 // --- SYSTEM BOOT SEQUENCE ---
