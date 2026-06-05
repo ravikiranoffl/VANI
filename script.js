@@ -212,9 +212,9 @@ $$(".menu-item").forEach((item) => {
 });
 
 $("mobile-back-btn")?.addEventListener("click", () => {
-  document
-    .querySelector(".chat-layout-engine")
-    ?.classList.remove("mobile-chat-active");
+  document.querySelector(".chat-layout-engine")?.classList.remove("mobile-chat-active");
+  // NEW: Remove global flag when exiting chat
+  document.body.classList.remove("in-mobile-chat"); 
   State.activeContact = "";
   ["active-chat-header", "message-input-bar"].forEach((id) =>
     $(id).classList.add("hidden"),
@@ -346,6 +346,10 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 // ==========================================================
 // 5. CHAT ENGINE & REALTIME (Optimistic UI Upgrade)
 // ==========================================================
+// ==========================================================
+// CHAT ENGINE REPLACEMENTS (script.js)
+// ==========================================================
+
 const openChat = async (mobile, name, avatar, isReg) => {
   State.activeContact = mobile;
   $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
@@ -356,8 +360,11 @@ const openChat = async (mobile, name, avatar, isReg) => {
   $("chat-with-status").style.color = isReg ? "var(--neon-primary)" : "#ff3366";
 
   ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
+  
   if (window.innerWidth <= 992) {
     document.querySelector(".chat-layout-engine")?.classList.add("mobile-chat-active");
+    // NEW: Global flag to trigger Native Fullscreen Mode
+    document.body.classList.add("in-mobile-chat"); 
     $("sidebarMenu")?.classList.remove("open");
     $("hamburgerBtn")?.classList.remove("active");
   }
@@ -371,6 +378,8 @@ const openChat = async (mobile, name, avatar, isReg) => {
     is_read: false,
   }).then(() => syncContacts());
 };
+
+
 
 const loadHistory = async () => {
   if (!State.activeContact) return;
