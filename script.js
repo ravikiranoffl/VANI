@@ -297,6 +297,7 @@ const syncContacts = async () => {
   finalContacts.sort((a, b) => (latestMsgMap[b.contact] || 0) - (latestMsgMap[a.contact] || 0));
 
   renderContacts(finalContacts, regMap, {});
+  if (typeof updatePresenceUI === "function") updatePresenceUI();
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
@@ -922,6 +923,9 @@ $("msg-input")?.addEventListener("focus", () => {
 // 🟢 PRESENCE ENGINE (ONLINE / OFFLINE TRACKER)
 // ==========================================================
 
+// ==========================================================
+// 🟢 PRESENCE UI UPDATER (PERMANENT RED/GREEN DOTS)
+// ==========================================================
 const updatePresenceUI = () => {
     // 1. Update the Active Chat Header (Top Bar)
     if (State.activeContact) {
@@ -931,16 +935,16 @@ const updatePresenceUI = () => {
             statusEl.innerHTML = isOnline 
                 ? `<span style="display:inline-block;width:10px;height:10px;background:#00ff88;border-radius:50%;margin-right:6px;box-shadow:0 0 8px #00ff88;"></span>Online` 
                 : `<span style="display:inline-block;width:10px;height:10px;background:#ff4d4d;border-radius:50%;margin-right:6px;"></span>Offline`;
-            statusEl.style.color = isOnline ? "#00ff88" : "var(--text-muted)";
+            statusEl.style.color = isOnline ? "#00ff88" : "#ff4d4d";
         }
     }
 
-    // 2. Update the Contacts List Sidebar (Injecting the Green Dot)
+    // 2. Update the Sidebar Contacts (Permanent Dots)
     $$("#contacts-list li").forEach(li => {
         const mobile = li.dataset.mobile;
         const isOnline = State.onlineUsers.has(String(mobile));
         
-        // Wrap the avatar in a relative container so the dot sticks to the corner
+        // Ensure the avatar is wrapped so the dot can stick to the corner
         let img = li.querySelector("img");
         if (img && !img.parentElement.classList.contains("avatar-wrapper")) {
             const wrapper = document.createElement("div");
@@ -954,18 +958,24 @@ const updatePresenceUI = () => {
         const wrapper = li.querySelector(".avatar-wrapper");
         if (wrapper) {
             let indicator = wrapper.querySelector(".presence-dot");
+            
+            // If the dot doesn't exist yet, create it permanently!
+            if (!indicator) {
+                wrapper.insertAdjacentHTML("beforeend", `<div class="presence-dot" style="position:absolute; bottom:-2px; right:-2px; border:2px solid var(--bg-deep); width:12px; height:12px; border-radius:50%; transition: background 0.3s ease, box-shadow 0.3s ease;"></div>`);
+                indicator = wrapper.querySelector(".presence-dot");
+            }
+
+            // Update the colors constantly based on network status
             if (isOnline) {
-                if (!indicator) {
-                    // Uses your existing 'online-pulse' CSS class!
-                    wrapper.insertAdjacentHTML("beforeend", `<div class="presence-dot online-pulse" style="position:absolute; bottom:-2px; right:-2px; border:2px solid var(--bg-deep);"></div>`);
-                }
+                indicator.style.background = "#00ff88"; // Neon Green
+                indicator.style.boxShadow = "0 0 8px #00ff88";
             } else {
-                if (indicator) indicator.remove();
+                indicator.style.background = "#ff4d4d"; // Crimson Red
+                indicator.style.boxShadow = "none";
             }
         }
     });
 };
-
 const initPresence = () => {
     if (!State.mobile) return;
 
