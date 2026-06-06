@@ -1125,6 +1125,64 @@ $("confirm-ghost-save-btn")?.addEventListener("click", async () => {
     }
 });
 
+// ==========================================================
+// 🌐 NETWORK GUARDIAN (OFFLINE / ONLINE MONITOR)
+// ==========================================================
+
+const handleNetworkChange = () => {
+    const overlay = $("offline-overlay");
+    if (!overlay) return;
+
+    if (!navigator.onLine) {
+        // 🛑 WE ARE OFFLINE: Drop the shield
+        overlay.style.display = "flex";
+        console.warn("📡 NETWORK LOST: Freezing matrix and displaying offline shield.");
+    } else {
+        // 🟢 WE ARE ONLINE: Lift the shield and Auto-Heal
+        overlay.style.display = "none";
+        console.log("📡 NETWORK RESTORED: Re-establishing uplinks...");
+        
+        // Auto-Heal the App (Fetch missing messages and reset Presence)
+        if (State && State.mobile) {
+            if (typeof syncContacts === "function") syncContacts();
+            if (State.activeContact && typeof loadHistory === "function") loadHistory();
+            if (typeof initPresence === "function" && (!State.presenceChannel || State.presenceChannel.state !== 'joined')) {
+                initPresence();
+            }
+        }
+    }
+};
+
+// Listen to the browser's native network events
+window.addEventListener("offline", handleNetworkChange);
+window.addEventListener("online", handleNetworkChange);
+
+// The Manual "Attempt Reconnect" Button Logic
+$("offline-reload-btn")?.addEventListener("click", () => {
+    const btn = $("offline-reload-btn");
+    
+    // Give tactical visual feedback
+    const originalText = btn.textContent;
+    btn.textContent = "Scanning Frequencies...";
+    btn.style.opacity = "0.5";
+    btn.style.pointerEvents = "none";
+    
+    setTimeout(() => {
+        if (navigator.onLine) {
+            // Hardware confirms internet is back, trigger a hard reload to ensure clean cache
+            location.reload(); 
+        } else {
+            // Still dead. Revert the button so they can try again later.
+            btn.textContent = originalText;
+            btn.style.opacity = "1";
+            btn.style.pointerEvents = "auto";
+            
+            // Optional: Play the error/delete sound if you want audio feedback
+            if (typeof playSound === "function") playSound("delete"); 
+        }
+    }, 800); // Fake 800ms scan delay for premium UX
+});
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 

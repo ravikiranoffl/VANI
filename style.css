@@ -375,21 +375,7 @@ select {
     from { transform: translateX(50px); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
-#boot-loader{
-    position:fixed;
-    inset:0;
-    background:#030305;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:99999;
-}
 
-.loader-logo{
-    font-size:2rem;
-    font-weight:700;
-    color:var(--neon-primary);
-}
 .typing-indicator {
   display: flex;
   align-items: center;

@@ -1,16 +1,77 @@
 <!doctype html>
 <html lang="en">
-  <head>
+ <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>VANI | Communications</title>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
-<script>
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+
+    <style>
+      body { margin: 0; background-color: #030305; overflow: hidden; }
+      
+      #boot-loader {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: #030305;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999999;
+      }
+      
+      .loader-logo::after {
+        content: "VANI";
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: 4px;
+        /* Color is intentionally left blank here! The Micro-Script will fill it. */
+      }
+
+      @keyframes bootPulse {
+        0%, 100% { opacity: 1; filter: drop-shadow(0 0 12px currentColor); }
+        50% { opacity: 0.4; filter: none; }
+      }
+
+      /* A lightweight CSS version of your 60FPS Cinematic Loop for the bootloader */
+      @keyframes cinematicBootCycle {
+        0% { color: #ff007f; }
+        20% { color: #00ff41; }
+        40% { color: #00f3ff; }
+        60% { color: #da70d6; }
+        80% { color: #ffaa00; }
+        100% { color: #ff007f; }
+      }
+    </style>
+
+    <script>
+      (function() {
+        const isCinematic = localStorage.getItem("vani-cinematic") === "true";
+        const savedTheme = localStorage.getItem("vani-theme") || "#00f3ff"; // Default to blue
+        const dynamicStyle = document.createElement("style");
+        
+        if (isCinematic) {
+          // If Cinematic Mode is ON, apply the fast CSS color-cycle animation
+          dynamicStyle.innerHTML = `
+            .loader-logo::after {
+              animation: bootPulse 1.5s infinite, cinematicBootCycle 4s linear infinite;
+            }
+          `;
+        } else {
+          // If Cinematic Mode is OFF, apply their exact saved static color
+          dynamicStyle.innerHTML = `
+            .loader-logo::after {
+              color: ${savedTheme};
+              animation: bootPulse 1.5s infinite;
+            }
+          `;
+        }
+        document.head.appendChild(dynamicStyle);
+      })();
+    </script>
+    <script>
       (function() {
         const cacheBuster = Date.now();
         const cssLink = document.createElement('link');
@@ -18,13 +79,9 @@
         cssLink.href = 'style.css?v=' + cacheBuster;
         document.head.appendChild(cssLink);
       })();
-      
     </script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
-      rel="stylesheet"
-    />
     
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="boot-loader">
@@ -479,7 +536,22 @@
         </main>
       </section>
     </div>
+<div id="offline-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.95); z-index: 9999998; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
+      
+      <div class="glass-panel" style="padding: 40px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.15);">
+          
+          <div style="font-size: 3.5rem; color: var(--neon-primary); margin-bottom: 15px; filter: drop-shadow(0 0 15px var(--neon-primary));">⚠️</div>
+          
+          <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; color: var(--text-main); margin: 0 0 10px 0; letter-spacing: 2px;">CONNECTION LOST!</h2>
+          
+          <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px;">
+            Connection to the VANI network has been lost. VANI is paused awaiting Internet.
+          </p>
+          
+          <button id="offline-reload-btn" class="glow-btn full-width">Attempt Reconnect</button>
 
+      </div>
+    </div>
    <div id="ghost-save-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(8, 8, 11, 0.85); align-items: center; justify-content: center; z-index: 9999999; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
       
       <div class="glass-panel" style="padding: 25px; width: 90%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; text-align: left; border: 1px solid var(--neon-primary); box-shadow: 0 0 25px rgba(var(--neon-rgb), 0.15);">
