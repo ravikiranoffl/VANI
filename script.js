@@ -1132,15 +1132,30 @@ $("confirm-ghost-save-btn")?.addEventListener("click", async () => {
 });
 
 // --- SYSTEM BOOT SEQUENCE ---
-window.addEventListener("DOMContentLoaded", async () => {
-  bootThemeEngine();
+// ==========================================================
 
-  if (typeof supabase === "undefined") {
-    const s = document.createElement("script");
-    s.src = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
-    s.onload = evalSession;
-    document.head.appendChild(s);
-  } else {
-    await evalSession();
+const bootApp = async () => {
+  try {
+      // 1. Load user theme preferences
+      bootThemeEngine();
+
+      // 2. Verify Supabase successfully loaded from the CDN in index.html
+      if (typeof supabase === "undefined") {
+          throw new Error("Supabase Database Core failed to load. Check network connection.");
+      }
+
+      // 3. Check login status and launch VANI
+      await evalSession();
+      
+  } catch (err) {
+      console.error("🔥 SYSTEM BOOT FAILURE:", err.message);
+      alert(err.message);
+      
+      // Failsafe: hide the loader so the user isn't stuck on a blank screen
+      const loader = document.getElementById("boot-loader");
+      if (loader) loader.style.display = "none";
   }
-});
+};
+
+// Fire the boot sequence immediately upon script load!
+bootApp();
