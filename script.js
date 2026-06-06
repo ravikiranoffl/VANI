@@ -274,6 +274,9 @@ $("add-contact-btn")?.addEventListener("click", async () => {
   }
 });
 
+// ==========================================================
+// 4. CONTACTS ENGINE (Now with Ghost Profiles & Time Sorting)
+// ==========================================================
 const syncContacts = async () => {
   const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
     supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
@@ -282,18 +285,38 @@ const syncContacts = async () => {
   ]);
 
   const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
-  const latestMsgMap = {}; 
+  const latestMsgMap = {};
+
+  // 👻 1. Track all unique numbers we've ever chatted with
+  const ghostNumbers = new Set();
 
   m?.forEach((msg) => {
     const otherParty = msg.sender_mobile === State.mobile ? msg.recipient_mobile : msg.sender_mobile;
     const msgTime = new Date(msg.created_at).getTime();
     if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
-      latestMsgMap[otherParty] = msgTime; 
+      latestMsgMap[otherParty] = msgTime;
     }
+    ghostNumbers.add(otherParty);
   });
 
+  // 👻 2. Map out the numbers we ALREADY have saved
+  const savedMap = {};
+  c?.forEach((saved) => savedMap[saved.contact] = true);
+
   const finalContacts = [...(c || [])];
-  // Sorting Engine: Reorder array based on the latest message timestamp[cite: 2]
+
+  // 👻 3. Inject unsaved numbers as "Ghost Profiles"
+  ghostNumbers.forEach(number => {
+      if (!savedMap[number] && number !== State.mobile) {
+          finalContacts.push({
+              contact: number,
+              name: `+91 ${number}`, // Display number as name
+              isGhost: true // Flag to trigger the "Save" button
+          });
+      }
+  });
+
+  // Sorting Engine: Reorder array based on the latest message timestamp
   finalContacts.sort((a, b) => (latestMsgMap[b.contact] || 0) - (latestMsgMap[a.contact] || 0));
 
   renderContacts(finalContacts, regMap, {});
@@ -321,55 +344,52 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
       li.innerHTML = `<img src="${avatar}" style="width:45px;height:45px;border-radius:12px;"/><div style="flex:1;"><h4 style="font-size:1rem;font-weight:600;">${c.name}</h4><p style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div>${unread > 0 ? `<div style="min-width:22px;height:22px;background:var(--neon-primary);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">${unread}</div>` : ""}`;
-      li.onclick = () => openChat(c.contact, c.name, avatar, !!p);
+      
+      // 🚨 UPGRADE: Pass 'c.isGhost' to the openChat function
+      li.onclick = () => openChat(c.contact, c.name, avatar, !!p, c.isGhost);
       list.appendChild(li);
     }
 
     if (grid) {
-      // FIXED: Generate nodes safely to avoid DOM selection bugs
       const card = document.createElement("div");
       card.className = "glass-panel directory-card";
       card.style.cssText = "padding:25px;";
-      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button><button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button></div>`;
+      
+      // 🚨 UPGRADE: Hide the "Delete" button if it's a Ghost Profile (since it isn't saved yet)
+      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button>${c.isGhost ? '' : '<button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button>'}</div>`;
 
-      // FIXED: Proper querySelector logic for menu switching
       card.querySelector(".open-chat-btn").onclick = () => {
-        openChat(c.contact, c.name, avatar, !!p);
+        openChat(c.contact, c.name, avatar, !!p, c.isGhost);
         document.querySelector('[data-view="VIEW-CHATS"]')?.click();
       };
 
-      card.querySelector(".delete-contact-btn").onclick = async () => {
-        if (!confirm(`Delete ${c.name}?`)) return;
-        await supabaseClient
-          .from("contacts")
-          .delete()
-          .match({ mobile: State.mobile, contact: c.contact });
-        if (State.activeContact === c.contact) {
-          State.activeContact = "";
-          $("chat-box").innerHTML = "";
-          ["active-chat-header", "message-input-bar"].forEach((id) =>
-            $(id).classList.add("hidden"),
-          );
-        }
-        syncContacts();
-      };
+      if (!c.isGhost) {
+          card.querySelector(".delete-contact-btn").onclick = async () => {
+            if (!confirm(`Delete ${c.name}?`)) return;
+            await supabaseClient
+              .from("contacts")
+              .delete()
+              .match({ mobile: State.mobile, contact: c.contact });
+            if (State.activeContact === c.contact) {
+              State.activeContact = "";
+              $("chat-box").innerHTML = "";
+              ["active-chat-header", "message-input-bar"].forEach((id) =>
+                $(id).classList.add("hidden"),
+              );
+            }
+            syncContacts();
+          };
+      }
       grid.appendChild(card);
     }
   });
 };
 
 // ==========================================================
-// 5. CHAT ENGINE & REALTIME (Optimistic UI Upgrade)
-// ==========================================================
-// ==========================================================
 // CHAT ENGINE REPLACEMENTS (script.js)
 // ==========================================================
 
-// ==========================================================
-// CHAT ENGINE REPLACEMENTS (script.js)
-// ==========================================================
-
-const openChat = async (mobile, name, avatar, isReg) => {
+const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
   State.activeContact = mobile;
   $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
 
@@ -380,8 +400,18 @@ const openChat = async (mobile, name, avatar, isReg) => {
 
   ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
   
+  // 👻 GHOST PROFILE LOGIC: Show or hide the Save button
+  const saveBtn = $("save-ghost-btn");
+  if (saveBtn) {
+      if (isGhost) {
+          saveBtn.classList.remove("hidden");
+          saveBtn.dataset.mobile = mobile; // Attach number for the modal
+      } else {
+          saveBtn.classList.add("hidden");
+      }
+  }
+
   if (window.innerWidth <= 992) {
-    // THIS IS THE TRIGGER: Locks the body and launches Full Screen Mode
     document.body.classList.add("in-mobile-chat"); 
     $("sidebarMenu")?.classList.remove("open");
     $("hamburgerBtn")?.classList.remove("active");
@@ -390,7 +420,7 @@ const openChat = async (mobile, name, avatar, isReg) => {
   $("chat-box").innerHTML = "";
   loadHistory();
 
-  updatePresenceUI(); // 🚨 NEW: Instantly color the header when chat opens
+  updatePresenceUI(); // Instantly color the header when chat opens
 
   supabaseClient.from("messages").update({ is_read: true }).match({
     sender_mobile: mobile,
@@ -398,7 +428,6 @@ const openChat = async (mobile, name, avatar, isReg) => {
     is_read: false,
   }).then(() => syncContacts());
 };
-
 
 const loadHistory = async () => {
   if (!State.activeContact) return;
@@ -1035,6 +1064,70 @@ document.addEventListener("visibilitychange", async () => {
         if (State && State.presenceChannel) {
             await State.presenceChannel.untrack();
         }
+    }
+});
+
+// ==========================================================
+// GHOST PROFILE SAVING ENGINE
+// ==========================================================
+
+$("save-ghost-btn")?.addEventListener("click", (e) => {
+    e.preventDefault(); // Stop any background layout shifts
+
+    // e.currentTarget guarantees we get the data from the button itself
+    const btn = e.currentTarget; 
+    const mobile = btn.dataset.mobile; 
+    
+    if (!mobile) {
+        console.error("Ghost Modal Error: No phone number attached to button.");
+        return;
+    }
+    
+    // Inject the number and clear the input
+    $("ghost-save-number").value = `+91 ${mobile}`;
+    $("ghost-save-name").value = ""; 
+    
+    // Unhide the modal
+    $("ghost-save-modal").style.display = "flex";
+    
+    // Auto-focus the input box so you can start typing immediately
+    setTimeout(() => {
+        $("ghost-save-name").focus();
+    }, 100);
+});
+
+$("cancel-ghost-btn")?.addEventListener("click", () => {
+    $("ghost-save-modal").style.display = "none";
+});
+
+$("confirm-ghost-save-btn")?.addEventListener("click", async () => {
+    const contact = $("save-ghost-btn").dataset.mobile;
+    const name = $("ghost-save-name").value.trim();
+
+    if (!name) return alert("Please enter a name.");
+
+    try {
+        // 1. Save to Database
+        const { error } = await supabaseClient
+          .from("contacts")
+          .insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+        if (error) throw error;
+
+        // 2. Hide UI & Button
+        $("ghost-save-modal").style.display = "none";
+        $("save-ghost-btn").classList.add("hidden");
+        
+        // 3. Seamlessly Update Header Name
+        $("chat-with-name").textContent = name;
+
+        // 4. Force a silent Sidebar Redraw
+        await syncContacts();
+
+        // 5. Play confirmation ding!
+        if (typeof playSound === "function") playSound("receive"); 
+
+    } catch (err) {
+        alert(`Save Error: ${err.message}`);
     }
 });
 
