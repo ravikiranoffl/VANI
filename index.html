@@ -293,32 +293,22 @@
                <section class="chat-area-viewport glass-panel">
                   
                  <div id="active-chat-header" class="chat-header-bar hidden">
-  <button id="mobile-back-btn" class="mobile-back-btn" style="margin-right: 15px; background: transparent; border: none; color: var(--text-main); padding: 5px; display: flex; cursor: pointer;">
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="19" y1="12" x2="5" y2="12"></line>
-      <polyline points="12 19 5 12 12 5"></polyline>
-    </svg>
-  </button>
+                    <button id="mobile-back-btn" class="mobile-back-btn" style="margin-right: 15px; background: transparent; border: none; color: var(--text-main); padding: 5px; display: flex; cursor: pointer;">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                      </svg>
+                    </button>
 
-  <img id="chat-target-avatar" src="" alt="Target" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
-  
-  <div class="header-metadata-text" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-    <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Select Node</h3>
-    <p id="chat-with-status" style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
-  </div>
+                    <img id="chat-target-avatar" src="" alt="Target" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
+                    
+                    <div class="header-metadata-text" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                      <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Select Node</h3>
+                      <p id="chat-with-status" style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
+                    </div>
 
-  <button id="save-ghost-btn" class="hidden" style="margin-left: auto; padding: 6px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--neon-primary); color: var(--neon-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-appearance: none; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.1);">Save</button>
-
-<div id="walkie-ui" class="hidden" style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
-    
-    <button id="tune-btn" style="border-radius: 50%; width: 44px; height: 44px; min-width: 44px; min-height: 44px; max-width: 44px; max-height: 44px; flex-shrink: 0; padding: 0 !important; margin: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; opacity: 0.4; transition: 0.3s; background: rgba(var(--neon-rgb), 0.1); border: 1px solid var(--neon-primary); color: var(--neon-primary); cursor: pointer;" title="Auto-Accept Audio (Tune In)">📻</button>
-    
-    <button id="mic-btn" style="border-radius: 50%; width: 44px; height: 44px; min-width: 44px; min-height: 44px; max-width: 44px; max-height: 44px; flex-shrink: 0; padding: 0 !important; margin: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.1s; background: rgba(var(--neon-rgb), 0.1); border: 1px solid var(--neon-primary); color: var(--neon-primary); cursor: pointer; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.2);" title="Hold to Speak">🎤</button>
-    
-  </div>
-  
-  <audio id="remote-audio" autoplay style="display: none;"></audio>
-</div>
+                   <button id="save-ghost-btn" class="hidden" style="margin-left: auto; padding: 6px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--neon-primary); color: var(--neon-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-appearance: none; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.1);">Save</button>
+                  </div>
                   <div id="chat-box" class="chat-box-stream">
                     </div>
 
