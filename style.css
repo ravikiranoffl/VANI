@@ -89,7 +89,11 @@ body {
     transition: all 0.5s ease;
 }
 
-.nav-menu { flex: 1; display: flex; flex-direction: column; gap: 8px; padding: 0 15px; }
+.nav-menu { 
+    flex: 1; display: flex; flex-direction: column; gap: 8px; 
+    padding: 0 15px; overflow-y: auto; /* 🚨 FIX: Makes links scrollable */
+}
+
 .menu-item {
     display: flex; align-items: center; gap: 15px; padding: 16px 20px;
     color: var(--text-muted); font-size: 1.05rem; font-weight: 500;
@@ -105,7 +109,10 @@ body {
     box-shadow: 0 0 20px rgba(var(--neon-rgb), 0.15);
 }
 
-.nav-footer { padding: 20px 15px; }
+.nav-footer { 
+    padding: 20px 15px; 
+    flex-shrink: 0; /* 🚨 FIX: Prevents profile card from squishing */
+}
 .operator-profile-card {
     display: flex; align-items: center; gap: 12px; padding: 12px;
     border-radius: 16px; cursor: pointer;
@@ -254,7 +261,8 @@ select {
 /* SETTINGS VIEW */
 .theme-grid-box {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px;
-    padding: 10px 5px; height: calc(100% - 90px); overflow-y: auto; align-content: start;
+    padding: 10px 5px; 
+    flex: 1; overflow-y: auto; align-content: start; /* 🚨 FIX: Dynamic flex height */
 }
 .theme-btn {
     padding: 18px 15px; border-radius: 14px; border: 1px solid transparent;
@@ -742,7 +750,8 @@ body,
   left: 3px;
   bottom: 3px;
   background-color: #4a5568;
-  transition: cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.4s; /* Bouncy, premium snap */
+  /* 🚨 FIX: Limit the bouncy math strictly to the transform movement! */
+  transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); 
   border-radius: 50%;
 }
 

@@ -563,37 +563,19 @@ const sendMsg = async (e) => {
   hideTypingIndicator(); // Instantly kill my own typing dots
   playSound("send");
 
-  // ⚡ OPTIMISTIC UI: Draw the bubble instantly before the DB even responds
-  const tempId = "temp-" + Date.now();
-  const optimisticMsg = {
-     id: tempId,
-     sender_mobile: State.mobile,
-     recipient_mobile: State.activeContact,
-     content: content,
-     created_at: new Date().toISOString()
-  };
-  appendBubble(optimisticMsg, true);
-  syncContacts(); // Instantly bump this chat to the top
-
   // 💾 BACKGROUND DB UPLOAD
-  const { data, error } = await supabaseClient.from("messages").insert([
+  const { error } = await supabaseClient.from("messages").insert([
     {
       sender_mobile: State.mobile,
       recipient_mobile: State.activeContact,
       content,
       is_read: false,
     },
-  ]).select().single(); // Ask DB to return the final generated row
+  ]); 
 
   if (error) {
       alert(`Send Error: ${error.message}`);
-      $(`[data-msg-id="${tempId}"]`)?.remove(); // Wipe the fake bubble if offline
-      return;
   }
-
-  // 🔄 SILENT SWAP: Replace our temporary ID with the real Database UUID
-  const bubble = document.querySelector(`[data-msg-id="${tempId}"]`);
-  if (bubble) bubble.dataset.msgId = data.id;
 };
 
 // ==========================================================
