@@ -286,8 +286,10 @@ const syncContacts = async () => {
 
   const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
   const latestMsgMap = {};
+  
+  // 🚨 NEW: Map to track unread message counts
+  const unreadMap = {}; 
 
-  // 👻 1. Track all unique numbers we've ever chatted with
   const ghostNumbers = new Set();
 
   m?.forEach((msg) => {
@@ -297,32 +299,39 @@ const syncContacts = async () => {
       latestMsgMap[otherParty] = msgTime;
     }
     ghostNumbers.add(otherParty);
+
+    // 🚨 NEW: Calculate Unread Count
+    // If you are the recipient AND the message is unread...
+    if (msg.recipient_mobile === State.mobile && msg.is_read === false) {
+        // ...AND the sender is NOT the person we are currently looking at
+        if (String(msg.sender_mobile) !== String(State.activeContact)) {
+            unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
+        }
+    }
   });
 
-  // 👻 2. Map out the numbers we ALREADY have saved
   const savedMap = {};
   c?.forEach((saved) => savedMap[saved.contact] = true);
 
   const finalContacts = [...(c || [])];
 
-  // 👻 3. Inject unsaved numbers as "Ghost Profiles"
   ghostNumbers.forEach(number => {
       if (!savedMap[number] && number !== State.mobile) {
           finalContacts.push({
               contact: number,
-              name: `+91 ${number}`, // Display number as name
-              isGhost: true // Flag to trigger the "Save" button
+              name: `+91 ${number}`, 
+              isGhost: true 
           });
       }
   });
 
-  // Sorting Engine: Reorder array based on the latest message timestamp
+  // Sorting Engine
   finalContacts.sort((a, b) => (latestMsgMap[b.contact] || 0) - (latestMsgMap[a.contact] || 0));
 
-  renderContacts(finalContacts, regMap, {});
+  // 🚨 UPDATE: Pass the calculated unreadMap to the render function
+  renderContacts(finalContacts, regMap, unreadMap);
   if (typeof updatePresenceUI === "function") updatePresenceUI();
 };
-
 const renderContacts = (contacts, regMap, unreadMap) => {
   const list = $("contacts-list"),
     grid = document.querySelector(".contacts-directory-grid");
@@ -339,13 +348,21 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       p?.avatar_url ||
       `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
 
-    if (list) {
+   if (list) {
       const li = document.createElement("li");
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
-      li.innerHTML = `<img src="${avatar}" style="width:45px;height:45px;border-radius:12px;"/><div style="flex:1;"><h4 style="font-size:1rem;font-weight:600;">${c.name}</h4><p style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div>${unread > 0 ? `<div style="min-width:22px;height:22px;background:var(--neon-primary);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;">${unread}</div>` : ""}`;
       
-      // 🚨 UPGRADE: Pass 'c.isGhost' to the openChat function
+      // 🚨 UPDATE: Injects the unread-badge cleanly. Cap count at 99+ to prevent UI breaking.
+      li.innerHTML = `
+        <img src="${avatar}" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
+        <div style="flex:1; min-width:0; overflow:hidden;">
+            <h4 style="font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
+            <p style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p>
+        </div>
+        ${unread > 0 ? `<div class="unread-badge">${unread > 99 ? '99+' : unread}</div>` : ""}
+      `;
+      
       li.onclick = () => openChat(c.contact, c.name, avatar, !!p, c.isGhost);
       list.appendChild(li);
     }
@@ -389,7 +406,17 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 // CHAT ENGINE REPLACEMENTS (script.js)
 // ==========================================================
 
+const clearUnreadBadgeFromUI = (mobile) => {
+    const li = document.querySelector(`li[data-mobile="${mobile}"]`);
+    if (li) {
+        const badge = li.querySelector('.unread-badge');
+        if (badge) badge.remove();
+    }
+};
+
 const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
+  clearUnreadBadgeFromUI(mobile); // Instantly remove badge
+  State.activeContact = mobile;
   State.activeContact = mobile;
   $$("#contacts-list li").forEach((li) => li.classList.toggle("active", li.dataset.mobile === mobile));
 
@@ -422,11 +449,27 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
 
   updatePresenceUI(); // Instantly color the header when chat opens
 
-  supabaseClient.from("messages").update({ is_read: true }).match({
-    sender_mobile: mobile,
-    recipient_mobile: State.mobile,
-    is_read: false,
-  }).then(() => syncContacts());
+  // 🚨 1. OPTIMISTIC UI: Instantly kill the badge in the DOM so it feels blazing fast
+  const activeContactLi = document.querySelector(`li[data-mobile="${mobile}"]`);
+  if (activeContactLi) {
+      const badge = activeContactLi.querySelector('.unread-badge');
+      if (badge) badge.remove(); 
+  }
+
+  // 🚨 2. STRICT AWAIT: Force the app to wait for database confirmation
+  const { error: updateErr } = await supabaseClient.from("messages")
+      .update({ is_read: true })
+      .eq("sender_mobile", mobile)
+      .eq("recipient_mobile", State.mobile)
+      .eq("is_read", false);
+
+  if (updateErr) {
+      // If this fires, your RLS policy is missing an UPDATE rule for messages!
+      console.error("Matrix Error: Database rejected the Read-Receipt update.", updateErr.message);
+  } else {
+      // 3. Sync silently in the background only AFTER confirmation
+      syncContacts(); 
+  }
 };
 
 const loadHistory = async () => {
@@ -669,46 +712,28 @@ const initRealtime = async () => {
         
         // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
-            const msg = p.new;
+    const msg = p.new;
+
+    // 1. If I am the sender, I don't need to do anything (already handled)
+    if (msg.sender_mobile == State.mobile) return;
+
+    // 2. If I am the receiver and looking at the chat, mark as read IMMEDIATELY
+    if (msg.sender_mobile == State.activeContact) {
+        playSound("receive");
+        appendBubble(msg, true);
+        
+        // Force the database update so the badge doesn't reappear
+        await supabaseClient.from("messages")
+            .update({ is_read: true })
+            .eq("id", msg.id);
             
-            console.log("-----------------------------------------");
-            console.log("📥 NEW MESSAGE DETECTED IN DATABASE!");
-            console.log("Payload:", msg);
-            console.log("Current App State -> My Mobile:", State.mobile, "| Looking at Contact:", State.activeContact);
-            
-            if (!msg?.sender_mobile) {
-                console.warn("⚠️ Invalid message payload received.");
-                return;
-            }
-
-            // Using Loose Equality (==) to prevent String/Number mismatches
-            const isCurrentlyViewingChat = (msg.sender_mobile == State.activeContact && msg.recipient_mobile == State.mobile);
-            const isMyOwnMessage = (msg.sender_mobile == State.mobile && msg.recipient_mobile == State.activeContact);
-            const isForMeButImElsewhere = (msg.recipient_mobile == State.mobile && msg.sender_mobile != State.activeContact);
-
-            if (isCurrentlyViewingChat) {
-                console.log("✅ SCENARIO A: You are viewing this chat. Appending bubble and playing receive ping.");
-                playSound("receive");
-                await supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id);
-                appendBubble(msg, true);
-                await refreshContactsUI(); // Force sidebar update
-            } 
-            else if (isMyOwnMessage) {
-                console.log("✅ SCENARIO B: You sent this from another device. Appending bubble.");
-                appendBubble(msg, true);
-                await refreshContactsUI();
-            } 
-            else if (isForMeButImElsewhere) {
-                console.log("✅ SCENARIO C: Message is for you, but you are looking at another screen. Playing ping.");
-                playSound("receive");
-                await refreshContactsUI();
-            } 
-            else {
-                console.log("🛑 SCENARIO D: Message is completely unrelated to your current view. Ignoring.");
-            }
-            console.log("-----------------------------------------");
-        })
-
+        // Do NOT call syncContacts() here, just update the UI state locally
+    } else {
+        // 3. If I am NOT looking at the chat, update the UI (Badge will appear)
+        playSound("receive");
+        await refreshContactsUI(); 
+    }
+})
         // 💬 LISTEN FOR TYPING BROADCASTS (NO DATABASE NEEDED)
         .on("broadcast", { event: "typing" }, (payload) => {
             const data = payload.payload;

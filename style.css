@@ -916,3 +916,21 @@ body,
     opacity: 0 !important;
     pointer-events: none;
 }
+/* --- UNREAD MESSAGE BADGE --- */
+.unread-badge {
+    min-width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--neon-primary); /* Syncs with Cinematic Theme */
+    color: var(--bg-deep); /* Dark text for contrast */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-left: auto; /* Pushes it strictly to the right side */
+    box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    flex-shrink: 0;
+    z-index: 10;
+}
