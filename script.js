@@ -413,6 +413,7 @@ const loadHistory = async () => {
 };
 
 const appendBubble = (msg, autoScroll = true) => {
+  $("typing-indicator-ui")?.remove();
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
@@ -470,12 +471,55 @@ const appendBubble = (msg, autoScroll = true) => {
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
 
+// ==========================================================
+// 💬 TYPING INDICATOR ENGINE
+// ==========================================================
+let typingHideTimeout = null;
+
+const showTypingIndicator = () => {
+    let indicator = $("typing-indicator-ui");
+    
+    // If it's not on screen, create it
+    if (!indicator) {
+        const box = $("chat-box");
+        box.insertAdjacentHTML('beforeend', `
+            <div id="typing-indicator-ui" class="message-enter" style="display:flex;width:100%;justify-content:flex-start;margin-bottom:12px; transition: opacity 0.4s ease;">
+                <div class="typing-indicator" style="margin: 0; border-radius: 16px 16px 16px 4px;">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+        `);
+        box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
+    } else {
+        // If it's already there, make sure it's fully visible
+        indicator.style.opacity = "1";
+    }
+
+    // Reset the fade-out timer every time they press a key
+    if (typingHideTimeout) clearTimeout(typingHideTimeout);
+    
+    typingHideTimeout = setTimeout(() => {
+        hideTypingIndicator();
+    }, 2000); // 2 Seconds of silence = Fade out
+};
+
+const hideTypingIndicator = () => {
+    const indicator = $("typing-indicator-ui");
+    if (indicator) {
+        indicator.style.opacity = "0"; // Smooth fade out
+        setTimeout(() => indicator.remove(), 400); // Destroy after fade completes
+    }
+};
+
 const sendMsg = async (e) => {
   if (e) e.preventDefault(); // STOPS silent layout reloads
   const content = $("msg-input").value.trim();
   if (!content || !State.activeContact) return;
   
   $("msg-input").value = ""; 
+  hideTypingIndicator(); // Instantly kill my own typing dots
   playSound("send");
 
   // ⚡ OPTIMISTIC UI: Draw the bubble instantly before the DB even responds
@@ -550,6 +594,8 @@ $("chat-box")?.addEventListener("dblclick", async (e) => {
 
 // Listeners securely pass the event object to block reloads
 $("send-msg-btn")?.addEventListener("click", (e) => sendMsg(e));
+
+// 1. YOUR OLD CODE: Sends the message when "Enter" is pressed
 $("msg-input")?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
         e.preventDefault();
@@ -557,6 +603,22 @@ $("msg-input")?.addEventListener("keydown", (e) => {
     }
 });
 
+// 2. THE NEW CODE: Broadcasts that you are typing when normal keys are pressed
+let lastTypingTime = 0;
+$("msg-input")?.addEventListener("input", () => {
+    if (!State.channel || !State.activeContact) return;
+    
+    const now = Date.now();
+    // Only send a ping once every 1.5 seconds to save battery/bandwidth
+    if (now - lastTypingTime > 1500) { 
+        State.channel.send({
+            type: 'broadcast',
+            event: 'typing',
+            payload: { sender: State.mobile, recipient: State.activeContact }
+        });
+        lastTypingTime = now;
+    }
+});
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
 // ==========================================================
@@ -619,6 +681,15 @@ const initRealtime = () => {
                 console.log("🛑 SCENARIO D: Message is completely unrelated to your current view. Ignoring.");
             }
             console.log("-----------------------------------------");
+        })
+
+        // 💬 LISTEN FOR TYPING BROADCASTS (NO DATABASE NEEDED)
+        .on("broadcast", { event: "typing" }, (payload) => {
+            const data = payload.payload;
+            // If they are typing to ME, and I am currently looking at THEM
+            if (data.recipient == State.mobile && data.sender == State.activeContact) {
+                showTypingIndicator();
+            }
         })
         
         // 🔴 LISTEN FOR DELETED MESSAGES (DOUBLE-TAP FEATURE)
