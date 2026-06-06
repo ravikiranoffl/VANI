@@ -642,10 +642,11 @@ $("msg-input")?.addEventListener("input", () => {
         lastTypingTime = now;
     }
 });
+
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
 // ==========================================================
-const initRealtime = () => {
+const initRealtime = async () => {
     // 1. Verify State before we even try to connect
     if (!State || !State.mobile) {
         console.error("❌ REALTIME ABORTED: State.mobile is missing. You must log in first!");
@@ -655,14 +656,16 @@ const initRealtime = () => {
     console.log(`🔌 Initializing Realtime for User: ${State.mobile}`);
 
     // 2. Clean up any old ghost subscriptions safely
+    // 🚨 FIX: AWAIT the removal of the old channel so the server doesn't crash
     if (State.channel) {
-        supabaseClient.removeChannel(State.channel);
+        await supabaseClient.removeChannel(State.channel);
         State.channel = null;
     }
 
     // 3. Boot the Realtime Socket
+    // 🚨 FIX: Add a unique timestamp to the channel name to permanently prevent collisions
     State.channel = supabaseClient
-        .channel("vani-realtime-channel")
+        .channel(`vani-realtime-${Date.now()}`)
         
         // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
@@ -729,7 +732,7 @@ const initRealtime = () => {
                 }, 200);
                 
                 // Refresh the sidebar in case this was the most recent message
-                refreshContactsUI();
+                if (typeof refreshContactsUI === "function") refreshContactsUI();
             }
         })
 
@@ -987,11 +990,17 @@ const updatePresenceUI = () => {
         }
     });
 };
-const initPresence = () => {
+
+// ==========================================================
+// 🟢 PRESENCE ENGINE (ONLINE / OFFLINE TRACKER)
+// ==========================================================
+const initPresence = async () => {
     if (!State.mobile) return;
 
+    // 🚨 FIX: AWAIT the removal
     if (State.presenceChannel) {
-        supabaseClient.removeChannel(State.presenceChannel);
+        await supabaseClient.removeChannel(State.presenceChannel);
+        State.presenceChannel = null;
     }
 
     // Connect to the Global Waiting Room
@@ -1007,7 +1016,7 @@ const initPresence = () => {
                     if (user.mobile) State.onlineUsers.add(String(user.mobile));
                 });
             }
-            updatePresenceUI();
+            if (typeof updatePresenceUI === "function") updatePresenceUI();
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
@@ -1026,24 +1035,27 @@ const initPresence = () => {
 document.addEventListener("visibilitychange", async () => {
     if (document.visibilityState === "visible") {
         if (State && State.mobile) {
-            console.log("🔄 VANI Waking up... Marking as ONLINE.");
+            console.log("🔄 VANI Waking up... Syncing Data.");
             
-            // 🚨 MARK AS ONLINE
-            if (State.presenceChannel) {
-                await State.presenceChannel.track({ mobile: State.mobile });
-            } else {
-                initPresence();
-            }
-
+            // 1. Force a manual fetch of any messages missed while tab was hidden
             await syncContacts(); 
             if (State.activeContact) await loadHistory();
-            if (typeof initRealtime === "function") initRealtime(); 
+
+            // 2. Safely re-announce Presence (Green Dot)
+            if (State.presenceChannel && State.presenceChannel.state === 'joined') {
+                await State.presenceChannel.track({ mobile: State.mobile, online_at: new Date().toISOString() });
+            } else if (typeof initPresence === "function") {
+                initPresence();
+            }
+            
+            // 🚨 FIX: We DO NOT call initRealtime() here anymore! 
+            // Supabase automatically keeps the socket alive. Violently restarting it caused the crash.
         }
     } else {
         console.log("💤 VANI Tab hidden... Marking as OFFLINE.");
         
-        // 🚨 MARK AS OFFLINE (Instantly drops the green dot for everyone else)
-        if (State && State.presenceChannel) {
+        // Safely drop the Green Dot for everyone else
+        if (State && State.presenceChannel && State.presenceChannel.state === 'joined') {
             await State.presenceChannel.untrack();
         }
     }
