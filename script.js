@@ -69,8 +69,18 @@ const playSound = (type) => {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
       osc.start(); osc.stop(ctx.currentTime + 0.08);
     }
-  } catch(e) { console.warn("Audio blocked by browser."); }
-};
+    // ... existing sound logic ...
+     else if (type === "walkie-alert") {
+      // 📻 High-Tech Double Beep Warning
+      osc.type = "square";
+      osc.frequency.setValueAtTime(1000, ctx.currentTime);
+      osc.frequency.setValueAtTime(1500, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start(); osc.stop(ctx.currentTime + 0.25);
+     }
+  } catch(e) { console.warn("Audio blocked by browser."); 
+  } }
 
 // ==========================================================
 // 2. BULLETPROOF AUTHENTICATION & SESSION
@@ -400,17 +410,36 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
 
   ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.remove("hidden"));
   
-  // 👻 GHOST PROFILE LOGIC: Show or hide the Save button
+  // 👻 UI TRAFFIC COP: Show Ghost Save Button OR Walkie-Talkie Controls
   const saveBtn = $("save-ghost-btn");
-  if (saveBtn) {
-      if (isGhost) {
+  const walkieUI = $("walkie-ui");
+  const tuneBtn = $("tune-btn");
+
+  if (isGhost) {
+      if (saveBtn) {
           saveBtn.classList.remove("hidden");
           saveBtn.dataset.mobile = mobile; // Attach number for the modal
+      }
+      if (walkieUI) walkieUI.classList.add("hidden");
+  } else {
+      if (saveBtn) saveBtn.classList.add("hidden");
+      if (walkieUI) walkieUI.classList.remove("hidden");
+
+      // Set the "Tune" button glow if we are currently tuned in
+      if (State.tunedContacts && State.tunedContacts.has(mobile)) {
+          if (tuneBtn) {
+              tuneBtn.style.opacity = "1";
+              tuneBtn.style.boxShadow = "0 0 15px var(--neon-primary)";
+          }
       } else {
-          saveBtn.classList.add("hidden");
+          if (tuneBtn) {
+              tuneBtn.style.opacity = "0.4";
+              tuneBtn.style.boxShadow = "none";
+          }
       }
   }
 
+  // Mobile Viewport Sliding Engine
   if (window.innerWidth <= 992) {
     document.body.classList.add("in-mobile-chat"); 
     $("sidebarMenu")?.classList.remove("open");
@@ -419,36 +448,49 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
 
   $("chat-box").innerHTML = "";
   loadHistory();
-
   updatePresenceUI(); // Instantly color the header when chat opens
 
   supabaseClient.from("messages").update({ is_read: true }).match({
     sender_mobile: mobile,
     recipient_mobile: State.mobile,
     is_read: false,
-  }).then(() => syncContacts());
+  }).then(() => {
+    if (typeof refreshContactsUI === "function") refreshContactsUI();
+  });
 };
 
 const loadHistory = async () => {
   if (!State.activeContact) return;
   
-  // LIMIT is used to keep the app fast regardless of database size
-  const { data } = await supabaseClient
-    .from("messages")
-    .select("*")
-    .or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`)
-    .order("created_at", { ascending: false }) // Fetch newest first
-    .limit(50); // Get only the last 50 messages[cite: 2]
+  // 🚨 THE UNIFIED TIMELINE MERGE
+  // Fetch from BOTH tables simultaneously
+  const [msgRes, callRes] = await Promise.all([
+    supabaseClient.from("messages").select("*")
+      .or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`)
+      .order("created_at", { ascending: false }).limit(50),
+    supabaseClient.from("calls").select("*")
+      .or(`and(caller_mobile.eq.${State.mobile},receiver_mobile.eq.${State.activeContact}),and(caller_mobile.eq.${State.activeContact},receiver_mobile.eq.${State.mobile})`)
+      .order("created_at", { ascending: false }).limit(50)
+  ]);
+
+  const messages = msgRes.data || [];
+  const calls = callRes.data || [];
+
+  // Mathematically weave the two histories together by exact time
+  const combinedHistory = [...messages, ...calls].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  // Slice to keep only the absolute latest 50 items (mixed texts and calls)
+  const finalData = combinedHistory.slice(0, 50);
 
   const box = $("chat-box");
   box.innerHTML = "";
-  box.dataset.lastLabel = ""; // Reset date tracking
+  box.dataset.lastLabel = ""; 
 
-  if (!data?.length) {
+  if (!finalData.length) {
     box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No history found.</p></div>`;
   } else {
     // Reverse data so chronological order is restored for rendering
-    data.reverse().forEach((msg) => appendBubble(msg, false));
+    finalData.reverse().forEach((item) => appendBubble(item, false));
     box.scrollTop = box.scrollHeight;
   }
 };
@@ -476,7 +518,6 @@ const appendBubble = (msg, autoScroll = true) => {
   const currentLabel = getLabel(msgDate);
   const lastLabel = box.dataset.lastLabel;
 
-  // 2. Inject Date Divider if the boundary has shifted
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
       "beforeend",
@@ -491,23 +532,59 @@ const appendBubble = (msg, autoScroll = true) => {
     box.dataset.lastLabel = currentLabel;
   }
 
-  // 3. Render Message Bubble
-  const isMe = msg.sender_mobile === State.mobile;
-  box.insertAdjacentHTML(
-    "beforeend",
-    /* 🚨 ADDED data-is-me below */
-    `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
-       <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
-                                      border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
-                                      border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
-                                      backdrop-filter:blur(10px);padding:10px 14px; cursor: pointer;">
-         <div class="chat-bubble-content">${sanitize(msg.content)}</div>
-         <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
+  // 🚨 CHECK IF IT'S A CALL OR A TEXT
+  const isCall = msg.status !== undefined; 
+  const isMe = isCall ? msg.caller_mobile === State.mobile : msg.sender_mobile === State.mobile;
+  
+  // Attach the correct table name so Double-Tap to Delete knows where to look!
+  const tableName = isCall ? 'calls' : 'messages';
+
+  let bubbleInnerHTML = "";
+  let bubbleStyles = `max-width:75%; background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
+                      border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
+                      border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
+                      backdrop-filter:blur(10px);padding:10px 14px; cursor: pointer;`;
+
+  if (isCall) {
+      // 📞 CALL BUBBLE DESIGN
+      const isMissed = msg.status === "missed";
+      const iconColor = isMissed ? "#ff4d4d" : "var(--neon-primary)";
+      const statusText = isMissed ? "Missed Call" : "Voice Call";
+      
+      let durationText = "";
+      if (!isMissed) {
+          const m = Math.floor(msg.duration / 60);
+          const s = msg.duration % 60;
+          durationText = `${m > 0 ? m + 'm ' : ''}${s}s`;
+      }
+
+      bubbleInnerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:${iconColor};">📞</div>
+            <div style="display:flex; flex-direction:column;">
+                <span style="font-weight:600; font-size:1rem; color:${iconColor};">${statusText}</span>
+                ${!isMissed ? `<span style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">Duration: ${durationText}</span>` : ""}
+            </div>
+        </div>
+        <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:8px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-         </div>
-       </div>
-     </div>`
-  );
+        </div>
+      `;
+  } else {
+      // 💬 STANDARD TEXT DESIGN
+      bubbleInnerHTML = `
+        <div class="chat-bubble-content">${sanitize(msg.content)}</div>
+        <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
+          ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        </div>
+      `;
+  }
+
+  box.insertAdjacentHTML("beforeend", `
+    <div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-table="${tableName}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+       <div class="chat-bubble" style="${bubbleStyles}">${bubbleInnerHTML}</div>
+    </div>
+  `);
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
@@ -598,8 +675,8 @@ $("chat-box")?.addEventListener("dblclick", async (e) => {
     bubbleWrapper.classList.add("message-deleted");
 
     // 3. DELETE FROM SUPABASE (Background Process)
-    await supabaseClient.from("messages").delete().eq("id", bubbleWrapper.dataset.msgId);
-
+    const targetTable = bubbleWrapper.dataset.table || "messages";
+    await supabaseClient.from(targetTable).delete().eq("id", bubbleWrapper.dataset.msgId);
     // 4. DESTROY THE DOM ELEMENT (After animation completes)
     setTimeout(() => {
         bubbleWrapper.remove();
@@ -714,6 +791,10 @@ const initRealtime = () => {
                 showTypingIndicator();
             }
         })
+
+        .on("broadcast", { event: "webrtc-offer" }, handleWebRTCSignals)
+        .on("broadcast", { event: "webrtc-answer" }, handleWebRTCSignals)
+        .on("broadcast", { event: "webrtc-ice" }, handleWebRTCSignals)
         
         // 🔴 LISTEN FOR DELETED MESSAGES (DOUBLE-TAP FEATURE)
         .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
@@ -1112,6 +1193,156 @@ $("confirm-ghost-save-btn")?.addEventListener("click", async () => {
         alert(`Save Error: ${err.message}`);
     }
 });
+
+// ==========================================================
+// 🎙️ WALKIE-TALKIE WEBRTC ENGINE (ZERO LATENCY)
+// ==========================================================
+State.tunedContacts = new Set(); // Who are we auto-accepting calls from?
+let peerConnection = null;
+let localStream = null;
+let callStartTime = null;
+let isRecording = false;
+
+// 1. The "Tune" Toggle (Authorizes Auto-Accept)
+$("tune-btn")?.addEventListener("click", () => {
+    if (!State.activeContact) return;
+    const btn = $("tune-btn");
+    
+    if (State.tunedContacts.has(State.activeContact)) {
+        State.tunedContacts.delete(State.activeContact);
+        btn.style.opacity = "0.4";
+        btn.style.boxShadow = "none";
+    } else {
+        State.tunedContacts.add(State.activeContact);
+        btn.style.opacity = "1";
+        btn.style.boxShadow = "0 0 15px var(--neon-primary)";
+        playSound("send"); // Give tactile feedback
+    }
+});
+
+// 2. Start Speaking (Mouse Down / Touch Start)
+const startPTT = async () => {
+    if (!State.activeContact || isRecording) return;
+    isRecording = true;
+    $("mic-btn").style.background = "var(--neon-primary)";
+    $("mic-btn").style.color = "#000";
+    $("mic-btn").style.transform = "scale(1.1)";
+    
+    try {
+        // Request Mic access
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        
+        peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate && State.channel) {
+                State.channel.send({ type: 'broadcast', event: 'webrtc-ice', payload: { candidate: e.candidate, recipient: State.activeContact }});
+            }
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        callStartTime = Date.now();
+        
+        // Broadcast the call to the other phone
+        State.channel.send({
+            type: 'broadcast', event: 'webrtc-offer',
+            payload: { offer, sender: State.mobile, recipient: State.activeContact }
+        });
+        
+    } catch (err) {
+        console.error("Mic access denied or failed.", err);
+        stopPTT();
+    }
+};
+
+// 3. Stop Speaking (Mouse Up / Touch End)
+const stopPTT = async () => {
+    if (!isRecording) return;
+    isRecording = false;
+    $("mic-btn").style.background = "transparent";
+    $("mic-btn").style.color = "var(--neon-primary)";
+    $("mic-btn").style.transform = "scale(1)";
+
+    // Calculate how long we spoke
+    const durationSecs = callStartTime ? Math.floor((Date.now() - callStartTime) / 1000) : 0;
+    
+    // Shut off hardware
+    if (localStream) localStream.getTracks().forEach(track => track.stop());
+    if (peerConnection) peerConnection.close();
+    
+    peerConnection = null;
+    localStream = null;
+    
+    // Save the log to the database
+    if (callStartTime) {
+        await supabaseClient.from("calls").insert([{
+            caller_mobile: State.mobile,
+            receiver_mobile: State.activeContact,
+            status: 'connected',
+            duration: durationSecs
+        }]);
+    }
+    
+    callStartTime = null;
+};
+
+$("mic-btn")?.addEventListener("mousedown", startPTT);
+$("mic-btn")?.addEventListener("mouseup", stopPTT);
+$("mic-btn")?.addEventListener("mouseleave", stopPTT); // Failsafe
+$("mic-btn")?.addEventListener("touchstart", startPTT, { passive: true });
+$("mic-btn")?.addEventListener("touchend", stopPTT);
+
+// 4. Listen for Incoming WebRTC Signals
+// Put this logic INSIDE your existing `initRealtime` block where you listen for typing broadcasts
+const handleWebRTCSignals = async (payload) => {
+    const data = payload.payload;
+    if (data.recipient !== State.mobile) return; // Not for me
+
+    if (payload.event === 'webrtc-offer') {
+        // Someone is calling me! Are we Tuned in to them?
+        if (!State.tunedContacts.has(data.sender)) {
+            // We are NOT tuned in. Reject the call and log as Missed.
+            await supabaseClient.from("calls").insert([{ caller_mobile: data.sender, receiver_mobile: State.mobile, status: 'missed', duration: 0 }]);
+            return;
+        }
+
+        // We ARE tuned in! Play the chirp and accept the audio.
+        playSound("walkie-alert");
+        
+        peerConnection = new RTCPeerConnection({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+        
+        peerConnection.ontrack = (e) => {
+            const remoteAudio = $("remote-audio");
+            if (remoteAudio) remoteAudio.srcObject = e.streams[0];
+        };
+
+        peerConnection.onicecandidate = (e) => {
+            if (e.candidate) {
+                State.channel.send({ type: 'broadcast', event: 'webrtc-ice', payload: { candidate: e.candidate, recipient: data.sender }});
+            }
+        };
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        State.channel.send({ type: 'broadcast', event: 'webrtc-answer', payload: { answer, recipient: data.sender }});
+    }
+
+    if (payload.event === 'webrtc-answer' && peerConnection) {
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+    }
+
+    if (payload.event === 'webrtc-ice' && peerConnection) {
+        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+    }
+};
+
+// 🚨 Add this ONE line to your `initRealtime` function, right below `.on("broadcast", { event: "typing" }, ...)`:
+
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
