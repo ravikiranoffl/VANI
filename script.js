@@ -712,28 +712,34 @@ const initRealtime = async () => {
         
         // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
-    const msg = p.new;
-
-    // 1. If I am the sender, I don't need to do anything (already handled)
-    if (msg.sender_mobile == State.mobile) return;
-
-    // 2. If I am the receiver and looking at the chat, mark as read IMMEDIATELY
-    if (msg.sender_mobile == State.activeContact) {
-        playSound("receive");
-        appendBubble(msg, true);
-        
-        // Force the database update so the badge doesn't reappear
-        await supabaseClient.from("messages")
-            .update({ is_read: true })
-            .eq("id", msg.id);
+            const msg = p.new;
             
-        // Do NOT call syncContacts() here, just update the UI state locally
-    } else {
-        // 3. If I am NOT looking at the chat, update the UI (Badge will appear)
-        playSound("receive");
-        await refreshContactsUI(); 
-    }
-})
+            if (!msg?.sender_mobile) return;
+
+            const isCurrentlyViewingChat = (msg.sender_mobile == State.activeContact && msg.recipient_mobile == State.mobile);
+            const isMyOwnMessage = (msg.sender_mobile == State.mobile && msg.recipient_mobile == State.activeContact);
+            const isForMeButImElsewhere = (msg.recipient_mobile == State.mobile && msg.sender_mobile != State.activeContact);
+
+            if (isCurrentlyViewingChat) {
+                // SCENARIO A: You are looking at the chat when they text you.
+                playSound("receive");
+                appendBubble(msg, true);
+                
+                // Instantly burn the unread status in the database
+                await supabaseClient.from("messages").update({ is_read: true }).eq("id", msg.id);
+                // 🛑 We explicitly DO NOT call syncContacts() here to prevent the badge from flickering.
+            } 
+            else if (isMyOwnMessage) {
+                // 🚨 SCENARIO B (RESTORED): You sent a message. Append it to your own screen!
+                appendBubble(msg, true);
+                await refreshContactsUI(); // Moves the contact to the top of the sidebar
+            } 
+            else if (isForMeButImElsewhere) {
+                // SCENARIO C: Someone texts you while you are in another chat/menu.
+                playSound("receive");
+                await refreshContactsUI(); // Generates the green badge and moves them to the top
+            }
+        })
         // 💬 LISTEN FOR TYPING BROADCASTS (NO DATABASE NEEDED)
         .on("broadcast", { event: "typing" }, (payload) => {
             const data = payload.payload;
