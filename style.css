@@ -903,3 +903,18 @@ body,
         box-sizing: border-box !important;
     }
 }
+/* ========================================================== */
+/* --- DOUBLE-TAP TO DELETE ENGINE --- */
+/* ========================================================== */
+.chat-bubble {
+    user-select: none; /* Stops annoying text highlighting on double click */
+    -webkit-user-select: none;
+    touch-action: manipulation; /* Tells mobile browsers to allow fast double-taps */
+    transition: transform 0.2s var(--bezier-bounce), opacity 0.2s ease;
+}
+
+.message-deleted {
+    transform: scale(0.5) translateY(10px) !important;
+    opacity: 0 !important;
+    pointer-events: none;
+}

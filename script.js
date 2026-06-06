@@ -29,7 +29,6 @@ const sanitize = (s) =>
   );
 
 const playSound = (type) => {
-  // Check settings before playing
   if (localStorage.getItem("vani-audio") === "false") return;
   
   try {
@@ -40,7 +39,6 @@ const playSound = (type) => {
     gain.connect(ctx.destination);
 
     if (type === "send") {
-      // The WhatsApp "Tick" (Short, low frequency pop)
       osc.type = "sine";
       osc.frequency.setValueAtTime(600, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.05);
@@ -48,13 +46,20 @@ const playSound = (type) => {
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
       osc.start(); osc.stop(ctx.currentTime + 0.05);
     } else if (type === "receive") {
-      // The Instagram "Ping" (Higher frequency chime)
       osc.type = "sine";
       osc.frequency.setValueAtTime(800, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
       gain.gain.setValueAtTime(0.3, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
       osc.start(); osc.stop(ctx.currentTime + 0.3);
+    } else if (type === "delete") {
+      // 💥 THE NEW POP OUT SOUND (High frequency dropping rapidly to zero)
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(900, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.8, ctx.currentTime); // Slightly louder for impact
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc.start(); osc.stop(ctx.currentTime + 0.08);
     }
   } catch(e) { console.warn("Audio blocked by browser."); }
 };
@@ -448,11 +453,12 @@ const appendBubble = (msg, autoScroll = true) => {
   const isMe = msg.sender_mobile === State.mobile;
   box.insertAdjacentHTML(
     "beforeend",
-    `<div class="message-enter" data-msg-id="${msg.id}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+    /* 🚨 ADDED data-is-me below */
+    `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
        <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
                                       border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
                                       border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
-                                      backdrop-filter:blur(10px);padding:10px 14px;">
+                                      backdrop-filter:blur(10px);padding:10px 14px; cursor: pointer;">
          <div class="chat-bubble-content">${sanitize(msg.content)}</div>
          <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -505,6 +511,43 @@ const sendMsg = async (e) => {
   if (bubble) bubble.dataset.msgId = data.id;
 };
 
+// ==========================================================
+// 🗑️ DOUBLE TAP TO DELETE ENGINE
+// ==========================================================
+$("chat-box")?.addEventListener("dblclick", async (e) => {
+    // Find the message wrapper that was double-tapped
+    const bubbleWrapper = e.target.closest(".message-enter");
+    
+    // Ignore if they didn't tap a message, or if it's still uploading
+    if (!bubbleWrapper || !bubbleWrapper.dataset.msgId || bubbleWrapper.dataset.msgId.startsWith("temp-")) return;
+
+    // Security: Only allow the user to delete their OWN messages
+    if (bubbleWrapper.dataset.isMe !== "true") return; 
+
+    // 1. PLAY THE INSTANT POP SOUND
+    playSound("delete");
+
+    // 2. TRIGGER THE VISUAL POP ANIMATION
+    bubbleWrapper.classList.add("message-deleted");
+
+    // 3. DELETE FROM SUPABASE (Background Process)
+    await supabaseClient.from("messages").delete().eq("id", bubbleWrapper.dataset.msgId);
+
+    // 4. DESTROY THE DOM ELEMENT (After animation completes)
+    setTimeout(() => {
+        bubbleWrapper.remove();
+        
+        // Cleanup: If this was the last message today, hide the "Today" divider
+        const box = $("chat-box");
+        if (box && box.children.length > 0) {
+            const lastChild = box.lastElementChild;
+            if (lastChild && lastChild.classList.contains('date-divider')) {
+                lastChild.remove();
+            }
+        }
+    }, 200); 
+});
+
 // Listeners securely pass the event object to block reloads
 $("send-msg-btn")?.addEventListener("click", (e) => sendMsg(e));
 $("msg-input")?.addEventListener("keydown", (e) => {
@@ -514,7 +557,9 @@ $("msg-input")?.addEventListener("keydown", (e) => {
     }
 });
 
-// 📡 THE DIAGNOSTIC REALTIME ENGINE
+// ==========================================================
+// 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
+// ==========================================================
 const initRealtime = () => {
     // 1. Verify State before we even try to connect
     if (!State || !State.mobile) {
@@ -524,15 +569,17 @@ const initRealtime = () => {
 
     console.log(`🔌 Initializing Realtime for User: ${State.mobile}`);
 
-    // Clean up any old ghost subscriptions
-    // Clean up any old ghost subscriptions safely
+    // 2. Clean up any old ghost subscriptions safely
     if (State.channel) {
         supabaseClient.removeChannel(State.channel);
         State.channel = null;
     }
 
+    // 3. Boot the Realtime Socket
     State.channel = supabaseClient
-        .channel("vani-realtime-channel") // Changed name to ensure a fresh socket
+        .channel("vani-realtime-channel")
+        
+        // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
             const msg = p.new;
             
@@ -573,6 +620,26 @@ const initRealtime = () => {
             }
             console.log("-----------------------------------------");
         })
+        
+        // 🔴 LISTEN FOR DELETED MESSAGES (DOUBLE-TAP FEATURE)
+        .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (p) => {
+            console.log("🗑️ REALTIME DELETE DETECTED. Removing message:", p.old.id);
+            const deletedId = p.old.id;
+            const bubble = document.querySelector(`[data-msg-id="${deletedId}"]`);
+            
+            if (bubble) {
+                // Animate it shrinking away, then remove it from the DOM
+                bubble.classList.add("message-deleted");
+                setTimeout(() => {
+                    bubble.remove();
+                }, 200);
+                
+                // Refresh the sidebar in case this was the most recent message
+                refreshContactsUI();
+            }
+        })
+
+        // 🔌 CONNECT THE SOCKET
         .subscribe((status, err) => {
             if (status === 'SUBSCRIBED') {
                 console.log("🟢 VANI REALTIME IS LIVE AND LISTENING.");
