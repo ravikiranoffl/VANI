@@ -6,7 +6,15 @@ const supabaseClient = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
 );
 
-const State = { mobile: "", profile: null, activeContact: "", channel: null };
+// Add presenceChannel and onlineUsers to your State memory
+const State = { 
+    mobile: "", 
+    profile: null, 
+    activeContact: "", 
+    channel: null,
+    presenceChannel: null,       // NEW
+    onlineUsers: new Set()       // NEW: A high-speed list of online numbers
+};
 const $ = (id) => (typeof id === "string" ? document.getElementById(id) : id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -94,6 +102,7 @@ const evalSession = async () => {
     toggleUI(true);
     await syncContacts();
     initRealtime();
+    initPresence(); // 🚨 NEW: Boot up the Online Tracker!
   } catch (err) {
     console.error("SESSION REJECTED:", err.message);
     toggleUI(false);
@@ -379,6 +388,8 @@ const openChat = async (mobile, name, avatar, isReg) => {
 
   $("chat-box").innerHTML = "";
   loadHistory();
+
+  updatePresenceUI(); // 🚨 NEW: Instantly color the header when chat opens
 
   supabaseClient.from("messages").update({ is_read: true }).match({
     sender_mobile: mobile,
@@ -908,27 +919,112 @@ $("msg-input")?.addEventListener("focus", () => {
 });
 
 // ==========================================================
+// 🟢 PRESENCE ENGINE (ONLINE / OFFLINE TRACKER)
+// ==========================================================
+
+const updatePresenceUI = () => {
+    // 1. Update the Active Chat Header (Top Bar)
+    if (State.activeContact) {
+        const isOnline = State.onlineUsers.has(String(State.activeContact));
+        const statusEl = $("chat-with-status");
+        if (statusEl) {
+            statusEl.innerHTML = isOnline 
+                ? `<span style="display:inline-block;width:10px;height:10px;background:#00ff88;border-radius:50%;margin-right:6px;box-shadow:0 0 8px #00ff88;"></span>Online` 
+                : `<span style="display:inline-block;width:10px;height:10px;background:#ff4d4d;border-radius:50%;margin-right:6px;"></span>Offline`;
+            statusEl.style.color = isOnline ? "#00ff88" : "var(--text-muted)";
+        }
+    }
+
+    // 2. Update the Contacts List Sidebar (Injecting the Green Dot)
+    $$("#contacts-list li").forEach(li => {
+        const mobile = li.dataset.mobile;
+        const isOnline = State.onlineUsers.has(String(mobile));
+        
+        // Wrap the avatar in a relative container so the dot sticks to the corner
+        let img = li.querySelector("img");
+        if (img && !img.parentElement.classList.contains("avatar-wrapper")) {
+            const wrapper = document.createElement("div");
+            wrapper.className = "avatar-wrapper";
+            wrapper.style.position = "relative";
+            wrapper.style.display = "inline-flex";
+            img.parentNode.insertBefore(wrapper, img);
+            wrapper.appendChild(img);
+        }
+
+        const wrapper = li.querySelector(".avatar-wrapper");
+        if (wrapper) {
+            let indicator = wrapper.querySelector(".presence-dot");
+            if (isOnline) {
+                if (!indicator) {
+                    // Uses your existing 'online-pulse' CSS class!
+                    wrapper.insertAdjacentHTML("beforeend", `<div class="presence-dot online-pulse" style="position:absolute; bottom:-2px; right:-2px; border:2px solid var(--bg-deep);"></div>`);
+                }
+            } else {
+                if (indicator) indicator.remove();
+            }
+        }
+    });
+};
+
+const initPresence = () => {
+    if (!State.mobile) return;
+
+    if (State.presenceChannel) {
+        supabaseClient.removeChannel(State.presenceChannel);
+    }
+
+    // Connect to the Global Waiting Room
+    State.presenceChannel = supabaseClient.channel('vani_global_presence');
+
+    State.presenceChannel
+        .on('presence', { event: 'sync' }, () => {
+            // Someone joined or left! Rebuild the list of online users.
+            const newState = State.presenceChannel.presenceState();
+            State.onlineUsers.clear();
+            for (const id in newState) {
+                newState[id].forEach(user => {
+                    if (user.mobile) State.onlineUsers.add(String(user.mobile));
+                });
+            }
+            updatePresenceUI();
+        })
+        .subscribe(async (status) => {
+            if (status === 'SUBSCRIBED') {
+                // Announce to the network that YOU are online
+                await State.presenceChannel.track({
+                    mobile: State.mobile,
+                    online_at: new Date().toISOString(),
+                });
+            }
+        });
+};
+
+// ==========================================================
 // 🛡️ ANTI-SLEEP & TAB THROTTLING WAKE-UP ENGINE
 // ==========================================================
 document.addEventListener("visibilitychange", async () => {
-    // When the user switches back to this tab from another tab or app
     if (document.visibilityState === "visible") {
         if (State && State.mobile) {
-            console.log("🔄 VANI Waking up from background... Resyncing matrix.");
+            console.log("🔄 VANI Waking up... Marking as ONLINE.");
             
-            // 1. Fetch any messages that were sent while the tab was asleep
+            // 🚨 MARK AS ONLINE
+            if (State.presenceChannel) {
+                await State.presenceChannel.track({ mobile: State.mobile });
+            } else {
+                initPresence();
+            }
+
             await syncContacts(); 
-            if (State.activeContact) {
-                await loadHistory();
-            }
-            
-            // 2. Force a reboot of the Realtime socket to ensure it isn't frozen
-            if (typeof initRealtime === "function") {
-                initRealtime(); 
-            }
+            if (State.activeContact) await loadHistory();
+            if (typeof initRealtime === "function") initRealtime(); 
         }
     } else {
-        console.log("💤 VANI Tab hidden. Browser may throttle connection.");
+        console.log("💤 VANI Tab hidden... Marking as OFFLINE.");
+        
+        // 🚨 MARK AS OFFLINE (Instantly drops the green dot for everyone else)
+        if (State && State.presenceChannel) {
+            await State.presenceChannel.untrack();
+        }
     }
 });
 
