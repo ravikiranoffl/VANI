@@ -212,6 +212,9 @@ select {
 #chat-with-status {
     margin-left: 10px;
 }
+#chat-with-status {
+    font-family:Outfit, Opensans !important;
+}
 .lb-list { list-style: none; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
 .lb-list li {
     display: flex; align-items: center; gap: 15px; padding: 12px 15px;
