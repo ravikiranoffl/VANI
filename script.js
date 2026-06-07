@@ -1369,16 +1369,34 @@ const initWebRTC = async () => {
             CallState.peerConnection.addTrack(track, CallState.localStream);
         });
 
-        // Listen for Remote Tracks
+       // Listen for Remote Tracks (Upgraded for Mobile Safari/Chrome)
         CallState.peerConnection.ontrack = (event) => {
-            console.log("🎧 Remote audio stream received!");
+            console.log(`🎧 Remote track received! Type: ${event.track.kind}`);
             const audioEl = $("remote-audio-stream");
-            if (audioEl.srcObject !== event.streams[0]) {
-                audioEl.srcObject = event.streams[0];
+            
+            // 🚨 FIX: Manually construct the MediaStream. 
+            // Relying on event.streams[0] often fails on mobile browsers.
+            let stream = audioEl.srcObject;
+            if (!stream) {
+                stream = new MediaStream();
+                audioEl.srcObject = stream;
             }
-            audioEl.play().catch(e => {
-                console.warn("Browser blocked auto-play. Audio will unlock on next tap.", e);
+            stream.addTrack(event.track);
+            
+            // Force volume to max
+            audioEl.volume = 1.0;
+
+            audioEl.play().then(() => {
+                console.log("🔊 WebRTC Audio is actively playing!");
+            }).catch(e => {
+                console.warn("🔇 Browser blocked playback. Audio context locked.", e);
             });
+        };
+
+        // 🚨 NEW: THE DIAGNOSTIC PROBE
+        // This will tell us if your Wi-Fi/Cellular firewall is blocking the actual audio data.
+        CallState.peerConnection.oniceconnectionstatechange = () => {
+            console.log("🌐 ICE Connection State:", CallState.peerConnection.iceConnectionState);
         };
 
         // ICE Candidate Handling
