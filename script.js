@@ -1273,8 +1273,27 @@ const CallState = {
 
 const STUN_SERVERS = {
     iceServers: [
+        // Standard STUN (Tries P2P First)
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' },
+        
+        // 🚨 NEW: The Cloud Relay (TURN)
+        // If P2P fails, this catches the audio and forces it through the firewall
+        {
+            urls: "turn:openrelay.metered.ca:80",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "openrelayproject",
+            credential: "openrelayproject"
+        }
     ]
 };
 
