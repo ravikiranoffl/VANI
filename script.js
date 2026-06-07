@@ -1547,13 +1547,22 @@ $("start-call-btn")?.addEventListener("click", startCall);
 $("decline-call-btn")?.addEventListener("click", () => endCall(CallState.startTime !== null));
 
 // Refactored Accept Binding for iOS Audio Context Safety
+// Refactored Accept Binding for iOS Audio Context Safety
 $("accept-call-btn")?.addEventListener("click", async () => {
     console.log("✅ Call Accepted.");
+    
+    // 🚨 THE AUTOPLAY UNLOCKER: Force the audio element to wake up immediately
+    // before the permission prompt delays the execution thread.
+    const audioEl = $("remote-audio-stream");
+    if (audioEl) {
+        audioEl.play().catch(e => console.log("Silently unlocking audio context..."));
+    }
+
     CallState.isActive = true;
     CallState.isRinging = false;
     
     try {
-        await initWebRTC(); // Grabs mic, user action unlocks Safari audio
+        await initWebRTC(); // Grabs mic
         await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(CallState.pendingOffer));
         
         setCallUI("Connected", false);
@@ -1567,7 +1576,6 @@ $("accept-call-btn")?.addEventListener("click", async () => {
         endCall(false);
     }
 });
-
 // Network Guardian Binding (Uplink Severed)
 window.addEventListener("offline", () => {
     if (CallState.isActive || CallState.isRinging) {
