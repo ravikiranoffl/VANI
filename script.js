@@ -6,7 +6,6 @@ const supabaseClient = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
 );
 
-alert("Kindly Don't Make Calls! This Feature is still under testing!");
 // Add presenceChannel and onlineUsers to your State memory
 const State = { 
     mobile: "", 
@@ -1274,26 +1273,25 @@ const CallState = {
 
 const STUN_SERVERS = {
     iceServers: [
-        // Standard STUN (Tries P2P First)
+        // Standard Google STUN (Always Free)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
         
-        // 🚨 NEW: The Cloud Relay (TURN)
-        // If P2P fails, this catches the audio and forces it through the firewall
+        // YOUR NEW FREE PRIVATE TURN SERVER
         {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject"
+            urls: "turn:vani.metered.live:80", 
+            username: "6a25beaa584fd2a49d7e9d26",             
+            credential: "!$UmHn5meJG2gcf"             
         },
         {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject"
+            urls: "turn:YOUR_NAME.metered.live:443",
+            username: "YOUR_USERNAME",
+            credential: "YOUR_PASSWORD"
         },
         {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject"
+            urls: "turn:YOUR_NAME.metered.live:443?transport=tcp",
+            username: "YOUR_USERNAME",
+            credential: "YOUR_PASSWORD"
         }
     ]
 };
