@@ -1280,8 +1280,8 @@ const STUN_SERVERS = {
         // YOUR NEW FREE PRIVATE TURN SERVER
         {
             urls: "turn:vani.metered.live:80", 
-            username: "6a25beaa584fd2a49d7e9d26",             
-            credential: "!$UmHn5meJG2gcf"             
+            username: "bcb001f9853ce7b645865e73",             
+            credential: "LIPH0AaJJdT3o3sv"             
         },
         {
             urls: "turn:YOUR_NAME.metered.live:443",
