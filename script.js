@@ -470,6 +470,10 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
       // 3. Sync silently in the background only AFTER confirmation
       syncContacts(); 
   }
+
+  if (typeof checkCallButtonVisibility === "function") {
+      checkCallButtonVisibility();
+  }
 };
 
 const loadHistory = async () => {
@@ -501,7 +505,6 @@ const appendBubble = (msg, autoScroll = true) => {
   const box = $("chat-box");
   box.querySelector(".empty-state")?.remove();
 
-  // 🛡️ THE DUPLICATE SHIELD
   if (msg.id && box.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
   const msgDate = new Date(msg.created_at);
@@ -509,7 +512,6 @@ const appendBubble = (msg, autoScroll = true) => {
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
-  // 1. DYNAMIC DATE LABEL LOGIC
   const getLabel = (d) => {
     if (d.toDateString() === today.toDateString()) return "Today";
     if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
@@ -519,7 +521,6 @@ const appendBubble = (msg, autoScroll = true) => {
   const currentLabel = getLabel(msgDate);
   const lastLabel = box.dataset.lastLabel;
 
-  // 2. Inject Date Divider if the boundary has shifted
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
       "beforeend",
@@ -534,17 +535,44 @@ const appendBubble = (msg, autoScroll = true) => {
     box.dataset.lastLabel = currentLabel;
   }
 
-  // 3. Render Message Bubble
   const isMe = msg.sender_mobile === State.mobile;
+  let bubbleHTML = "";
+
+  // 🚨 NEW: THE UNIFIED TIMELINE PARSER
+  if (msg.content.startsWith("[CALL_LOG:")) {
+      const parts = msg.content.replace("[CALL_LOG:", "").replace("]", "").split(":");
+      const type = parts[0]; // "VOICE" or "MISSED"
+      const duration = parts[1] || "";
+      
+      const icon = type === "MISSED" ? "❌" : "📞";
+      const title = type === "MISSED" ? "Missed Call" : "Voice Call";
+      const durationText = type === "MISSED" ? "" : duration;
+      const color = type === "MISSED" ? "#ff4d4d" : "var(--neon-primary)";
+
+      bubbleHTML = `
+        <div class="call-log-bubble">
+            <div class="call-log-icon" style="color: ${color}; box-shadow: inset 0 0 10px ${type === "MISSED" ? 'rgba(255,77,77,0.2)' : 'rgba(var(--neon-rgb), 0.2)'};">
+                ${icon}
+            </div>
+            <div class="call-log-details">
+                <h4>${title}</h4>
+                ${durationText ? `<p>Duration: ${durationText}</p>` : ''}
+            </div>
+        </div>
+      `;
+  } else {
+      // STANDARD TEXT MESSAGE
+      bubbleHTML = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
+  }
+
   box.insertAdjacentHTML(
     "beforeend",
-    /* 🚨 ADDED data-is-me below */
     `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
        <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
                                       border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
                                       border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
                                       backdrop-filter:blur(10px);padding:10px 14px; cursor: pointer;">
-         <div class="chat-bubble-content">${sanitize(msg.content)}</div>
+         ${bubbleHTML}
          <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
@@ -746,6 +774,15 @@ const initRealtime = async () => {
             // If they are typing to ME, and I am currently looking at THEM
             if (data.recipient == State.mobile && data.sender == State.activeContact) {
                 showTypingIndicator();
+            }
+        })
+
+        // 📞 LISTEN FOR WEBRTC SIGNALS
+        .on("broadcast", { event: "webrtc_signal" }, (payload) => {
+            const data = payload.payload;
+            if (data.recipient === State.mobile) {
+                console.log("📡 Incoming WebRTC Signal:", data.type);
+                handleIncomingWebRTCSignal(data);
             }
         })
         
@@ -1213,6 +1250,314 @@ $("offline-reload-btn")?.addEventListener("click", () => {
         }
     }, 800); // Fake 800ms scan delay for premium UX
 });
+
+// ==========================================================
+// 📞 VANI WEBRTC WALKIE-TALKIE ENGINE
+// ==========================================================
+
+const CallState = {
+    isActive: false,
+    isRinging: false,
+    peerConnection: null,
+    localStream: null,
+    remoteStream: null,
+    startTime: null,
+    timerInterval: null,
+    targetMobile: null,
+    isCaller: false
+};
+
+const STUN_SERVERS = {
+    iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' }
+    ]
+};
+
+// 1. SIGNALING EMITTER
+const sendCallSignal = (type, data = {}) => {
+    if (!State.channel) return;
+    State.channel.send({
+        type: 'broadcast',
+        event: 'webrtc_signal',
+        payload: { sender: State.mobile, recipient: CallState.targetMobile, type, ...data }
+    });
+};
+
+// 2. TIMERS & LOGGING
+const formatDuration = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+};
+
+const startCallTimer = () => {
+    CallState.startTime = Date.now();
+    $("call-duration-timer").classList.remove("hidden");
+    CallState.timerInterval = setInterval(() => {
+        const diff = Math.floor((Date.now() - CallState.startTime) / 1000);
+        $("call-duration-timer").textContent = formatDuration(diff);
+    }, 1000);
+};
+
+const stopCallTimerAndLog = async (wasAnswered) => {
+    clearInterval(CallState.timerInterval);
+    $("call-duration-timer").classList.add("hidden");
+    $("call-duration-timer").textContent = "00:00";
+
+    // ONLY THE CALLER LOGS TO THE DATABASE
+    if (CallState.isCaller) {
+        let logString = "[CALL_LOG:MISSED]";
+        if (wasAnswered && CallState.startTime) {
+            const diff = Math.floor((Date.now() - CallState.startTime) / 1000);
+            logString = `[CALL_LOG:VOICE:${formatDuration(diff)}]`;
+        }
+
+        console.log(`💾 Logging Call to DB: ${logString}`);
+        await supabaseClient.from("messages").insert([{
+            sender_mobile: State.mobile,
+            recipient_mobile: CallState.targetMobile,
+            content: logString,
+            is_read: false,
+        }]);
+    }
+};
+
+// 3. UI CONTROLLER
+const setCallUI = (statusText, showAcceptBtn = false) => {
+    $("active-call-matrix").classList.remove("hidden");
+    $("call-status-text").textContent = statusText;
+    
+    // Attempt to grab name/avatar from UI or State
+    $("call-target-name").textContent = $("chat-with-name")?.textContent || CallState.targetMobile;
+    $("call-target-avatar").src = $("chat-target-avatar")?.src || "https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost";
+
+    if (showAcceptBtn) {
+        $("accept-call-btn").classList.remove("hidden");
+        $("decline-call-btn").style.borderColor = "#ff4d4d";
+        $("decline-call-btn").style.color = "#ff4d4d";
+    } else {
+        $("accept-call-btn").classList.add("hidden");
+        $("decline-call-btn").style.borderColor = "var(--neon-primary)";
+        $("decline-call-btn").style.color = "var(--neon-primary)";
+    }
+};
+
+const closeCallUI = () => {
+    $("active-call-matrix").classList.add("hidden");
+};
+
+// 4. WEBRTC PIPELINE
+const initWebRTC = async () => {
+    try {
+        console.log("🎤 Requesting Microphone Access...");
+        CallState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        
+        CallState.peerConnection = new RTCPeerConnection(STUN_SERVERS);
+        
+        // Add Local Tracks to PC
+        CallState.localStream.getTracks().forEach(track => {
+            CallState.peerConnection.addTrack(track, CallState.localStream);
+        });
+
+        // Listen for Remote Tracks
+        CallState.peerConnection.ontrack = (event) => {
+            console.log("🎧 Remote audio stream received!");
+            const audioEl = $("remote-audio-stream");
+            if (audioEl.srcObject !== event.streams[0]) {
+                audioEl.srcObject = event.streams[0];
+            }
+        };
+
+        // ICE Candidate Handling
+        CallState.peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                sendCallSignal('ICE_CANDIDATE', { candidate: event.candidate });
+            }
+        };
+
+    } catch (err) {
+        console.error("🎤 Microphone Error:", err);
+        alert("Microphone access is required to make calls in the matrix.");
+        throw err;
+    }
+};
+
+// 5. CALL ACTIONS
+const startCall = async () => {
+    if (!State.activeContact) return;
+    if (CallState.isActive || CallState.isRinging) return alert("System busy. Finish current transmission.");
+
+    console.log(`📞 Initiating Call to ${State.activeContact}...`);
+    CallState.isCaller = true;
+    CallState.targetMobile = State.activeContact;
+    CallState.isActive = true;
+
+    try {
+        await initWebRTC();
+        setCallUI("Ringing...", false);
+        
+        const offer = await CallState.peerConnection.createOffer();
+        await CallState.peerConnection.setLocalDescription(offer);
+        
+        sendCallSignal('OFFER', { offer });
+    } catch (err) {
+        endCall(false);
+    }
+};
+
+const acceptCall = async () => {
+    console.log("✅ Call Accepted.");
+    CallState.isActive = true;
+    CallState.isRinging = false;
+    
+    try {
+        await initWebRTC();
+        setCallUI("Connected", false);
+        startCallTimer();
+        
+        // Use the remote description saved during the 'OFFER' event
+        const answer = await CallState.peerConnection.createAnswer();
+        await CallState.peerConnection.setLocalDescription(answer);
+        
+        sendCallSignal('ANSWER', { answer });
+    } catch (err) {
+        endCall(false);
+    }
+};
+
+const endCall = (wasAnswered = false) => {
+    console.log("🛑 Terminating Call Sequence.");
+    
+    // If I hang up, tell the other person
+    if (CallState.isActive || CallState.isRinging) {
+        sendCallSignal('HANGUP');
+    }
+
+    // Kill Media Streams
+    if (CallState.localStream) {
+        CallState.localStream.getTracks().forEach(track => track.stop());
+    }
+    if (CallState.peerConnection) {
+        CallState.peerConnection.close();
+    }
+
+    stopCallTimerAndLog(wasAnswered);
+    closeCallUI();
+
+    // Reset State
+    CallState.isActive = false;
+    CallState.isRinging = false;
+    CallState.peerConnection = null;
+    CallState.localStream = null;
+    CallState.targetMobile = null;
+    CallState.isCaller = false;
+    CallState.startTime = null;
+};
+
+// 6. SIGNAL PROCESSOR
+const handleIncomingWebRTCSignal = async (data) => {
+    const { sender, type } = data;
+
+    switch (type) {
+        case 'OFFER':
+            // The Busy Signal
+            if (CallState.isActive || CallState.isRinging) {
+                console.log(`🚫 Rejecting call from ${sender} (Busy)`);
+                return State.channel.send({ type: 'broadcast', event: 'webrtc_signal', payload: { sender: State.mobile, recipient: sender, type: 'BUSY' }});
+            }
+            
+            console.log(`🔔 Incoming call from ${sender}`);
+            CallState.targetMobile = sender;
+            CallState.isRinging = true;
+            CallState.isCaller = false;
+            
+            // Note: We don't initWebRTC here because of Safari/iOS autoplay restrictions. 
+            // We wait for them to click "Accept". We just save the offer globally.
+            CallState.pendingOffer = data.offer; 
+            setCallUI("Incoming Transmission...", true);
+            
+            break;
+
+        case 'ANSWER':
+            console.log("🔗 Call Answered. Connecting Streams...");
+            if (CallState.peerConnection) {
+                await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                setCallUI("Connected", false);
+                startCallTimer();
+            }
+            break;
+
+        case 'ICE_CANDIDATE':
+            if (CallState.peerConnection && data.candidate) {
+                try {
+                    await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                } catch (e) {
+                    console.error("ICE Error:", e);
+                }
+            }
+            break;
+
+        case 'HANGUP':
+            console.log("🔌 Remote party hung up.");
+            // If they hung up and we were connected, log it as answered. If ringing, it's a miss.
+            endCall(CallState.startTime !== null); 
+            break;
+
+        case 'BUSY':
+            console.log("⚠️ Target is busy.");
+            alert("Node is currently in another transmission.");
+            endCall(false); // Logs as missed
+            break;
+    }
+};
+
+// 7. EVENT BINDINGS
+$("start-call-btn")?.addEventListener("click", startCall);
+$("decline-call-btn")?.addEventListener("click", () => endCall(CallState.startTime !== null));
+
+// Refactored Accept Binding for iOS Audio Context Safety
+$("accept-call-btn")?.addEventListener("click", async () => {
+    console.log("✅ Call Accepted.");
+    CallState.isActive = true;
+    CallState.isRinging = false;
+    
+    try {
+        await initWebRTC(); // Grabs mic, user action unlocks Safari audio
+        await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(CallState.pendingOffer));
+        
+        setCallUI("Connected", false);
+        startCallTimer();
+        
+        const answer = await CallState.peerConnection.createAnswer();
+        await CallState.peerConnection.setLocalDescription(answer);
+        
+        sendCallSignal('ANSWER', { answer });
+    } catch (err) {
+        endCall(false);
+    }
+});
+
+// Network Guardian Binding (Uplink Severed)
+window.addEventListener("offline", () => {
+    if (CallState.isActive || CallState.isRinging) {
+        console.warn("📡 NETWORK LOST: Force terminating active transmission.");
+        endCall(CallState.startTime !== null);
+    }
+});
+
+// Expose the Call button dynamically when opening a chat
+const checkCallButtonVisibility = () => {
+    if (State.activeContact) {
+        $("start-call-btn")?.classList.remove("hidden");
+    } else {
+        $("start-call-btn")?.classList.add("hidden");
+    }
+};
+
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
