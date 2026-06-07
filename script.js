@@ -1415,9 +1415,21 @@ const initWebRTC = async () => {
         // 🚨 NEW: THE DIAGNOSTIC PROBE
         // This will tell us if your Wi-Fi/Cellular firewall is blocking the actual audio data.
         CallState.peerConnection.oniceconnectionstatechange = () => {
-            console.log("🌐 ICE Connection State:", CallState.peerConnection.iceConnectionState);
+            const state = CallState.peerConnection.iceConnectionState;
+            console.log("🌐 ICE Connection State:", state);
+            
+            if (state === "connected" || state === "completed") {
+                // 🟢 TUNNEL OPEN! THIS IS WHEN YOU HEAR AUDIO!
+                $("call-status-text").innerHTML = `<span style="color:#00ff88; font-weight:bold; letter-spacing: 4px;">🟢 UPLINK LIVE</span>`;
+                $("call-target-avatar").style.borderColor = "#00ff88";
+            } else if (state === "checking") {
+                // 🟡 STILL PUNCHING THROUGH FIREWALL
+                $("call-status-text").innerHTML = `<span style="color:#ffaa00;">Bypassing Firewalls...</span>`;
+            } else if (state === "disconnected" || state === "failed") {
+                alert("🛰️ Relay Connection Severed. The network firewall blocked the signal.");
+                endCall(true);
+            }
         };
-
         // ICE Candidate Handling
         CallState.peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
@@ -1462,7 +1474,8 @@ const acceptCall = async () => {
     
     try {
         await initWebRTC();
-        setCallUI("Connected", false);
+      // Change this line inside acceptCall():
+        setCallUI("Securing Tunnel...", false);
         startCallTimer();
         
         // Use the remote description saved during the 'OFFER' event
@@ -1544,8 +1557,9 @@ const handleIncomingWebRTCSignal = async (data) => {
                     CallState.pendingCandidates = []; // Clear the array
                 }
 
-                setCallUI("Connected", false);
-                startCallTimer();
+                // Change this line inside case 'ANSWER':
+                setCallUI("Securing Tunnel...", false); 
+                startCallTimer
             }
             break;
 
