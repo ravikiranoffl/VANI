@@ -1268,7 +1268,8 @@ const CallState = {
     startTime: null,
     timerInterval: null,
     targetMobile: null,
-    isCaller: false
+    isCaller: false,
+    pendingCandidates: []
 };
 
 const STUN_SERVERS = {
@@ -1501,6 +1502,7 @@ const endCall = (wasAnswered = false) => {
     CallState.targetMobile = null;
     CallState.isCaller = false;
     CallState.startTime = null;
+    CallState.pendingCandidates = [];
 };
 
 // 6. SIGNAL PROCESSOR
@@ -1537,11 +1539,18 @@ const handleIncomingWebRTCSignal = async (data) => {
             break;
 
         case 'ICE_CANDIDATE':
-            if (CallState.peerConnection && data.candidate) {
-                try {
-                    await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                } catch (e) {
-                    console.error("ICE Error:", e);
+            if (data.candidate) {
+                // If we answered and the engine is running, apply it immediately
+                if (CallState.peerConnection && CallState.peerConnection.remoteDescription) {
+                    try {
+                        await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+                    } catch (e) {
+                        console.error("ICE Error:", e);
+                    }
+                } else {
+                    // 🚨 FIX: If we are still ringing, SAVE the address in the voicemail array!
+                    CallState.pendingCandidates = CallState.pendingCandidates || [];
+                    CallState.pendingCandidates.push(data.candidate);
                 }
             }
             break;
@@ -1565,12 +1574,11 @@ $("start-call-btn")?.addEventListener("click", startCall);
 $("decline-call-btn")?.addEventListener("click", () => endCall(CallState.startTime !== null));
 
 // Refactored Accept Binding for iOS Audio Context Safety
-// Refactored Accept Binding for iOS Audio Context Safety
+
 $("accept-call-btn")?.addEventListener("click", async () => {
     console.log("✅ Call Accepted.");
     
-    // 🚨 THE AUTOPLAY UNLOCKER: Force the audio element to wake up immediately
-    // before the permission prompt delays the execution thread.
+    // Force the audio element to wake up immediately
     const audioEl = $("remote-audio-stream");
     if (audioEl) {
         audioEl.play().catch(e => console.log("Silently unlocking audio context..."));
@@ -1580,9 +1588,18 @@ $("accept-call-btn")?.addEventListener("click", async () => {
     CallState.isRinging = false;
     
     try {
-        await initWebRTC(); // Grabs mic
+        await initWebRTC(); // Grabs mic and boots engine
         await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(CallState.pendingOffer));
         
+        // 🚨 FIX: Inject all the saved network addresses we caught while ringing!
+        if (CallState.pendingCandidates && CallState.pendingCandidates.length > 0) {
+            for (const candidate of CallState.pendingCandidates) {
+                await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.log("ICE Inject Error:", e));
+            }
+            console.log(`🔌 Successfully injected ${CallState.pendingCandidates.length} saved network addresses.`);
+            CallState.pendingCandidates = []; // Clear the array
+        }
+
         setCallUI("Connected", false);
         startCallTimer();
         
@@ -1594,6 +1611,7 @@ $("accept-call-btn")?.addEventListener("click", async () => {
         endCall(false);
     }
 });
+
 // Network Guardian Binding (Uplink Severed)
 window.addEventListener("offline", () => {
     if (CallState.isActive || CallState.isRinging) {
