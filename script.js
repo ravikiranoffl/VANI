@@ -1285,13 +1285,13 @@ const STUN_SERVERS = {
         },
         {
             urls: "turn:YOUR_NAME.metered.live:443",
-            username: "YOUR_USERNAME",
-            credential: "YOUR_PASSWORD"
+            username: "bcb001f9853ce7b645865e73",             
+            credential: "LIPH0AaJJdT3o3sv"  
         },
         {
             urls: "turn:YOUR_NAME.metered.live:443?transport=tcp",
-            username: "YOUR_USERNAME",
-            credential: "YOUR_PASSWORD"
+            username: "bcb001f9853ce7b645865e73",             
+            credential: "LIPH0AaJJdT3o3sv"  
         }
     ]
 };
