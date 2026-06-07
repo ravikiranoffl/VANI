@@ -1285,12 +1285,12 @@ const STUN_SERVERS = {
             credential: "LIPH0AaJJdT3o3sv"             
         },
         {
-            urls: "turn:YOUR_NAME.metered.live:443",
+            urls: "turn:vani.metered.live:443", // 🚨 Removed YOUR_NAME
             username: "bcb001f9853ce7b645865e73",             
             credential: "LIPH0AaJJdT3o3sv"  
         },
         {
-            urls: "turn:YOUR_NAME.metered.live:443?transport=tcp",
+            urls: "turn:vani.metered.live:443?transport=tcp", // 🚨 Removed YOUR_NAME
             username: "bcb001f9853ce7b645865e73",             
             credential: "LIPH0AaJJdT3o3sv"  
         }
@@ -1529,10 +1529,21 @@ const handleIncomingWebRTCSignal = async (data) => {
             
             break;
 
-        case 'ANSWER':
+      case 'ANSWER':
             console.log("🔗 Call Answered. Connecting Streams...");
             if (CallState.peerConnection) {
                 await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                
+                // 🚨 FIX: The Caller must also check their voicemail and inject any addresses 
+                // that arrived before the Answer signal!
+                if (CallState.pendingCandidates && CallState.pendingCandidates.length > 0) {
+                    for (const candidate of CallState.pendingCandidates) {
+                        await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.log("ICE Inject Error:", e));
+                    }
+                    console.log(`🔌 Caller successfully injected ${CallState.pendingCandidates.length} saved network addresses.`);
+                    CallState.pendingCandidates = []; // Clear the array
+                }
+
                 setCallUI("Connected", false);
                 startCallTimer();
             }
