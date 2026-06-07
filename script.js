@@ -733,10 +733,14 @@ const initRealtime = async () => {
         State.channel = null;
     }
 
-    // 3. Boot the Realtime Socket
-    // 🚨 FIX: Add a unique timestamp to the channel name to permanently prevent collisions
+   // 3. Boot the Realtime Socket
+    // 🚨 FIX: Everyone MUST be on the exact same channel name for Broadcasts to connect!
     State.channel = supabaseClient
-        .channel(`vani-realtime-${Date.now()}`)
+        .channel('vani_global_matrix', {
+            config: {
+                broadcast: { ack: false, self: false }
+            }
+        })
         
         // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, async (p) => {
