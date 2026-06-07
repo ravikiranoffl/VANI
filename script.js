@@ -1333,6 +1333,7 @@ const stopCallTimerAndLog = async (wasAnswered) => {
 // 3. UI CONTROLLER
 const setCallUI = (statusText, showAcceptBtn = false) => {
     $("active-call-matrix").classList.remove("hidden");
+    $("active-call-matrix").style.display = "flex"; // 🚨 Force flex layout only when active
     $("call-status-text").textContent = statusText;
     
     // Attempt to grab name/avatar from UI or State
@@ -1352,6 +1353,7 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
 
 const closeCallUI = () => {
     $("active-call-matrix").classList.add("hidden");
+    $("active-call-matrix").style.display = "none"; // 🚨 Force hide
 };
 
 // 4. WEBRTC PIPELINE
@@ -1374,6 +1376,9 @@ const initWebRTC = async () => {
             if (audioEl.srcObject !== event.streams[0]) {
                 audioEl.srcObject = event.streams[0];
             }
+            audioEl.play().catch(e => {
+                console.warn("Browser blocked auto-play. Audio will unlock on next tap.", e);
+            });
         };
 
         // ICE Candidate Handling
