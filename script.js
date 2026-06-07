@@ -1277,20 +1277,22 @@ const STUN_SERVERS = {
         // Standard Google STUN (Always Free)
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:relay.metered.com:80' }, // 🚨 NEW: Metered's dedicated STUN
         
-        // YOUR NEW FREE PRIVATE TURN SERVER
+        // YOUR FREE PRIVATE TURN RELAY
         {
             urls: "turn:vani.metered.live:80", 
             username: "bcb001f9853ce7b645865e73",             
             credential: "LIPH0AaJJdT3o3sv"             
         },
+        // 🚨 UPGRADE: Changed 'turn' to 'turns' to encrypt the firewall traversal
         {
-            urls: "turn:vani.metered.live:443", // 🚨 Removed YOUR_NAME
+            urls: "turns:vani.metered.live:443", 
             username: "bcb001f9853ce7b645865e73",             
             credential: "LIPH0AaJJdT3o3sv"  
         },
         {
-            urls: "turn:vani.metered.live:443?transport=tcp", // 🚨 Removed YOUR_NAME
+            urls: "turns:vani.metered.live:443?transport=tcp", 
             username: "bcb001f9853ce7b645865e73",             
             credential: "LIPH0AaJJdT3o3sv"  
         }
