@@ -67,12 +67,14 @@ body {
 
 /* --- Layout Architecture --- */
 .chat-container {
-    display: flex; width: 100vw; height: 100vh;
+    display: flex; width: 100vw; height: 100dvh;
+    overflow: hidden;
+    position: relative;
 }
 
 /* 1. Sidebar (Left Drawer) */
 .side-nav {
-    width: 280px; height: 100vh;
+    width: 280px; height: 100dvh; /* 🚨 FIX: Changed to dvh (Dynamic Viewport Height) */
     background: linear-gradient(180deg, rgba(8,8,12,0.8) 0%, rgba(3,3,5,0.9) 100%);
     border-right: 1px solid var(--glass-border);
     display: flex; flex-direction: column; z-index: 100;
@@ -110,8 +112,9 @@ body {
 }
 
 .nav-footer { 
-    padding: 20px 15px; 
-    flex-shrink: 0; /* 🚨 FIX: Prevents profile card from squishing */
+    /* 🚨 FIX: Adds dynamic padding so it doesn't hide behind the iOS/Android home bar */
+    padding: 20px 15px max(20px, env(safe-area-inset-bottom)); 
+    flex-shrink: 0; 
 }
 .operator-profile-card {
     display: flex; align-items: center; gap: 12px; padding: 12px;
@@ -575,9 +578,9 @@ input, select {
 /* ========================================================== */
 
 /* 1. Force Dynamic Viewport Height on Core Containers */
-body, 
 .chat-container, 
-.main-viewport {
+.main-viewport,
+.side-nav { /* 🚨 FIX: Added .side-nav to the absolute lock */
     height: 100dvh !important;
     min-height: -webkit-fill-available; /* Fallback for older iOS */
 }
