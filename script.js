@@ -1452,6 +1452,21 @@ const startCall = async () => {
     if (CallState.isActive || CallState.isRinging) return alert("System busy. Finish current transmission.");
 
     console.log(`📞 Initiating Call to ${State.activeContact}...`);
+    
+    // 🚨 FIX: Force unlock the Caller's audio context immediately when they click Call!
+    const audioEl = $("remote-audio-stream");
+    if (audioEl) {
+        audioEl.play().catch(e => console.log("Silently unlocking audio context..."));
+    }
+
+    CallState.isCaller = true;
+    CallState.targetMobile = State.activeContact;
+    CallState.isActive = true;
+
+    if (!State.activeContact) return;
+    if (CallState.isActive || CallState.isRinging) return alert("System busy. Finish current transmission.");
+
+    console.log(`📞 Initiating Call to ${State.activeContact}...`);
     CallState.isCaller = true;
     CallState.targetMobile = State.activeContact;
     CallState.isActive = true;
@@ -1491,6 +1506,23 @@ const acceptCall = async () => {
 };
 
 const endCall = (wasAnswered = false) => {
+    console.log("🛑 Terminating Call Sequence.");
+    
+    if (CallState.isActive || CallState.isRinging) {
+        sendCallSignal('HANGUP');
+    }
+
+    if (CallState.localStream) {
+        CallState.localStream.getTracks().forEach(track => track.stop());
+    }
+    if (CallState.peerConnection) {
+        CallState.peerConnection.close();
+    }
+
+   const audioEl = $("remote-audio-stream");
+    if (audioEl) audioEl.srcObject = null;
+
+    stopCallTimerAndLog(wasAnswered);
     console.log("🛑 Terminating Call Sequence.");
     
     // If I hang up, tell the other person
@@ -1561,7 +1593,7 @@ const handleIncomingWebRTCSignal = async (data) => {
 
                 // Change this line inside case 'ANSWER':
                 setCallUI("Securing Tunnel...", false); 
-                startCallTimer
+                startCallTimer();
             }
             break;
 
