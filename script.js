@@ -544,7 +544,7 @@ const appendBubble = (msg, autoScroll = true) => {
       const type = parts[0]; // "VOICE" or "MISSED"
       const duration = parts[1] || "";
       
-      const icon = type === "MISSED" ? "🔴" : "📞";
+      const icon = type === "MISSED" ? `<i class="fa-solid fa-phone-slash"></i>` : `<i class="fa-solid fa-phone"></i>`;
       const title = type === "MISSED" ? "Missed Call" : "Voice Call";
       const durationText = type === "MISSED" ? "" : duration;
       const color = type === "MISSED" ? "#ff4d4d" : "var(--neon-primary)";
