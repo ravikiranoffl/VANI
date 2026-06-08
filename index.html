@@ -7,6 +7,7 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <style>
       body { margin: 0; background-color: #030305; overflow: hidden; }
@@ -287,18 +288,17 @@
 
           <div class="nav-menu">
             <a href="#" class="menu-item active-menu" data-view="VIEW-CHATS">
-              <span class="menu-icon">💬</span> Chats
+              <span class="menu-icon"><i class="fa-solid fa-comment"></i></span> Chats
             </a>
             <a href="#" class="menu-item" data-view="VIEW-CONTACTS">
-              <span class="menu-icon">☎️</span> Contacts
+              <span class="menu-icon"><i class="fa-solid fa-address-book"></i></span> Contacts
             </a>
             <a href="#" class="menu-item" data-view="VIEW-SETTINGS">
-              <span class="menu-icon">⚙️</span> Settings
+              <span class="menu-icon"><i class="fa-solid fa-gear"></i></span> Settings
             </a>
             <a href="#" class="menu-item" id="logoutBtn">
-              <span class="menu-icon">⛔</span>
+              <span class="menu-icon"><i class="fa-solid fa-arrow-right-from-bracket"></i></span>
               Logout
-              <i class="fas fa-sign-out-alt"></i>
             </a>
           </div>
 
@@ -363,7 +363,8 @@
                       <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Select Node</h3>
                       <p id="chat-with-status" style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
                     </div>
-<button id="start-call-btn" class="glow-btn icon-send-btn hidden" style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0;">📞</button>
+
+<button id="start-call-btn" class="glow-btn icon-send-btn hidden" style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0;"><i class="fa-solid fa-phone"></i></button>
                    <button id="save-ghost-btn" class="hidden" style="margin-left: auto; padding: 6px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--neon-primary); color: var(--neon-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-appearance: none; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.1);">Save</button>
                   </div>
                   <div id="chat-box" class="chat-box-stream">
@@ -548,9 +549,9 @@
         <img id="call-target-avatar" src="" alt="Target" style="width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.4); object-fit: cover; animation: pulseAvatar 2s infinite;" />
 
 <div style="display: flex; gap: 20px; width: 100%; justify-content: center; margin-bottom: 20px;">
-            <button id="decline-call-btn" class="glow-btn" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #ff4d4d; color: #ff4d4d; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;">❌</button>
+            <button id="decline-call-btn" class="glow-btn" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #ff4d4d; color: #ff4d4d; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;"><i class="fa-solid fa-phone-slash"></i></button>
             
-            <button id="accept-call-btn" class="glow-btn hidden" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #00ff88; color: #00ff88; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);">📞</button>
+            <button id="accept-call-btn" class="glow-btn hidden" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #00ff88; color: #00ff88; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);"><i class="fa-solid fa-phone-volume"></i></button>
         </div>
         
         <audio id="remote-audio-stream" autoplay playsinline></audio>
