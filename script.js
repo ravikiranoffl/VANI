@@ -881,6 +881,159 @@ if (themeContainer) {
     themeContainer.appendChild(btn);
   });
 }
+
+// ==========================================================
+// ✨ PREMIUM SILVER THEME ENGINE v2.0 (Plug-and-Play)
+// ==========================================================
+(function injectSilverTheme() {
+    // 1. Remove old style if it exists (for clean re-injection)
+    const oldStyle = document.getElementById('silver-theme-engine');
+    if (oldStyle) oldStyle.remove();
+
+    // 2. INJECT THE CSS OVERRIDES DYNAMICALLY
+    const style = document.createElement('style');
+    style.id = 'silver-theme-engine';
+    style.innerHTML = `
+        /* Smooth transition for all elements */
+        body, .glass-panel, input, select, .chat-header-bar, .message-input-console, 
+        .side-nav, .mobile-header, .chat-area-viewport, .chat-bubble {
+            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease !important;
+        }
+
+        /* --- THE CORE SILVER PALETTE --- */
+        [data-theme="light"] {
+            --bg-deep: #e6eaef; 
+            --bg-panel: rgba(255, 255, 255, 0.7); 
+            --bg-panel-hover: rgba(255, 255, 255, 0.95);
+            --text-main: #14181f; /* Solid Black/Dark Grey */
+            --text-muted: #64748b; 
+            --glass-border: rgba(0, 0, 0, 0.08); 
+            --glass-highlight: rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- 1. THE LOGO FIX (Solid Black Instead of White Gradient) --- */
+       /* --- 1. THE LOGO FIX (Solid Neon Theme Color) --- */
+        .brand-logo,
+        [data-theme="light"] .brand-logo {
+            background: none !important;
+            -webkit-text-fill-color: var(--neon-primary) !important;
+            color: var(--neon-primary) !important;
+            filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.4)) !important;
+            text-shadow: none !important;
+        }
+
+        /* --- 2. TOGGLE SWITCH FIX (Visible Borders when OFF) --- */
+        [data-theme="light"] .matrix-slider {
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            border: 1px solid rgba(0, 0, 0, 0.25) !important; /* Dark Border */
+        }
+        [data-theme="light"] .matrix-slider:before {
+            background-color: var(--text-main) !important; /* Solid Dark Thumb */
+        }
+        /* When ON, it adopts the Automatic Neon Theme */
+        [data-theme="light"] .matrix-switch input:checked + .matrix-slider {
+            background-color: rgba(var(--neon-rgb), 0.15) !important;
+            border-color: var(--neon-primary) !important;
+        }
+        [data-theme="light"] .matrix-switch input:checked + .matrix-slider:before {
+            background-color: var(--neon-primary) !important;
+            box-shadow: 0 0 12px var(--neon-primary) !important;
+        }
+
+        /* --- 3. MOBILE UI CRUSHER (Guarantees No Black Boxes) --- */
+        /* Targets both Desktop and Mobile states strictly so they are properly silver */
+        [data-theme="light"] .chat-header-bar,
+        [data-theme="light"] body.in-mobile-chat .chat-header-bar,
+        [data-theme="light"] .mobile-header {
+            background: rgba(230, 234, 239, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03) !important;
+        }
+
+        [data-theme="light"] .message-input-console,
+        [data-theme="light"] body.in-mobile-chat .message-input-console {
+            background: rgba(230, 234, 239, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+        }
+
+        [data-theme="light"] body.in-mobile-chat .chat-area-viewport,
+        [data-theme="light"] .side-nav {
+            background: var(--bg-deep) !important;
+        }
+
+        /* --- 4. ACTION BUTTONS & INPUTS --- */
+        [data-theme="light"] .mobile-back-btn,
+        [data-theme="light"] .icon-send-btn,
+        [data-theme="light"] #start-call-btn {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--neon-primary) !important;
+            box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.25) !important;
+        }
+
+        [data-theme="light"] .message-input-console input {
+            background: rgba(255, 255, 255, 0.6) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--glass-border) !important;
+        }
+        [data-theme="light"] .message-input-console input:focus {
+            background: #ffffff !important;
+            border-color: var(--neon-primary) !important;
+            box-shadow: 0 0 15px rgba(var(--neon-rgb), 0.2) !important;
+        }
+
+        /* --- 5. BUBBLES & AMBIENT FIXES --- */
+        [data-theme="light"] .message-enter[data-is-me="false"] .chat-bubble {
+            background: rgba(255, 255, 255, 0.85) !important;
+            border-color: rgba(0,0,0,0.05) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important;
+        }
+
+        [data-theme="light"] .ambient-texture {
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0,0,0,0.02) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(var(--neon-rgb), 0.04) 0%, transparent 50%) !important;
+        }
+
+        [data-theme="light"] #chat-with-name { color: var(--text-main) !important; }
+        [data-theme="light"] .date-divider > div { background: rgba(0,0,0,0.04) !important; color: var(--text-muted) !important; border-color: rgba(0,0,0,0.08) !important; }
+        [data-theme="light"] .theme-btn { color: var(--text-main) !important; }
+        [data-theme="light"] .theme-btn:hover { color: #fff !important; }
+    `;
+    document.head.appendChild(style);
+
+    // 3. WIRE UP THE TOGGLE SWITCH
+    const lightToggle = document.getElementById("toggle-light-theme");
+    
+    // Check saved memory on boot
+    if (localStorage.getItem("vani-light-theme") === "true") {
+        document.body.setAttribute("data-theme", "light");
+        if (lightToggle) lightToggle.checked = true;
+    }
+
+    if (lightToggle) {
+        // Clone and replace to prevent duplicate event listeners if script runs twice
+        const newToggle = lightToggle.cloneNode(true);
+        lightToggle.parentNode.replaceChild(newToggle, lightToggle);
+        
+        newToggle.addEventListener("change", (e) => {
+            if (e.target.checked) {
+                document.body.setAttribute("data-theme", "light");
+                localStorage.setItem("vani-light-theme", "true");
+            } else {
+                document.body.removeAttribute("data-theme");
+                localStorage.setItem("vani-light-theme", "false");
+            }
+        });
+    }
+
+    console.log("✨ Silver Theme Engine v2.0 Loaded!");
+})();
+
 // ==========================================================
 // 7. ADVANCED AUTOMATION & 60FPS CINEMATIC ENGINE
 // ==========================================================
