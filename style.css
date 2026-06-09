@@ -971,3 +971,36 @@ input, select {
     70% { box-shadow: 0 0 0 20px rgba(var(--neon-rgb), 0); }
     100% { box-shadow: 0 0 0 0 rgba(var(--neon-rgb), 0); }
 }
+/* ========================================================== */
+/* FULL-PAGE SETTINGS SCROLL FIX */
+/* ========================================================== */
+
+/* 1. Make the entire Settings View the scrollable container */
+#VIEW-SETTINGS {
+    display: block !important; 
+    overflow-y: auto !important; 
+    height: 100% !important;
+    padding-bottom: 120px !important; 
+    -webkit-overflow-scrolling: touch !important; 
+}
+
+/* 2. Stop the Grid Box from scrolling inside itself */
+.theme-grid-box {
+    display: grid !important;
+    overflow-y: visible !important; 
+    height: auto !important; 
+    flex: none !important;
+}
+
+/* 3. Let the Toggles panel sit naturally in the document flow */
+.settings-controls {
+    flex: none !important;
+    height: auto !important;
+    margin-bottom: 25px !important;
+}
+
+/* 4. Keep the buttons perfectly sized */
+.theme-btn {
+    min-height: 65px !important;
+    height: 100% !important;
+}

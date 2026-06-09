@@ -881,159 +881,6 @@ if (themeContainer) {
     themeContainer.appendChild(btn);
   });
 }
-
-// ==========================================================
-// ✨ PREMIUM SILVER THEME ENGINE v2.0 (Plug-and-Play)
-// ==========================================================
-(function injectSilverTheme() {
-    // 1. Remove old style if it exists (for clean re-injection)
-    const oldStyle = document.getElementById('silver-theme-engine');
-    if (oldStyle) oldStyle.remove();
-
-    // 2. INJECT THE CSS OVERRIDES DYNAMICALLY
-    const style = document.createElement('style');
-    style.id = 'silver-theme-engine';
-    style.innerHTML = `
-        /* Smooth transition for all elements */
-        body, .glass-panel, input, select, .chat-header-bar, .message-input-console, 
-        .side-nav, .mobile-header, .chat-area-viewport, .chat-bubble {
-            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease !important;
-        }
-
-        /* --- THE CORE SILVER PALETTE --- */
-        [data-theme="light"] {
-            --bg-deep: #e6eaef; 
-            --bg-panel: rgba(255, 255, 255, 0.7); 
-            --bg-panel-hover: rgba(255, 255, 255, 0.95);
-            --text-main: #14181f; /* Solid Black/Dark Grey */
-            --text-muted: #64748b; 
-            --glass-border: rgba(0, 0, 0, 0.08); 
-            --glass-highlight: rgba(255, 255, 255, 0.8);
-        }
-
-        /* --- 1. THE LOGO FIX (Solid Black Instead of White Gradient) --- */
-       /* --- 1. THE LOGO FIX (Solid Neon Theme Color) --- */
-        .brand-logo,
-        [data-theme="light"] .brand-logo {
-            background: none !important;
-            -webkit-text-fill-color: var(--neon-primary) !important;
-            color: var(--neon-primary) !important;
-            filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.4)) !important;
-            text-shadow: none !important;
-        }
-
-        /* --- 2. TOGGLE SWITCH FIX (Visible Borders when OFF) --- */
-        [data-theme="light"] .matrix-slider {
-            background-color: rgba(0, 0, 0, 0.05) !important;
-            border: 1px solid rgba(0, 0, 0, 0.25) !important; /* Dark Border */
-        }
-        [data-theme="light"] .matrix-slider:before {
-            background-color: var(--text-main) !important; /* Solid Dark Thumb */
-        }
-        /* When ON, it adopts the Automatic Neon Theme */
-        [data-theme="light"] .matrix-switch input:checked + .matrix-slider {
-            background-color: rgba(var(--neon-rgb), 0.15) !important;
-            border-color: var(--neon-primary) !important;
-        }
-        [data-theme="light"] .matrix-switch input:checked + .matrix-slider:before {
-            background-color: var(--neon-primary) !important;
-            box-shadow: 0 0 12px var(--neon-primary) !important;
-        }
-
-        /* --- 3. MOBILE UI CRUSHER (Guarantees No Black Boxes) --- */
-        /* Targets both Desktop and Mobile states strictly so they are properly silver */
-        [data-theme="light"] .chat-header-bar,
-        [data-theme="light"] body.in-mobile-chat .chat-header-bar,
-        [data-theme="light"] .mobile-header {
-            background: rgba(230, 234, 239, 0.95) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.08) !important;
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03) !important;
-        }
-
-        [data-theme="light"] .message-input-console,
-        [data-theme="light"] body.in-mobile-chat .message-input-console {
-            background: rgba(230, 234, 239, 0.95) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
-        }
-
-        [data-theme="light"] body.in-mobile-chat .chat-area-viewport,
-        [data-theme="light"] .side-nav {
-            background: var(--bg-deep) !important;
-        }
-
-        /* --- 4. ACTION BUTTONS & INPUTS --- */
-        [data-theme="light"] .mobile-back-btn,
-        [data-theme="light"] .icon-send-btn,
-        [data-theme="light"] #start-call-btn {
-            background: rgba(255, 255, 255, 0.9) !important;
-            color: var(--text-main) !important;
-            border: 1px solid var(--neon-primary) !important;
-            box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.25) !important;
-        }
-
-        [data-theme="light"] .message-input-console input {
-            background: rgba(255, 255, 255, 0.6) !important;
-            color: var(--text-main) !important;
-            border: 1px solid var(--glass-border) !important;
-        }
-        [data-theme="light"] .message-input-console input:focus {
-            background: #ffffff !important;
-            border-color: var(--neon-primary) !important;
-            box-shadow: 0 0 15px rgba(var(--neon-rgb), 0.2) !important;
-        }
-
-        /* --- 5. BUBBLES & AMBIENT FIXES --- */
-        [data-theme="light"] .message-enter[data-is-me="false"] .chat-bubble {
-            background: rgba(255, 255, 255, 0.85) !important;
-            border-color: rgba(0,0,0,0.05) !important;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.03) !important;
-        }
-
-        [data-theme="light"] .ambient-texture {
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(0,0,0,0.02) 0%, transparent 50%),
-                radial-gradient(circle at 85% 30%, rgba(var(--neon-rgb), 0.04) 0%, transparent 50%) !important;
-        }
-
-        [data-theme="light"] #chat-with-name { color: var(--text-main) !important; }
-        [data-theme="light"] .date-divider > div { background: rgba(0,0,0,0.04) !important; color: var(--text-muted) !important; border-color: rgba(0,0,0,0.08) !important; }
-        [data-theme="light"] .theme-btn { color: var(--text-main) !important; }
-        [data-theme="light"] .theme-btn:hover { color: #fff !important; }
-    `;
-    document.head.appendChild(style);
-
-    // 3. WIRE UP THE TOGGLE SWITCH
-    const lightToggle = document.getElementById("toggle-light-theme");
-    
-    // Check saved memory on boot
-    if (localStorage.getItem("vani-light-theme") === "true") {
-        document.body.setAttribute("data-theme", "light");
-        if (lightToggle) lightToggle.checked = true;
-    }
-
-    if (lightToggle) {
-        // Clone and replace to prevent duplicate event listeners if script runs twice
-        const newToggle = lightToggle.cloneNode(true);
-        lightToggle.parentNode.replaceChild(newToggle, lightToggle);
-        
-        newToggle.addEventListener("change", (e) => {
-            if (e.target.checked) {
-                document.body.setAttribute("data-theme", "light");
-                localStorage.setItem("vani-light-theme", "true");
-            } else {
-                document.body.removeAttribute("data-theme");
-                localStorage.setItem("vani-light-theme", "false");
-            }
-        });
-    }
-
-    console.log("✨ Silver Theme Engine v2.0 Loaded!");
-})();
-
 // ==========================================================
 // 7. ADVANCED AUTOMATION & 60FPS CINEMATIC ENGINE
 // ==========================================================
@@ -1083,11 +930,8 @@ const cinematicLoop = (timestamp) => {
 };
 
 const enableCinematicMode = () => {
-  // Lock out the Settings UI
-  $("toggle-random-boot").disabled = true;
-  $("toggle-random-boot").parentElement.classList.add("theme-locked");
-  $$(".theme-btn").forEach((btn) => btn.classList.add("theme-locked"));
-
+  // 🚨 UI LOCKS REMOVED: No elements will be disabled or blocked!
+  
   // Ignite the render engine
   if (!cinematicFrameId) {
     cinematicStartTime = null; // Reset timer
@@ -1096,10 +940,7 @@ const enableCinematicMode = () => {
 };
 
 const disableCinematicMode = () => {
-  // Unlock the Settings UI
-  $("toggle-random-boot").disabled = false;
-  $("toggle-random-boot").parentElement.classList.remove("theme-locked");
-  $$(".theme-btn").forEach((btn) => btn.classList.remove("theme-locked"));
+  // 🚨 UI LOCKS REMOVED: No elements will be disabled or blocked!
 
   // Kill the render engine
   if (cinematicFrameId) {
@@ -1108,9 +949,8 @@ const disableCinematicMode = () => {
   }
 
   // Snap back to a valid theme
-  if ($("toggle-random-boot").checked) {
-    const randomTheme =
-      neonThemes[Math.floor(Math.random() * neonThemes.length)];
+  if ($("toggle-random-boot") && $("toggle-random-boot").checked) {
+    const randomTheme = neonThemes[Math.floor(Math.random() * neonThemes.length)];
     applyTheme(randomTheme.hex);
   } else {
     const savedTheme = localStorage.getItem("vani-theme");
@@ -1121,30 +961,58 @@ const disableCinematicMode = () => {
 const bootThemeEngine = () => {
   const prefRandomBoot = localStorage.getItem("vani-random-boot") !== "false";
   const prefCinematic = localStorage.getItem("vani-cinematic") === "true";
-  const prefAudio = localStorage.getItem("vani-audio") !== "false"; // NEW
+  const prefAudio = localStorage.getItem("vani-audio") !== "false"; 
 
   const randomToggle = $("toggle-random-boot");
   const cinematicToggle = $("toggle-cinematic-mode");
-  const audioToggle = $("toggle-system-audio"); // NEW
+  const audioToggle = $("toggle-system-audio"); 
 
+  // Apply saved states
   if (randomToggle) randomToggle.checked = prefRandomBoot;
   if (cinematicToggle) cinematicToggle.checked = prefCinematic;
-  if (audioToggle) audioToggle.checked = prefAudio; // NEW
+  if (audioToggle) audioToggle.checked = prefAudio; 
 
-  if (prefCinematic) {
+  // Failsafe: If somehow BOTH were saved as true, enforce Cinematic priority
+  if (prefCinematic && prefRandomBoot && randomToggle) {
+      randomToggle.checked = false;
+      localStorage.setItem("vani-random-boot", "false");
+  }
+
+  // Boot Cinematic Engine if active
+  if (cinematicToggle && cinematicToggle.checked) {
     enableCinematicMode();
   } else {
     disableCinematicMode();
   }
 
-  randomToggle?.addEventListener("change", (e) => localStorage.setItem("vani-random-boot", e.target.checked));
+  // --- TOGGLE 1: RANDOM BOOT LISTENER ---
+  randomToggle?.addEventListener("change", (e) => {
+      const isOn = e.target.checked;
+      localStorage.setItem("vani-random-boot", isOn);
+      
+      // 🚨 MUTUAL EXCLUSION: If Random turns ON, turn Auto-Cycle OFF
+      if (isOn && cinematicToggle && cinematicToggle.checked) {
+          cinematicToggle.checked = false;
+          localStorage.setItem("vani-cinematic", "false");
+          disableCinematicMode();
+      }
+  });
+  
+  // --- TOGGLE 2: CINEMATIC MODE LISTENER ---
   cinematicToggle?.addEventListener("change", (e) => {
     const isOn = e.target.checked;
     localStorage.setItem("vani-cinematic", isOn);
+    
+    // 🚨 MUTUAL EXCLUSION: If Auto-Cycle turns ON, turn Random OFF
+    if (isOn && randomToggle && randomToggle.checked) {
+        randomToggle.checked = false;
+        localStorage.setItem("vani-random-boot", "false");
+    }
+    
     isOn ? enableCinematicMode() : disableCinematicMode();
   });
   
-  // NEW: Save audio preference
+  // Audio Listener
   audioToggle?.addEventListener("change", (e) => localStorage.setItem("vani-audio", e.target.checked));
 };
 
@@ -1841,6 +1709,208 @@ const checkCallButtonVisibility = () => {
     }
 };
 
+// ==========================================================
+// ☀️ NATURAL LIGHT THEME ENGINE v3 (Cinematic Sync Patcher)
+// ==========================================================
+(function injectNaturalLightTheme() {
+    // 1. Remove old style if it exists
+    const styleId = 'vani-light-theme-engine';
+    let style = document.getElementById(styleId);
+    if (style) style.remove(); 
+
+    style = document.createElement('style');
+    style.id = styleId;
+    style.innerHTML = `
+        /* --- SMOOTH TRANSITION FOR EVERYTHING --- */
+        body, .glass-panel, input, select, .chat-header-bar, .message-input-console, 
+        .side-nav, .mobile-header, .chat-area-viewport, .chat-bubble, .view-manager, .menu-item {
+            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease !important;
+        }
+
+        /* --- CORE LIGHT THEME VARIABLES --- */
+        body[data-theme="light"] {
+            --bg-deep: #f0f2f5; 
+            --bg-panel: rgba(255, 255, 255, 0.75); 
+            --bg-panel-hover: rgba(255, 255, 255, 0.95);
+            --text-main: #111827; 
+            --text-muted: #6b7280; 
+            --glass-border: rgba(0, 0, 0, 0.12); 
+            --glass-highlight: rgba(0, 0, 0, 0.05);
+            /* 🚨 FIX: Removed hardcoded blue. It now inherits the Cinematic Auto-Cycle! */
+        }
+
+        /* --- 1. LOGO & ICON ADAPTATION --- */
+        .brand-logo, body[data-theme="light"] .brand-logo {
+            background: none !important;
+            -webkit-text-fill-color: var(--neon-primary) !important;
+            color: var(--neon-primary) !important;
+            filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.4)) !important;
+            text-shadow: none !important;
+        }
+
+        /* OPTICAL FIX: Slightly darkens the active neon color in Light Mode so bright yellows/cyans are readable on white */
+        body[data-theme="light"] .brand-logo,
+        body[data-theme="light"] .glow-btn,
+        body[data-theme="light"] .icon-send-btn,
+        body[data-theme="light"] #start-call-btn,
+        body[data-theme="light"] .theme-btn {
+            filter: brightness(0.85) saturate(1.2) !important;
+        }
+
+        /* --- 2. MOBILE BLACK-BOX CRUSHER --- */
+        body[data-theme="light"] .mobile-header,
+        body[data-theme="light"].in-mobile-chat .chat-header-bar {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+            box-shadow: none !important;
+        }
+
+        body[data-theme="light"] .message-input-console,
+        body[data-theme="light"].in-mobile-chat .message-input-console {
+            background: rgba(240, 242, 245, 0.95) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+        }
+
+        body[data-theme="light"].in-mobile-chat .chat-area-viewport {
+            background: var(--bg-deep) !important;
+        }
+
+        body[data-theme="light"] .side-nav {
+            background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%) !important;
+            box-shadow: 20px 0 50px rgba(0,0,0,0.05) !important; 
+        }
+
+        body[data-theme="light"] .mobile-back-btn,
+        body[data-theme="light"] .icon-send-btn,
+        body[data-theme="light"] #start-call-btn {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--neon-primary) !important;
+            box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.15) !important;
+        }
+
+        /* --- 3. INPUTS & BUBBLES --- */
+        body[data-theme="light"] input, 
+        body[data-theme="light"] select {
+            background: rgba(255, 255, 255, 0.9) !important;
+            color: var(--text-main) !important;
+            border: 1px solid rgba(0,0,0,0.2) !important;
+        }
+        body[data-theme="light"] input:focus, 
+        body[data-theme="light"] select:focus {
+            background: #ffffff !important;
+            border-color: var(--neon-primary) !important;
+            box-shadow: 0 0 12px rgba(var(--neon-rgb), 0.15) !important;
+        }
+
+        body[data-theme="light"] .message-enter[data-is-me="false"] .chat-bubble {
+            background: #ffffff !important;
+            border: 1px solid rgba(0,0,0,0.08) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04) !important;
+            color: var(--text-main) !important;
+        }
+        body[data-theme="light"] .message-enter[data-is-me="true"] .chat-bubble {
+            color: var(--text-main) !important;
+        }
+
+        /* --- 4. TOGGLES & SETTINGS FIX --- */
+        body[data-theme="light"] .matrix-slider {
+            background-color: rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid rgba(0, 0, 0, 0.2) !important;
+        }
+        body[data-theme="light"] .matrix-slider:before {
+            background-color: #fff !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3) !important;
+        }
+        body[data-theme="light"] .matrix-switch input:checked + .matrix-slider {
+            background-color: rgba(var(--neon-rgb), 0.2) !important;
+            border-color: var(--neon-primary) !important;
+        }
+        body[data-theme="light"] .matrix-switch input:checked + .matrix-slider:before {
+            background-color: var(--neon-primary) !important;
+            box-shadow: 0 0 10px var(--neon-primary) !important;
+        }
+
+        body[data-theme="light"] .theme-btn { color: var(--text-main) !important; }
+        body[data-theme="light"] .theme-btn:hover { color: #fff !important; }
+
+        /* --- 5. MODALS & AMBIENT TEXTURES --- */
+        body[data-theme="light"] #active-call-matrix,
+        body[data-theme="light"] #offline-overlay,
+        body[data-theme="light"] #ghost-save-modal {
+            background: rgba(255, 255, 255, 0.85) !important;
+        }
+
+        body[data-theme="light"] .ambient-texture {
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(0,0,0,0.04) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(var(--neon-rgb), 0.06) 0%, transparent 50%) !important;
+        }
+
+        body[data-theme="light"] .date-divider > div {
+            background: rgba(0,0,0,0.05) !important;
+            color: var(--text-muted) !important;
+            border-color: rgba(0,0,0,0.1) !important;
+        }
+        body[data-theme="light"] #chat-with-name { color: var(--text-main) !important; }
+    `;
+    document.head.appendChild(style);
+
+    // 2. INJECT THE TOGGLE INTO THE SETTINGS MENU
+    const settingsPanel = document.querySelector('.settings-controls.glass-panel');
+    let lightToggle = document.getElementById("toggle-light-theme");
+
+    if (settingsPanel && !lightToggle) {
+        const toggleHTML = `
+            <hr style="border: 0; border-top: 1px solid var(--glass-border); margin: 20px 0;" />
+            <div class="setting-row">
+                <div style="flex: 1; padding-right: 20px">
+                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">Light Theme</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+                        Override dark matrix with natural daytime visibility colors.
+                    </p>
+                </div>
+                <label class="matrix-switch">
+                    <input type="checkbox" id="toggle-light-theme" />
+                    <span class="matrix-slider"></span>
+                </label>
+            </div>
+        `;
+        settingsPanel.insertAdjacentHTML('beforeend', toggleHTML);
+        lightToggle = document.getElementById("toggle-light-theme");
+    }
+
+    // 3. APPLY LOGIC & MEMORY (LocalStorage)
+    if (lightToggle) {
+        const isLightMode = localStorage.getItem("vani-light-theme") === "true";
+        lightToggle.checked = isLightMode;
+        
+        if (isLightMode) {
+            document.body.setAttribute("data-theme", "light");
+        } else {
+            document.body.removeAttribute("data-theme");
+        }
+
+        const newToggle = lightToggle.cloneNode(true);
+        lightToggle.parentNode.replaceChild(newToggle, lightToggle);
+
+        newToggle.addEventListener("change", (e) => {
+            if (e.target.checked) {
+                document.body.setAttribute("data-theme", "light");
+                localStorage.setItem("vani-light-theme", "true");
+            } else {
+                document.body.removeAttribute("data-theme");
+                localStorage.setItem("vani-light-theme", "false");
+            }
+        });
+    }
+
+    console.log("☀️ Natural Light Theme Engine v3 Booted Successfully!");
+})();
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
