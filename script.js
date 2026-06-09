@@ -1965,7 +1965,7 @@ const checkCallButtonVisibility = () => {
                 <div style="flex: 1; padding-right: 20px">
                     <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">Auto-Day Theme</h3>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
-                        Sync with the Sun: Light (6AM-6PM), Dark (6PM-6AM).
+                        Sync with the Sun: Light (Upto 6PM), Dark (Upto 6AM).
                     </p>
                 </div>
                 <label class="matrix-switch">
