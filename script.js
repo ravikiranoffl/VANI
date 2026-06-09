@@ -390,30 +390,39 @@ const syncContacts = async () => {
 };
 
 const renderContacts = (contacts, regMap, unreadMap) => {
-  const list = $("contacts-list"),
-    grid = document.querySelector(".contacts-directory-grid");
-  if (list)
+  const list = $("contacts-list");
+  const grid = document.querySelector(".contacts-directory-grid");
+
+  // 1. Clear existing UI elements safely
+  if (list) {
     list.innerHTML = contacts.length
       ? ""
       : `<li class="placeholder-item" style="text-align:center;color:var(--text-muted);">No contacts found.</li>`;
-  if (grid) $$(".directory-card").forEach((c) => c.remove());
+  }
+  if (grid) {
+      $$(".directory-card").forEach((c) => c.remove());
+  }
 
+  // 🚨 LIGHTHOUSE PERFORMANCE FIX: Create invisible memory fragments
+  const listFragment = document.createDocumentFragment();
+  const gridFragment = document.createDocumentFragment();
+
+  // 2. Build the new elements in memory
   contacts.forEach((c) => {
     const p = regMap[c.contact];
     const unread = unreadMap[c.contact] || 0;
     const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
-    
-    // 🚨 FIX: Extract handle, fallback to 'unclaimed' if they haven't set one yet
     const displayHandle = p?.vani_id ? `@${p.vani_id}` : "@unclaimed";
 
-   if (list) {
+    // --- Sidebar List Items ---
+    if (list) {
       const li = document.createElement("li");
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
       
-      // 🚨 FIX: Replaced +91 ${c.contact} with displayHandle
+      // 🚨 LIGHTHOUSE ACCESSIBILITY FIX: Added alt="${c.name} avatar"
       li.innerHTML = `
-        <img src="${avatar}" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
+        <img src="${avatar}" alt="${c.name} avatar" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
         <div style="flex:1; min-width:0; overflow:hidden;">
             <h4 style="font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
             <p style="font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
@@ -422,16 +431,29 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       `;
       
       li.onclick = () => openChat(c.contact, c.name, avatar, !!p, c.isGhost);
-      list.appendChild(li);
+      listFragment.appendChild(li); // Add to memory, NOT the screen
     }
 
+    // --- Directory Grid Cards ---
     if (grid) {
       const card = document.createElement("div");
       card.className = "glass-panel directory-card";
       card.style.cssText = "padding:25px;";
       
-      // 🚨 FIX: Replaced +91 ${c.contact} with displayHandle
-      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3 style="margin:0 0 5px 0;">${c.name}</h3><p style="color:var(--neon-primary);font-family:monospace;margin:0;">${displayHandle}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button>${c.isGhost ? '' : '<button class="delete-contact-btn" style="flex:1;">Delete</button>'}</div>`;
+      // 🚨 LIGHTHOUSE ACCESSIBILITY FIX: Added alt="${c.name} avatar"
+      card.innerHTML = `
+        <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;">
+            <img src="${avatar}" alt="${c.name} avatar" style="width:60px;height:60px;border-radius:16px;"/>
+            <div>
+                <h3 style="margin:0 0 5px 0;">${c.name}</h3>
+                <p style="color:var(--neon-primary);font-family:monospace;margin:0;">${displayHandle}</p>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button>
+            ${c.isGhost ? '' : '<button class="delete-contact-btn" style="flex:1;">Delete</button>'}
+        </div>
+      `;
 
       card.querySelector(".open-chat-btn").onclick = () => {
         openChat(c.contact, c.name, avatar, !!p, c.isGhost);
@@ -450,9 +472,18 @@ const renderContacts = (contacts, regMap, unreadMap) => {
             syncContacts();
           };
       }
-      grid.appendChild(card);
+      gridFragment.appendChild(card); // Add to memory, NOT the screen
     }
   });
+
+  // 🚨 LIGHTHOUSE PERFORMANCE FIX: Single DOM Injection
+  // We attach the fully built fragments to the live webpage exactly ONCE.
+  if (list && contacts.length > 0) {
+      list.appendChild(listFragment);
+  }
+  if (grid) {
+      grid.appendChild(gridFragment);
+  }
 };
 // ==========================================================
 // CHAT ENGINE REPLACEMENTS (script.js)
