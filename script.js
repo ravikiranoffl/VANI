@@ -1913,41 +1913,59 @@ const checkCallButtonVisibility = () => {
 })();
 
 // ==========================================================
-// ☀️ AUTO-DAY THEME ENGINE (Time-based Automation)
+// ☀️ AUTO-DAY THEME ENGINE (v2.0 - Optimized Logic)
 // ==========================================================
 (function injectAutoDayTheme() {
     let autoDayInterval = null;
 
     const runAutoDayLogic = () => {
         const hour = new Date().getHours();
-        const isDayTime = hour >= 6 && hour < 18;
+        const isDayTime = hour >= 6 && hour < 18; // 6 AM to 6 PM
+        const lightToggle = document.getElementById("toggle-light-theme");
         
-        if (isDayTime) {
-            document.body.setAttribute("data-theme", "light");
-        } else {
-            document.body.removeAttribute("data-theme");
+        // Determine intended state
+        const shouldBeLight = isDayTime;
+        const isCurrentlyLight = document.body.hasAttribute("data-theme");
+
+        // Only update if a state change is actually needed (Optimization)
+        if (shouldBeLight !== isCurrentlyLight) {
+            if (shouldBeLight) {
+                document.body.setAttribute("data-theme", "light");
+            } else {
+                document.body.removeAttribute("data-theme");
+            }
+        }
+
+        // Sync UI Toggle state
+        if (lightToggle && lightToggle.checked !== shouldBeLight) {
+            lightToggle.checked = shouldBeLight;
+            localStorage.setItem("vani-light-theme", shouldBeLight.toString());
         }
     };
 
     const enableAutoDay = () => {
-        runAutoDayLogic(); // Trigger immediately
-        autoDayInterval = setInterval(runAutoDayLogic, 60000); // Check every minute
+        runAutoDayLogic(); // Run immediately on activation
+        if (!autoDayInterval) {
+            autoDayInterval = setInterval(runAutoDayLogic, 60000); // Re-check every minute
+        }
     };
 
     const disableAutoDay = () => {
-        clearInterval(autoDayInterval);
-        autoDayInterval = null;
+        if (autoDayInterval) {
+            clearInterval(autoDayInterval);
+            autoDayInterval = null;
+        }
     };
 
-    // 1. Inject UI Toggle
+    // 1. Inject UI Toggle into Settings
     const settingsPanel = document.querySelector('.settings-controls.glass-panel');
-    if (settingsPanel) {
+    if (settingsPanel && !document.getElementById("toggle-auto-day")) {
         settingsPanel.insertAdjacentHTML('beforeend', `
             <div class="setting-row">
                 <div style="flex: 1; padding-right: 20px">
                     <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">Auto-Day Theme</h3>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
-                        Sync with the Sun: Light (Upto 6PM), Dark (Upto 6AM).
+                        Sync with the Sun: Light (6AM-6PM), Dark (6PM-6AM).
                     </p>
                 </div>
                 <label class="matrix-switch">
@@ -1962,20 +1980,21 @@ const checkCallButtonVisibility = () => {
     const autoToggle = document.getElementById("toggle-auto-day");
     const lightToggle = document.getElementById("toggle-light-theme");
 
+    // Initialize state on boot
     const syncAutoDayState = () => {
         const isOn = localStorage.getItem("vani-auto-day") === "true";
         if (autoToggle) autoToggle.checked = isOn;
         if (isOn) enableAutoDay();
     };
-
     syncAutoDayState();
 
+   // Event: Toggle Auto-Day
     autoToggle?.addEventListener("change", (e) => {
         const isOn = e.target.checked;
         localStorage.setItem("vani-auto-day", isOn);
         
         if (isOn) {
-            // EXCLUSION: If Auto turns ON, turn Light Manual OFF
+            // KILL SWITCH: If user turns Auto-Day ON, disable Manual Light Theme
             if (lightToggle && lightToggle.checked) {
                 lightToggle.checked = false;
                 localStorage.setItem("vani-light-theme", "false");
@@ -1987,12 +2006,22 @@ const checkCallButtonVisibility = () => {
         }
     });
 
-    // Patch Light Theme Toggle to turn off Auto-Day
+    // Event: Patch Light Theme Toggle to turn off Auto-Day if user takes manual control
+    // 🚨 FIX: This now triggers whether you turn it ON or OFF
     lightToggle?.addEventListener("change", (e) => {
-        if (e.target.checked && autoToggle && autoToggle.checked) {
+        if (autoToggle && autoToggle.checked) {
             autoToggle.checked = false;
             localStorage.setItem("vani-auto-day", "false");
             disableAutoDay();
+        }
+        
+        // Handle manual theme application
+        if (e.target.checked) {
+            document.body.setAttribute("data-theme", "light");
+            localStorage.setItem("vani-light-theme", "true");
+        } else {
+            document.body.removeAttribute("data-theme");
+            localStorage.setItem("vani-light-theme", "false");
         }
     });
 })();
