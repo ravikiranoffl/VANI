@@ -118,8 +118,19 @@ const evalSession = async () => {
         alert(`System Reject: ${err.message}`);
     }
     toggleUI(false);
-  } finally {
-    $("boot-loader")?.remove();
+ } finally {
+    // 🚨 FIX: Premium Boot Loader Fade-Out!
+    const loader = $("boot-loader");
+    if (loader) {
+        // 1. Keep the shield up for 1.2 seconds to hide background UI rendering
+        setTimeout(() => {
+            loader.style.opacity = "0";
+            loader.style.transition = "opacity 0.8s ease-in-out";
+            
+            // 2. Safely delete it from the DOM after the fade completes
+            setTimeout(() => loader.remove(), 800); 
+        }, 1200); 
+    }
   }
 };
 
@@ -337,47 +348,32 @@ $("add-contact-btn")?.addEventListener("click", async () => {
 });
 
 // ==========================================================
-// 4. CONTACTS ENGINE (Now with Ghost Profiles & Time Sorting)
+// 4. CONTACTS ENGINE (SECURE & ANTI-FLICKER)
 // ==========================================================
 
 const syncContacts = async () => {
+  // 🚀 HIGH PERFORMANCE RPC FETCH: Downloads ~10 rows instead of 10,000!
   const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
     supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
-    // 🚨 FIX: Now we fetch vani_id from the database!
     supabaseClient.from("profiles").select("mobile, avatar_url, name, vani_id"), 
-    supabaseClient.from("messages").select("sender_mobile, recipient_mobile, is_read, created_at").or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`),
+    supabaseClient.rpc('get_recent_chats', { user_mobile: State.mobile }) // Call the DB Engine
   ]);
 
   const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
-  const latestMsgMap = {};
-  const unreadMap = {}; 
-  const ghostNumbers = new Set();
-
-  m?.forEach((msg) => {
-    const otherParty = msg.sender_mobile === State.mobile ? msg.recipient_mobile : msg.sender_mobile;
-    const msgTime = new Date(msg.created_at).getTime();
-    if (!latestMsgMap[otherParty] || msgTime > latestMsgMap[otherParty]) {
-      latestMsgMap[otherParty] = msgTime;
-    }
-    ghostNumbers.add(otherParty);
-
-    if (msg.recipient_mobile === State.mobile && msg.is_read === false) {
-        if (String(msg.sender_mobile) !== String(State.activeContact)) {
-            unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
-        }
-    }
-  });
+  
+  // m is now already cleanly formatted by the database!
+  const latestMsgMap = Object.fromEntries(m?.map(row => [row.contact_mobile, new Date(row.last_message_time).getTime()]) || []);
+  const unreadMap = Object.fromEntries(m?.map(row => [row.contact_mobile, row.unread_count]) || []);
 
   const savedMap = {};
   c?.forEach((saved) => savedMap[saved.contact] = true);
-
   const finalContacts = [...(c || [])];
 
-  ghostNumbers.forEach(number => {
-      if (!savedMap[number] && number !== State.mobile) {
+  m?.forEach(row => {
+      if (!savedMap[row.contact_mobile] && row.contact_mobile !== State.mobile) {
           finalContacts.push({
-              contact: number,
-              name: `Unknown`, // Replaced raw number with generic text
+              contact: row.contact_mobile,
+              name: `Unknown Node`, 
               isGhost: true 
           });
       }
@@ -393,59 +389,66 @@ const renderContacts = (contacts, regMap, unreadMap) => {
   const list = $("contacts-list");
   const grid = document.querySelector(".contacts-directory-grid");
 
-  // 1. Clear existing UI elements safely
+  // 🚨 FIX: The Virtual DOM Snapshot to stop the black Image Flickering!
+  const stateSnapshot = JSON.stringify({
+      active: State.activeContact,
+      data: contacts.map(c => ({
+          id: c.contact,
+          name: c.name,
+          unread: unreadMap[c.contact] || 0,
+          handle: regMap[c.contact]?.vani_id || '',
+          avatar: regMap[c.contact]?.avatar_url || '',
+          ghost: c.isGhost || false
+      }))
+  });
+
+  // Freeze the UI if the data hasn't changed!
+  if (list && list.dataset.snapshot === stateSnapshot) return; 
+  if (list) list.dataset.snapshot = stateSnapshot;
+
   if (list) {
     list.innerHTML = contacts.length
       ? ""
       : `<li class="placeholder-item" style="text-align:center;color:var(--text-muted);">No contacts found.</li>`;
   }
-  if (grid) {
-      $$(".directory-card").forEach((c) => c.remove());
-  }
+  if (grid) $$(".directory-card").forEach((c) => c.remove());
 
-  // 🚨 LIGHTHOUSE PERFORMANCE FIX: Create invisible memory fragments
   const listFragment = document.createDocumentFragment();
   const gridFragment = document.createDocumentFragment();
 
-  // 2. Build the new elements in memory
   contacts.forEach((c) => {
     const p = regMap[c.contact];
     const unread = unreadMap[c.contact] || 0;
     const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
     const displayHandle = p?.vani_id ? `@${p.vani_id}` : "@unclaimed";
 
-    // --- Sidebar List Items ---
     if (list) {
       const li = document.createElement("li");
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
       
-      // 🚨 LIGHTHOUSE ACCESSIBILITY FIX: Added alt="${c.name} avatar"
       li.innerHTML = `
-        <img src="${avatar}" alt="${c.name} avatar" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
+        <img src="${avatar}" alt="${c.name} avatar" width="45" height="45" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
         <div style="flex:1; min-width:0; overflow:hidden;">
-            <h4 style="font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
-            <p style="font-size:0.85rem;color:var(--text-muted);font-family:monospace">${displayHandle}</p>
+            <h3 style="margin:0; font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h3>
+            <p style="margin:0; font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
         </div>
         ${unread > 0 ? `<div class="unread-badge">${unread > 99 ? '99+' : unread}</div>` : ""}
       `;
-      
       li.onclick = () => openChat(c.contact, c.name, avatar, !!p, c.isGhost);
-      listFragment.appendChild(li); // Add to memory, NOT the screen
+      listFragment.appendChild(li); 
     }
 
-    // --- Directory Grid Cards ---
     if (grid) {
       const card = document.createElement("div");
       card.className = "glass-panel directory-card";
       card.style.cssText = "padding:25px;";
       
-      // 🚨 LIGHTHOUSE ACCESSIBILITY FIX: Added alt="${c.name} avatar"
       card.innerHTML = `
         <div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;">
-            <img src="${avatar}" alt="${c.name} avatar" style="width:60px;height:60px;border-radius:16px;"/>
+            <img src="${avatar}" alt="${c.name} avatar" width="60" height="60" style="width:60px;height:60px;border-radius:16px; object-fit: cover;"/>
             <div>
-                <h3 style="margin:0 0 5px 0;">${c.name}</h3>
+                <h3 style="margin:0 0 5px 0; font-size: 1.1rem;">${c.name}</h3>
                 <p style="color:var(--neon-primary);font-family:monospace;margin:0;">${displayHandle}</p>
             </div>
         </div>
@@ -472,19 +475,24 @@ const renderContacts = (contacts, regMap, unreadMap) => {
             syncContacts();
           };
       }
-      gridFragment.appendChild(card); // Add to memory, NOT the screen
+      gridFragment.appendChild(card);
     }
   });
 
-  // 🚨 LIGHTHOUSE PERFORMANCE FIX: Single DOM Injection
-  // We attach the fully built fragments to the live webpage exactly ONCE.
+  // 🚨 FIX: Actually trigger the FLIP physics engine!
   if (list && contacts.length > 0) {
-      list.appendChild(listFragment);
+      if (typeof animateFLIP === "function") {
+          animateFLIP("contacts-list", () => {
+              list.innerHTML = ""; 
+              list.appendChild(listFragment);
+          });
+      } else {
+          list.appendChild(listFragment);
+      }
   }
-  if (grid) {
-      grid.appendChild(gridFragment);
-  }
+  if (grid) grid.appendChild(gridFragment);
 };
+
 // ==========================================================
 // CHAT ENGINE REPLACEMENTS (script.js)
 // ==========================================================
@@ -559,30 +567,25 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
   }
 };
 
-const loadHistory = async () => {
-  if (!State.activeContact) return;
-  
-  // LIMIT is used to keep the app fast regardless of database size
-  const { data } = await supabaseClient
-    .from("messages")
-    .select("*")
-    .or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`)
-    .order("created_at", { ascending: false }) // Fetch newest first
-    .limit(50); // Get only the last 50 messages[cite: 2]
 
-  const box = $("chat-box");
-  box.innerHTML = "";
-  box.dataset.lastLabel = ""; // Reset date tracking
 
-  if (!data?.length) {
-    box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No history found.</p></div>`;
-  } else {
-    // Reverse data so chronological order is restored for rendering
-    data.reverse().forEach((msg) => appendBubble(msg, false));
-    box.scrollTop = box.scrollHeight;
-  }
+// ==========================================================
+// 📅 GLOBAL DATE PARSER (For History & Bubbles)
+// ==========================================================
+window.getVaniDateLabel = (dateString) => {
+    const d = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    if (d.toDateString() === today.toDateString()) return "Today";
+    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 };
 
+// ==========================================================
+// 💬 APPEND BUBBLE (Restored Date Logic)
+// ==========================================================
 const appendBubble = (msg, autoScroll = true) => {
   $("typing-indicator-ui")?.remove();
   const box = $("chat-box");
@@ -591,23 +594,16 @@ const appendBubble = (msg, autoScroll = true) => {
   if (msg.id && box.querySelector(`[data-msg-id="${msg.id}"]`)) return;
 
   const msgDate = new Date(msg.created_at);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  const getLabel = (d) => {
-    if (d.toDateString() === today.toDateString()) return "Today";
-    if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-  };
-
-  const currentLabel = getLabel(msgDate);
-  const lastLabel = box.dataset.lastLabel;
+  const isMe = msg.sender_mobile === State.mobile;
+  
+  // 🚨 FIX: Re-activated the Date Divider injection for new incoming messages!
+  const currentLabel = window.getVaniDateLabel(msg.created_at);
+  const lastLabel = box.dataset.bottomDate; // Lock bottom boundary
 
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
       "beforeend",
-      `<div class="date-divider" style="display:flex;justify-content:center;margin:20px 0;">
+      `<div class="date-divider" data-date="${currentLabel}" style="display:flex;justify-content:center;margin:20px 0;">
         <div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);
                     border:1px solid var(--glass-border);color:var(--text-muted);
                     font-size:0.75rem;backdrop-filter:blur(10px)">
@@ -615,16 +611,15 @@ const appendBubble = (msg, autoScroll = true) => {
         </div>
       </div>`
     );
-    box.dataset.lastLabel = currentLabel;
+    box.dataset.bottomDate = currentLabel;
   }
 
-  const isMe = msg.sender_mobile === State.mobile;
   let bubbleHTML = "";
 
-  // 🚨 NEW: THE UNIFIED TIMELINE PARSER
+  // Call Log Parser
   if (msg.content.startsWith("[CALL_LOG:")) {
       const parts = msg.content.replace("[CALL_LOG:", "").replace("]", "").split(":");
-      const type = parts[0]; // "VOICE" or "MISSED"
+      const type = parts[0]; 
       const duration = parts[1] || "";
       
       const icon = type === "MISSED" ? `<i class="fa-solid fa-phone-slash"></i>` : `<i class="fa-solid fa-phone"></i>`;
@@ -644,7 +639,7 @@ const appendBubble = (msg, autoScroll = true) => {
         </div>
       `;
   } else {
-      // STANDARD TEXT MESSAGE
+      // Standard Text
       bubbleHTML = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
   }
 
@@ -1110,10 +1105,6 @@ $("msg-input")?.addEventListener("focus", () => {
 });
 
 // ==========================================================
-// 🟢 PRESENCE ENGINE (ONLINE / OFFLINE TRACKER)
-// ==========================================================
-
-// ==========================================================
 // 🟢 PRESENCE UI UPDATER (PERMANENT RED/GREEN DOTS)
 // ==========================================================
 const updatePresenceUI = () => {
@@ -1376,32 +1367,6 @@ const CallState = {
     pendingCandidates: []
 };
 
-const STUN_SERVERS = {
-    iceServers: [
-        // Standard Google STUN (Always Free)
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:relay.metered.com:80' }, // 🚨 NEW: Metered's dedicated STUN
-        
-        // YOUR FREE PRIVATE TURN RELAY
-        {
-            urls: "turn:vani.metered.live:80", 
-            username: "bcb001f9853ce7b645865e73",             
-            credential: "LIPH0AaJJdT3o3sv"             
-        },
-        // 🚨 UPGRADE: Changed 'turn' to 'turns' to encrypt the firewall traversal
-        {
-            urls: "turns:vani.metered.live:443", 
-            username: "bcb001f9853ce7b645865e73",             
-            credential: "LIPH0AaJJdT3o3sv"  
-        },
-        {
-            urls: "turns:vani.metered.live:443?transport=tcp", 
-            username: "bcb001f9853ce7b645865e73",             
-            credential: "LIPH0AaJJdT3o3sv"  
-        }
-    ]
-};
 
 // 1. SIGNALING EMITTER
 const sendCallSignal = (type, data = {}) => {
@@ -1482,70 +1447,62 @@ const closeCallUI = () => {
 };
 
 // 4. WEBRTC PIPELINE
+
+const fetchSecureICEServers = async () => {
+    try {
+        const { data, error } = await supabaseClient.functions.invoke('get-turn-credentials');
+        if (error) throw error;
+        return { iceServers: data };
+    } catch (err) {
+        console.warn("TURN Fetch Failed, falling back to public STUN.", err);
+        return { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    }
+};
+
 const initWebRTC = async () => {
     try {
         console.log("🎤 Requesting Microphone Access...");
         CallState.localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
         
-        CallState.peerConnection = new RTCPeerConnection(STUN_SERVERS);
+        // 🔒 Dynamically fetch secure, time-limited credentials
+        const secureServers = await fetchSecureICEServers();
+        CallState.peerConnection = new RTCPeerConnection(secureServers);
         
-        // Add Local Tracks to PC
         CallState.localStream.getTracks().forEach(track => {
             CallState.peerConnection.addTrack(track, CallState.localStream);
         });
 
-       // Listen for Remote Tracks (Upgraded for Mobile Safari/Chrome)
         CallState.peerConnection.ontrack = (event) => {
-            console.log(`🎧 Remote track received! Type: ${event.track.kind}`);
             const audioEl = $("remote-audio-stream");
-            
-            // 🚨 FIX: Manually construct the MediaStream. 
-            // Relying on event.streams[0] often fails on mobile browsers.
             let stream = audioEl.srcObject;
             if (!stream) {
                 stream = new MediaStream();
                 audioEl.srcObject = stream;
             }
             stream.addTrack(event.track);
-            
-            // Force volume to max
             audioEl.volume = 1.0;
-
-            audioEl.play().then(() => {
-                console.log("🔊 WebRTC Audio is actively playing!");
-            }).catch(e => {
-                console.warn("🔇 Browser blocked playback. Audio context locked.", e);
-            });
+            audioEl.play().catch(e => console.warn("🔇 Browser blocked playback.", e));
         };
 
-        // 🚨 NEW: THE DIAGNOSTIC PROBE
-        // This will tell us if your Wi-Fi/Cellular firewall is blocking the actual audio data.
         CallState.peerConnection.oniceconnectionstatechange = () => {
             const state = CallState.peerConnection.iceConnectionState;
-            console.log("🌐 ICE Connection State:", state);
-            
             if (state === "connected" || state === "completed") {
-                // 🟢 TUNNEL OPEN! THIS IS WHEN YOU HEAR AUDIO!
                 $("call-status-text").innerHTML = `<span style="color:#00ff88; font-weight:bold; letter-spacing: 4px;">🟢 UPLINK LIVE</span>`;
                 $("call-target-avatar").style.borderColor = "#00ff88";
-            } else if (state === "checking") {
-                // 🟡 STILL PUNCHING THROUGH FIREWALL
-                $("call-status-text").innerHTML = `<span style="color:#ffaa00;">Bypassing Firewalls...</span>`;
             } else if (state === "disconnected" || state === "failed") {
-                alert("🛰️ Relay Connection Severed. The network firewall blocked the signal.");
                 endCall(true);
             }
         };
-        // ICE Candidate Handling
+
         CallState.peerConnection.onicecandidate = (event) => {
-            if (event.candidate) {
-                sendCallSignal('ICE_CANDIDATE', { candidate: event.candidate });
-            }
+            if (event.candidate) sendCallSignal('ICE_CANDIDATE', { candidate: event.candidate });
         };
 
     } catch (err) {
         console.error("🎤 Microphone Error:", err);
-        alert("Microphone access is required to make calls in the matrix.");
+        closeCallUI();
+        alert("System Error: Microphone access was denied or is unavailable.");
+        if (CallState.isActive || CallState.isRinging) sendCallSignal('HANGUP');
         throw err;
     }
 };
@@ -1557,20 +1514,12 @@ const startCall = async () => {
 
     console.log(`📞 Initiating Call to ${State.activeContact}...`);
     
-    // 🚨 FIX: Force unlock the Caller's audio context immediately when they click Call!
-    const audioEl = $("remote-audio-stream");
+    // 🚨 Force unlock the Caller's audio context immediately when they click Call!
+    const audioEl = document.getElementById("remote-audio-stream");
     if (audioEl) {
         audioEl.play().catch(e => console.log("Silently unlocking audio context..."));
     }
 
-    CallState.isCaller = true;
-    CallState.targetMobile = State.activeContact;
-    CallState.isActive = true;
-
-    if (!State.activeContact) return;
-    if (CallState.isActive || CallState.isRinging) return alert("System busy. Finish current transmission.");
-
-    console.log(`📞 Initiating Call to ${State.activeContact}...`);
     CallState.isCaller = true;
     CallState.targetMobile = State.activeContact;
     CallState.isActive = true;
@@ -1584,27 +1533,7 @@ const startCall = async () => {
         
         sendCallSignal('OFFER', { offer });
     } catch (err) {
-        endCall(false);
-    }
-};
-
-const acceptCall = async () => {
-    console.log("✅ Call Accepted.");
-    CallState.isActive = true;
-    CallState.isRinging = false;
-    
-    try {
-        await initWebRTC();
-      // Change this line inside acceptCall():
-        setCallUI("Securing Tunnel...", false);
-        startCallTimer();
-        
-        // Use the remote description saved during the 'OFFER' event
-        const answer = await CallState.peerConnection.createAnswer();
-        await CallState.peerConnection.setLocalDescription(answer);
-        
-        sendCallSignal('ANSWER', { answer });
-    } catch (err) {
+        console.error("Start Call Error:", err);
         endCall(false);
     }
 };
@@ -1623,23 +1552,10 @@ const endCall = (wasAnswered = false) => {
         CallState.peerConnection.close();
     }
 
-   const audioEl = $("remote-audio-stream");
-    if (audioEl) audioEl.srcObject = null;
-
-    stopCallTimerAndLog(wasAnswered);
-    console.log("🛑 Terminating Call Sequence.");
-    
-    // If I hang up, tell the other person
-    if (CallState.isActive || CallState.isRinging) {
-        sendCallSignal('HANGUP');
-    }
-
-    // Kill Media Streams
-    if (CallState.localStream) {
-        CallState.localStream.getTracks().forEach(track => track.stop());
-    }
-    if (CallState.peerConnection) {
-        CallState.peerConnection.close();
+    const audioEl = document.getElementById("remote-audio-stream");
+    if (audioEl) {
+        audioEl.srcObject = null;
+        audioEl.pause();
     }
 
     stopCallTimerAndLog(wasAnswered);
@@ -1662,7 +1578,6 @@ const handleIncomingWebRTCSignal = async (data) => {
 
     switch (type) {
         case 'OFFER':
-            // The Busy Signal
             if (CallState.isActive || CallState.isRinging) {
                 console.log(`🚫 Rejecting call from ${sender} (Busy)`);
                 return State.channel.send({ type: 'broadcast', event: 'webrtc_signal', payload: { sender: State.mobile, recipient: sender, type: 'BUSY' }});
@@ -1673,29 +1588,23 @@ const handleIncomingWebRTCSignal = async (data) => {
             CallState.isRinging = true;
             CallState.isCaller = false;
             
-            // Note: We don't initWebRTC here because of Safari/iOS autoplay restrictions. 
-            // We wait for them to click "Accept". We just save the offer globally.
             CallState.pendingOffer = data.offer; 
             setCallUI("Incoming Transmission...", true);
-            
             break;
 
-      case 'ANSWER':
+        case 'ANSWER':
             console.log("🔗 Call Answered. Connecting Streams...");
             if (CallState.peerConnection) {
                 await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
                 
-                // 🚨 FIX: The Caller must also check their voicemail and inject any addresses 
-                // that arrived before the Answer signal!
                 if (CallState.pendingCandidates && CallState.pendingCandidates.length > 0) {
                     for (const candidate of CallState.pendingCandidates) {
                         await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.log("ICE Inject Error:", e));
                     }
                     console.log(`🔌 Caller successfully injected ${CallState.pendingCandidates.length} saved network addresses.`);
-                    CallState.pendingCandidates = []; // Clear the array
+                    CallState.pendingCandidates = [];
                 }
 
-                // Change this line inside case 'ANSWER':
                 setCallUI("Securing Tunnel...", false); 
                 startCallTimer();
             }
@@ -1703,7 +1612,6 @@ const handleIncomingWebRTCSignal = async (data) => {
 
         case 'ICE_CANDIDATE':
             if (data.candidate) {
-                // If we answered and the engine is running, apply it immediately
                 if (CallState.peerConnection && CallState.peerConnection.remoteDescription) {
                     try {
                         await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -1711,7 +1619,6 @@ const handleIncomingWebRTCSignal = async (data) => {
                         console.error("ICE Error:", e);
                     }
                 } else {
-                    // 🚨 FIX: If we are still ringing, SAVE the address in the voicemail array!
                     CallState.pendingCandidates = CallState.pendingCandidates || [];
                     CallState.pendingCandidates.push(data.candidate);
                 }
@@ -1720,29 +1627,26 @@ const handleIncomingWebRTCSignal = async (data) => {
 
         case 'HANGUP':
             console.log("🔌 Remote party hung up.");
-            // If they hung up and we were connected, log it as answered. If ringing, it's a miss.
             endCall(CallState.startTime !== null); 
             break;
 
         case 'BUSY':
             console.log("⚠️ Target is busy.");
             alert("Node is currently in another transmission.");
-            endCall(false); // Logs as missed
+            endCall(false); 
             break;
     }
 };
 
 // 7. EVENT BINDINGS
-$("start-call-btn")?.addEventListener("click", startCall);
-$("decline-call-btn")?.addEventListener("click", () => endCall(CallState.startTime !== null));
+document.getElementById("start-call-btn")?.addEventListener("click", startCall);
+document.getElementById("decline-call-btn")?.addEventListener("click", () => endCall(CallState.startTime !== null));
 
-// Refactored Accept Binding for iOS Audio Context Safety
-
-$("accept-call-btn")?.addEventListener("click", async () => {
+document.getElementById("accept-call-btn")?.addEventListener("click", async () => {
     console.log("✅ Call Accepted.");
     
     // Force the audio element to wake up immediately
-    const audioEl = $("remote-audio-stream");
+    const audioEl = document.getElementById("remote-audio-stream");
     if (audioEl) {
         audioEl.play().catch(e => console.log("Silently unlocking audio context..."));
     }
@@ -1751,16 +1655,14 @@ $("accept-call-btn")?.addEventListener("click", async () => {
     CallState.isRinging = false;
     
     try {
-        await initWebRTC(); // Grabs mic and boots engine
+        await initWebRTC(); 
         await CallState.peerConnection.setRemoteDescription(new RTCSessionDescription(CallState.pendingOffer));
         
-        // 🚨 FIX: Inject all the saved network addresses we caught while ringing!
         if (CallState.pendingCandidates && CallState.pendingCandidates.length > 0) {
             for (const candidate of CallState.pendingCandidates) {
                 await CallState.peerConnection.addIceCandidate(new RTCIceCandidate(candidate)).catch(e => console.log("ICE Inject Error:", e));
             }
-            console.log(`🔌 Successfully injected ${CallState.pendingCandidates.length} saved network addresses.`);
-            CallState.pendingCandidates = []; // Clear the array
+            CallState.pendingCandidates = []; 
         }
 
         setCallUI("Connected", false);
@@ -1784,17 +1686,21 @@ window.addEventListener("offline", () => {
 });
 
 // Expose the Call button dynamically when opening a chat
-const checkCallButtonVisibility = () => {
-    if (State.activeContact) {
-        $("start-call-btn")?.classList.remove("hidden");
-    } else {
-        $("start-call-btn")?.classList.add("hidden");
+window.checkCallButtonVisibility = () => {
+    const btn = document.getElementById("start-call-btn");
+    if (btn) {
+        if (State.activeContact) {
+            btn.classList.remove("hidden");
+        } else {
+            btn.classList.add("hidden");
+        }
     }
 };
 
 // ==========================================================
 // ☀️ NATURAL LIGHT THEME ENGINE v3 (Cinematic Sync Patcher)
 // ==========================================================
+
 (function injectNaturalLightTheme() {
     // 1. Remove old style if it exists
     const styleId = 'vani-light-theme-engine';
@@ -1804,11 +1710,7 @@ const checkCallButtonVisibility = () => {
     style = document.createElement('style');
     style.id = styleId;
     style.innerHTML = `
-        /* --- SMOOTH TRANSITION FOR EVERYTHING --- */
-        body, .glass-panel, input, select, .chat-header-bar, .message-input-console, 
-        .side-nav, .mobile-header, .chat-area-viewport, .chat-bubble, .view-manager, .menu-item {
-            transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease !important;
-        }
+        /* 🚨 FIX: Removed the destructive global transition that killed your smooth animations! */
 
         /* --- CORE LIGHT THEME VARIABLES --- */
         body[data-theme="light"] {
@@ -1819,7 +1721,15 @@ const checkCallButtonVisibility = () => {
             --text-muted: #6b7280; 
             --glass-border: rgba(0, 0, 0, 0.12); 
             --glass-highlight: rgba(0, 0, 0, 0.05);
-            /* 🚨 FIX: Removed hardcoded blue. It now inherits the Cinematic Auto-Cycle! */
+        }
+
+        /* --- 1. LOGO & ICON ADAPTATION --- */
+        .brand-logo, body[data-theme="light"] .brand-logo {
+            background: none !important;
+            -webkit-text-fill-color: var(--neon-primary) !important;
+            color: var(--neon-primary) !important;
+            filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.4)) !important;
+            text-shadow: none !important;
         }
 
         /* --- 1. LOGO & ICON ADAPTATION --- */
@@ -2208,6 +2118,186 @@ const checkCallButtonVisibility = () => {
         .subscribe();
         
 })();
+
+// ==========================================================
+// 🚀 INFINITE SCROLL CHAT ENGINE
+// ==========================================================
+let historyPage = 0;
+let isLoadingHistory = false;
+let hasMoreHistory = true;
+let scrollObserver = null;
+
+const attachScrollObserver = () => {
+    if (scrollObserver) scrollObserver.disconnect();
+    
+    const target = document.getElementById("history-trigger-pad");
+    if (!target || !hasMoreHistory) return;
+
+    scrollObserver = new IntersectionObserver(async (entries) => {
+        if (entries[0].isIntersecting && !isLoadingHistory) {
+            await loadHistory(true); // Fetch next page
+        }
+    }, { root: $("chat-box"), threshold: 0.1 });
+
+    scrollObserver.observe(target);
+};
+
+const loadHistory = async (isLoadMore = false) => {
+    if (!State.activeContact || isLoadingHistory) return;
+    isLoadingHistory = true;
+
+    const box = $("chat-box");
+    
+    // Reset state for new chats
+    if (!isLoadMore) {
+        historyPage = 0;
+        hasMoreHistory = true;
+        box.innerHTML = `<div id="history-trigger-pad" style="height: 20px; width: 100%; flex-shrink: 0;"></div>`;
+        
+        // 🚨 FIX: Reset memory markers for Date Boundaries
+        box.dataset.topDate = "";
+        box.dataset.bottomDate = "";
+    }
+
+    const limit = 50;
+    const from = historyPage * limit;
+    const to = from + limit - 1;
+
+    const { data } = await supabaseClient
+        .from("messages")
+        .select("*")
+        .or(`and(sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.activeContact}),and(sender_mobile.eq.${State.activeContact},recipient_mobile.eq.${State.mobile})`)
+        .order("created_at", { ascending: false })
+        .range(from, to);
+
+    const oldScrollHeight = box.scrollHeight;
+
+    if (!data || data.length < limit) hasMoreHistory = false;
+
+    if (data?.length > 0) {
+        historyPage++;
+        const triggerPad = document.getElementById("history-trigger-pad");
+        
+        // 🚨 FIX: Process Data Chronologically to calculate dates
+        const chronoData = data.reverse(); 
+        let chunkHTML = "";
+        let currentChunkDate = isLoadMore ? box.dataset.topDate : ""; 
+
+        chronoData.forEach((msg, index) => {
+            const msgLabel = window.getVaniDateLabel(msg.created_at);
+
+            // Inject Date Divider if the day changes
+            if (!currentChunkDate || currentChunkDate !== msgLabel) {
+                chunkHTML += `<div class="date-divider" data-date="${msgLabel}" style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.75rem;backdrop-filter:blur(10px)">${msgLabel}</div></div>`;
+                currentChunkDate = msgLabel;
+            }
+
+            chunkHTML += createBubbleHTML(msg);
+
+            // Lock the bottom boundary for live incoming messages
+            if (!isLoadMore && index === chronoData.length - 1) {
+                box.dataset.bottomDate = msgLabel;
+            }
+        });
+
+        // Update the top boundary so the NEXT scroll chunk knows where it ended
+        box.dataset.topDate = window.getVaniDateLabel(chronoData[0].created_at);
+
+        // Deduplicate middle dividers if infinite scrolling merges two chunks of the exact same day
+        if (isLoadMore) {
+            const oldTopDivider = triggerPad.nextElementSibling;
+            if (oldTopDivider && oldTopDivider.classList.contains('date-divider')) {
+                 const newChunkBottomDate = window.getVaniDateLabel(chronoData[chronoData.length-1].created_at);
+                 if (oldTopDivider.dataset.date === newChunkBottomDate) {
+                     oldTopDivider.remove(); 
+                 }
+            }
+        }
+
+        triggerPad.insertAdjacentHTML('afterend', chunkHTML);
+
+        if (isLoadMore) {
+            box.scrollTop = box.scrollHeight - oldScrollHeight;
+        } else {
+            box.scrollTop = box.scrollHeight;
+        }
+    } else if (!isLoadMore) {
+        box.innerHTML = `<div class="empty-state"><div class="empty-icon">⎊</div><p>No history found.</p></div>`;
+    }
+
+    isLoadingHistory = false;
+    attachScrollObserver();
+};
+
+// Helper: Extracted raw HTML generator from your old appendBubble
+const createBubbleHTML = (msg) => {
+    const isMe = msg.sender_mobile === State.mobile;
+    const msgDate = new Date(msg.created_at);
+    let bubbleContent = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
+    
+    if (msg.content.startsWith("[CALL_LOG:")) {
+        const parts = msg.content.replace("[CALL_LOG:", "").replace("]", "").split(":");
+        const type = parts[0], duration = parts[1] || "";
+        bubbleContent = `
+            <div class="call-log-bubble">
+                <div class="call-log-icon" style="color: ${type === "MISSED" ? "#ff4d4d" : "var(--neon-primary)"};">
+                    ${type === "MISSED" ? '<i class="fa-solid fa-phone-slash"></i>' : '<i class="fa-solid fa-phone"></i>'}
+                </div>
+                <div class="call-log-details">
+                    <h4>${type === "MISSED" ? "Missed Call" : "Voice Call"}</h4>
+                    ${duration ? `<p>Duration: ${duration}</p>` : ''}
+                </div>
+            </div>`;
+    }
+
+    return `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+       <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"}; border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"}; border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"}; padding:10px 14px; cursor: pointer;">
+         ${bubbleContent}
+         <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
+           ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+         </div>
+       </div>
+     </div>`;
+};
+
+// ==========================================================
+// 🎨 FLIP ANIMATION ENGINE
+// ==========================================================
+const animateFLIP = (containerId, domUpdateCallback) => {
+    const container = $(containerId);
+    if (!container || !container.children.length) return domUpdateCallback();
+
+    // 1. FIRST: Measure current positions
+    const firstRects = {};
+    Array.from(container.children).forEach(el => {
+        if (el.dataset.mobile) firstRects[el.dataset.mobile] = el.getBoundingClientRect();
+    });
+
+    // 2. DOM UPDATE: Execute the layout change
+    domUpdateCallback();
+
+    // 3. LAST & INVERT: Measure new positions and reverse the math
+    Array.from(container.children).forEach(el => {
+        const id = el.dataset.mobile;
+        if (id && firstRects[id]) {
+            const lastRect = el.getBoundingClientRect();
+            const deltaY = firstRects[id].top - lastRect.top;
+            
+            if (deltaY !== 0) {
+                // Instantly fake its position back to where it was
+                el.style.transform = `translateY(${deltaY}px)`;
+                el.style.transition = 'none';
+
+                // 4. PLAY: Animate it gliding to its true location
+                requestAnimationFrame(() => {
+                    el.style.transform = '';
+                    el.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'; // Bounce curve
+                });
+            }
+        }
+    });
+};
+
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================

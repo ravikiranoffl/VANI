@@ -40,7 +40,7 @@
     <!-- ========================================== -->
     <!-- MODULE 1: AUTHENTICATION PANELS            -->
     <!-- ========================================== -->
-    <div id="auth-view-wrapper" class="view-section active" style="
+    <div id="auth-view-wrapper" class="hidden" style="
           position: absolute;
           top: 0;
           left: 0;
@@ -48,7 +48,7 @@
           height: 100vh;
           background: var(--bg-deep);
           z-index: 9999;
-          display: flex;
+          display: none; 
           justify-content: center;
           align-items: center;
         ">
@@ -465,16 +465,9 @@
   </div>
 
   <!-- 1. Supabase Core Engine -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
   <!-- 2. Your Application Logic -->
-  <script defer>
-    (function () {
-      const cacheBuster = Date.now();
-      const jsScript = document.createElement('script');
-      jsScript.src = 'script.js?v=' + cacheBuster;
-      document.body.appendChild(jsScript);
-    })();
-  </script>
+  <script src="script.js" defer></script>
 </body>
 
 </html>
