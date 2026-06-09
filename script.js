@@ -425,7 +425,7 @@ const renderContacts = (contacts, regMap, unreadMap) => {
         <img src="${avatar}" alt="${c.name} avatar" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
         <div style="flex:1; min-width:0; overflow:hidden;">
             <h4 style="font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
-            <p style="font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
+            <p style="font-size:0.85rem;color:var(--text-muted);font-family:monospace">${displayHandle}</p>
         </div>
         ${unread > 0 ? `<div class="unread-badge">${unread > 99 ? '99+' : unread}</div>` : ""}
       `;
@@ -610,7 +610,7 @@ const appendBubble = (msg, autoScroll = true) => {
       `<div class="date-divider" style="display:flex;justify-content:center;margin:20px 0;">
         <div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);
                     border:1px solid var(--glass-border);color:var(--text-muted);
-                    font-size:0.75rem;backdrop-filter:blur(10px);letter-spacing:0.5px;">
+                    font-size:0.75rem;backdrop-filter:blur(10px)">
           ${currentLabel}
         </div>
       </div>`

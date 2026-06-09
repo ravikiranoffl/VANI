@@ -1,109 +1,46 @@
 <!doctype html>
 <html lang="en">
- <head>
-    <meta charset="UTF-8" />
-    <meta name="description" content="VANI - A secure, handle-first communications matrix. Connect privately without sharing mobile numbers.">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>VANI | Communications</title>
-    <meta name="theme-color" content="#030305">
-   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" />
-<meta http-equiv="Expires" content="0" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <style>
-      body { margin: 0; background-color: #030305; overflow: hidden; }
-      
-      #boot-loader {
-        position: fixed;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: #030305;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 999999;
-      }
-      
-      .loader-logo::after {
-        content: "VANI";
-        font-family: system-ui, -apple-system, sans-serif;
-        font-size: 2.5rem;
-        font-weight: 700;
-        letter-spacing: 4px;
-        /* Color is intentionally left blank here! The Micro-Script will fill it. */
-      }
 
-      @keyframes bootPulse {
-        0%, 100% { opacity: 1; filter: drop-shadow(0 0 12px currentColor); }
-        50% { opacity: 0.4; filter: none; }
-      }
+<head>
+  <meta charset="UTF-8" />
+  <meta name="description"
+    content="VANI - A secure, handle-first communications matrix. Connect privately without sharing mobile numbers.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VANI | Communications</title>
+  <meta name="theme-color" content="#030305">
 
-      /* A lightweight CSS version of your 60FPS Cinematic Loop for the bootloader */
-      @keyframes cinematicBootCycle {
-        0% { color: #ff007f; }
-        20% { color: #00ff41; }
-        40% { color: #00f3ff; }
-        60% { color: #da70d6; }
-        80% { color: #ffaa00; }
-        100% { color: #ff007f; }
-      }
-    </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+    rel="stylesheet">
 
-    <script>
-      (function() {
-        const isCinematic = localStorage.getItem("vani-cinematic") === "true";
-        const savedTheme = localStorage.getItem("vani-theme") || "#00f3ff"; // Default to blue
-        const dynamicStyle = document.createElement("style");
-        
-        if (isCinematic) {
-          // If Cinematic Mode is ON, apply the fast CSS color-cycle animation
-          dynamicStyle.innerHTML = `
-            .loader-logo::after {
-              animation: bootPulse 1.5s infinite, cinematicBootCycle 4s linear infinite;
-            }
-          `;
-        } else {
-          // If Cinematic Mode is OFF, apply their exact saved static color
-          dynamicStyle.innerHTML = `
-            .loader-logo::after {
-              color: ${savedTheme};
-              animation: bootPulse 1.5s infinite;
-            }
-          `;
-        }
-        document.head.appendChild(dynamicStyle);
-      })();
-    </script>
-    <script>
-      (function() {
-        const cacheBuster = Date.now();
-        const cssLink = document.createElement('link');
-        cssLink.rel = 'stylesheet';
-        cssLink.href = 'style.css?v=' + cacheBuster;
-        document.head.appendChild(cssLink);
-      })();
-    </script>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div id="boot-loader">
-      <div class="loader-logo"></div>
-    </div>
-    <!-- Ambient Texture & Glow -->
-    <div class="ambient-texture"></div>
-    <div class="neon-ambient-glow"></div>
+  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" as="style"
+    onload="this.onload=null;this.rel='stylesheet'"
+    integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <noscript>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+      integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+      crossorigin="anonymous" referrerpolicy="no-referrer" />
+  </noscript>
 
-    <div id="app">
-      <!-- ========================================== -->
-      <!-- MODULE 1: AUTHENTICATION PANELS            -->
-      <!-- ========================================== -->
-      <div
-        id="auth-view-wrapper"
-        class="view-section active"
-        style="
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="boot-loader">
+    <div class="loader-logo"></div>
+  </div>
+  <!-- Ambient Texture & Glow -->
+  <div class="ambient-texture"></div>
+  <div class="neon-ambient-glow"></div>
+
+  <div id="app">
+    <!-- ========================================== -->
+    <!-- MODULE 1: AUTHENTICATION PANELS            -->
+    <!-- ========================================== -->
+    <div id="auth-view-wrapper" class="view-section active" style="
           position: absolute;
           top: 0;
           left: 0;
@@ -114,377 +51,280 @@
           display: flex;
           justify-content: center;
           align-items: center;
-        "
-      >
-        <!-- LOGIN SCREEN -->
-        <section
-          id="login-screen"
-          class="glass-panel"
-          style="
+        ">
+      <!-- LOGIN SCREEN -->
+      <section id="login-screen" class="glass-panel" style="
             padding: 40px;
             width: 90%;
             max-width: 420px;
             text-align: center;
-          "
-        >
-          <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
-            VANI
-          </h1>
-          <p
-            style="
+          ">
+        <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
+          VANI
+        </h1>
+        <p style="
               color: var(--text-muted);
               font-size: 0.9rem;
               margin-bottom: 25px;
               text-transform: uppercase;
               letter-spacing: 2px;
-            "
-          >
-            Access System Matrix
-          </p>
+            ">
+          Access System Matrix
+        </p>
 
-          <form id="login-form" class="form-group">
-            <input
-              id="login-mobile"
-              type="tel"
-              maxlength="10"
-              placeholder="Mobile Number"
-              autocomplete="username" 
-              required
-            />
-            <input
-              type="password"
-              id="login-password"
-              placeholder="Password"
-              autocomplete="current-password"
-              required
-            />
-            <button
-              type="submit"
-              class="glow-btn full-width"
-              style="margin-top: 15px"
-            >
-              Execute Uplink
-            </button>
-          </form>
+        <form id="login-form" class="form-group">
+          <input id="login-mobile" type="tel" maxlength="10" placeholder="Mobile Number" autocomplete="username"
+            required />
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password" required />
+          <button type="submit" class="glow-btn full-width" style="margin-top: 15px">
+            Execute Uplink
+          </button>
+        </form>
 
-          <p
-            style="
+        <p style="
               margin-top: 25px;
               color: var(--text-muted);
               font-size: 0.9rem;
-            "
-          >
-            Not Registered Yet? <br />
-            <a
-              href="#"
-              id="go-to-register"
-              style="
+            ">
+          Not Registered Yet? <br />
+          <a href="#" id="go-to-register" style="
                 color: var(--neon-primary);
                 text-decoration: none;
                 font-weight: 600;
                 margin-top: 5px;
                 display: inline-block;
-              "
-              >Register User➔</a
-            >
-          </p>
-        </section>
+              ">Register User➔</a>
+        </p>
+      </section>
 
-        <!-- REGISTER SCREEN -->
-        <section
-          id="register-screen"
-          class="glass-panel hidden"
-          style="
+      <!-- REGISTER SCREEN -->
+      <section id="register-screen" class="glass-panel hidden" style="
             padding: 40px;
             width: 90%;
             max-width: 420px;
             text-align: center;
-          "
-        >
-          <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
-            VANI
-          </h1>
-          <p
-            style="
+          ">
+        <h1 class="brand-logo" style="margin-bottom: 5px; font-size: 2.5rem">
+          VANI
+        </h1>
+        <p style="
               color: var(--text-muted);
               font-size: 0.9rem;
               margin-bottom: 25px;
               text-transform: uppercase;
               letter-spacing: 2px;
-            "
-          >
-            Register User
-          </p>
+            ">
+          Register User
+        </p>
 
-          <form id="register-form" class="form-group">
-            <input
-              type="text"
-              id="reg-name"
-              placeholder="First Name"
-              autocomplete="name"
-              required
-            />
-            <input
-              type="text"
-              id="reg-mobile"
-              placeholder="Mobile Number"
-              maxlength="10"
-              pattern="\d{10}"
-              autocomplete="tel"
-              required
-            />
-            <input
-              type="email"
-              id="reg-email"
-              placeholder="Email Address"
-              autocomplete="email"
-              required
-            />
-            <select id="reg-gender" autocomplete="sex" required>
-              <option value="">Select Gender</option>
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-            </select>
-            <input
-              type="password"
-              id="reg-password"
-              placeholder="Password (Min 6 chars)"
-              minlength="6"
-              autocomplete="new-password"
-              required
-            />
-            <button
-              type="submit"
-              class="glow-btn full-width"
-              style="margin-top: 15px"
-            >
-              Provision Account
-            </button>
-          </form>
+        <form id="register-form" class="form-group">
+          <input type="text" id="reg-name" placeholder="First Name" autocomplete="name" required />
+          <input type="text" id="reg-mobile" placeholder="Mobile Number" maxlength="10" pattern="\d{10}"
+            autocomplete="tel" required />
+          <input type="email" id="reg-email" placeholder="Email Address" autocomplete="email" required />
+          <select id="reg-gender" autocomplete="sex" required>
+            <option value="">Select Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+          <input type="password" id="reg-password" placeholder="Password (Min 6 chars)" minlength="6"
+            autocomplete="new-password" required />
+          <button type="submit" class="glow-btn full-width" style="margin-top: 15px">
+            Provision Account
+          </button>
+        </form>
 
-          <p
-            style="
+        <p style="
               margin-top: 25px;
               color: var(--text-muted);
               font-size: 0.9rem;
-            "
-          >
-            Already User? <br />
-            <a
-              href="#"
-              id="go-to-login"
-              style="
+            ">
+          Already User? <br />
+          <a href="#" id="go-to-login" style="
                 color: var(--neon-primary);
                 text-decoration: none;
                 font-weight: 600;
                 margin-top: 5px;
                 display: inline-block;
-              "
-              >Sign In Instead ➔</a
-            >
-          </p>
-        </section>
-      </div>
-
-      <!-- ========================================== -->
-      <!-- MODULE 2: MAIN CONSOLE INTERFACE           -->
-      <!-- ========================================== -->
-      <section id="chat-screen" class="chat-container hidden">
-        <!-- Left Sidebar Navigation (Glass Drawer) -->
-        <nav class="side-nav" id="sidebarMenu">
-          <div class="nav-header">
-            <h1 class="brand-logo">VANI</h1>
-          </div>
-
-          <div class="nav-menu">
-            <a href="#" class="menu-item active-menu" data-view="VIEW-CHATS">
-              <span class="menu-icon"><i class="fa-solid fa-comment"></i></span> Chats
-            </a>
-            <a href="#" class="menu-item" data-view="VIEW-CONTACTS">
-              <span class="menu-icon"><i class="fa-solid fa-address-book"></i></span> Contacts
-            </a>
-            <a href="#" class="menu-item" data-view="VIEW-SETTINGS">
-              <span class="menu-icon"><i class="fa-solid fa-gear"></i></span> Settings
-            </a>
-            <a href="#" class="menu-item" id="logoutBtn">
-              <span class="menu-icon"><i class="fa-solid fa-arrow-right-from-bracket" aria-label="Go Back"></i></span>
-              Logout
-            </a>
-          </div>
-
-          <div class="nav-footer">
-            <!-- Operator Profiler Card -->
-            <div
-              class="operator-profile-card glass-panel"
-              id="profileCard"
-              title="View Profile"
-            >
-              <img
-                id="my-avatar"
-                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Vani"
-                alt="Node"
-              />
-              <div class="user-info-text">
-                <h4 id="my-name">Operator</h4>
-                <p id="my-mobile-display">Syncing...</p>
-              </div>
-            </div>
-          </div>
-        </nav>
-
-        <!-- Main Content Matrix -->
-        <main class="main-viewport">
-          <!-- Mobile Header (Visible only on smaller screens) -->
-          <header class="mobile-header">
-            <div class="hamburger" id="hamburgerBtn">
-              <span></span><span></span><span></span>
-            </div>
-            <h1 class="brand-logo mobile-logo">VANI</h1>
-          </header>
-
-          <div class="view-manager" id="mainContainer">
-            <!-- VIEW A: CHATS -->
-            <div id="VIEW-CHATS" class="view-section active">
-              <div class="view-header">
-                <h2>Your Chat History</h2>
-              </div>
-              <div class="chat-layout-engine">
-                <!-- Chat List (WhatsApp Style Master View) -->
-                <aside class="list-panel glass-panel">
-                  <ul id="contacts-list" class="lb-list">
-                    <!-- Populated by script.js -->
-                  </ul>
-                </aside>
-
-                <!-- Active Chat Window (WhatsApp Style Detail View) -->
-               <section class="chat-area-viewport glass-panel">
-                  
-                 <div id="active-chat-header" class="chat-header-bar hidden">
-                    <button id="mobile-back-btn" class="mobile-back-btn" style="margin-right: 15px; background: transparent; border: none; color: var(--text-main); padding: 5px; cursor: pointer;">
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="19" y1="12" x2="5" y2="12"></line>
-                        <polyline points="12 19 5 12 12 5"></polyline>
-                      </svg>
-                    </button>
-
-                    <img id="chat-target-avatar" src="" alt="Target" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
-                    
-                    <div class="header-metadata-text" style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                      <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Select Node</h3>
-                      <p id="chat-with-status" style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
-                    </div>
-
-<button id="start-call-btn" class="glow-btn icon-send-btn hidden" style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0;"><i class="fa-solid fa-phone"></i></button>
-                   <button id="save-ghost-btn" class="hidden" style="margin-left: auto; padding: 6px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--neon-primary); color: var(--neon-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-appearance: none; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.1);">Save</button>
-                  </div>
-                  <div id="chat-box" class="chat-box-stream">
-                    </div>
-
-                  <div id="message-input-bar" class="message-input-console hidden">
-                    <input
-  type="text"
-  id="msg-input"
-  name="vani-chat-stream" 
-  placeholder="Type a message..."
-  autocomplete="off"
-  autocorrect="on"
-  spellcheck="true"
-  enterkeyhint="send"
-  data-lpignore="true"
-  data-form-type="other"
-  data-1p-ignore
-/>
-                    
-                    <button id="send-msg-btn" class="glow-btn icon-send-btn">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="22" y1="2" x2="11" y2="13"></line>
-                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                      </svg>
-                    </button>
-                  </div>
-                </section>
-              </div>
-            </div>
-         <section id="VIEW-PROFILE" class="view-section">
-    <div class="glass-panel profile-panel">
-        <img id="profile-avatar" class="profile-avatar" src="" alt="Profile" />
-        <h2 id="profile-name">Operator Name</h2>
-        <p id="profile-mobile">+91 0000000000</p>
-        <p id="profile-email">operator@vani.com</p>
-        <button class="glow-btn" id="logoutProfileBtn">Logout System</button>
+              ">Sign In Instead ➔</a>
+        </p>
+      </section>
     </div>
-</section>
-            <!-- VIEW B: CONTACTS -->
-            <div id="VIEW-CONTACTS" class="view-section">
-              <div class="view-header">
-                <h2>Contacts</h2>
-              </div>
-              <div class="contacts-directory-grid">
-                <!-- Add Contact Form -->
-                <div
-                  class="glass-panel add-contact-card"
-                  style="padding: 25px; align-self: start"
-                >
-                  <h3 style="font-size: 1.1rem; margin-bottom: 10px">
-                    Provision New Contact
-                  </h3>
-                  <div class="form-group">
-                    <input
-                      type="text"
-                      id="new-contact-mobile"
-                      placeholder="Mobile Number"
-                      maxlength="10"
-                    />
-                    <input
-                      type="text"
-                      id="new-contact-name"
-                      placeholder="Contact Name"
-                    />
-                    <button id="add-contact-btn" class="glow-btn full-width">
-                      Add New Contact
-                    </button>
+
+    <!-- ========================================== -->
+    <!-- MODULE 2: MAIN CONSOLE INTERFACE           -->
+    <!-- ========================================== -->
+    <section id="chat-screen" class="chat-container hidden">
+      <!-- Left Sidebar Navigation (Glass Drawer) -->
+      <nav class="side-nav" id="sidebarMenu">
+        <div class="nav-header">
+          <h1 class="brand-logo">VANI</h1>
+        </div>
+
+        <div class="nav-menu">
+          <a href="#" class="menu-item active-menu" data-view="VIEW-CHATS">
+            <span class="menu-icon"><i class="fa-solid fa-comment"></i></span> Chats
+          </a>
+          <a href="#" class="menu-item" data-view="VIEW-CONTACTS">
+            <span class="menu-icon"><i class="fa-solid fa-address-book"></i></span> Contacts
+          </a>
+          <a href="#" class="menu-item" data-view="VIEW-SETTINGS">
+            <span class="menu-icon"><i class="fa-solid fa-gear"></i></span> Settings
+          </a>
+          <a href="#" class="menu-item" id="logoutBtn">
+            <span class="menu-icon"><i class="fa-solid fa-arrow-right-from-bracket" aria-label="Go Back"></i></span>
+            Logout
+          </a>
+        </div>
+
+        <div class="nav-footer">
+          <!-- Operator Profiler Card -->
+          <div class="operator-profile-card glass-panel" id="profileCard" title="View Profile">
+            <img id="my-avatar" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Vani" alt="Node" />
+            <div class="user-info-text">
+              <h4 id="my-name">Operator</h4>
+              <p id="my-mobile-display">Syncing...</p>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Main Content Matrix -->
+      <main class="main-viewport">
+        <!-- Mobile Header (Visible only on smaller screens) -->
+        <header class="mobile-header">
+          <div class="hamburger" id="hamburgerBtn">
+            <span></span><span></span><span></span>
+          </div>
+          <h1 class="brand-logo mobile-logo">VANI</h1>
+        </header>
+
+        <div class="view-manager" id="mainContainer">
+          <!-- VIEW A: CHATS -->
+          <div id="VIEW-CHATS" class="view-section active">
+            <div class="view-header">
+              <h2>Your Chat History</h2>
+            </div>
+            <div class="chat-layout-engine">
+              <!-- Chat List (WhatsApp Style Master View) -->
+              <aside class="list-panel glass-panel">
+                <ul id="contacts-list" class="lb-list">
+                  <!-- Populated by script.js -->
+                </ul>
+              </aside>
+
+              <!-- Active Chat Window (WhatsApp Style Detail View) -->
+              <section class="chat-area-viewport glass-panel">
+
+                <div id="active-chat-header" class="chat-header-bar hidden">
+                  <button id="mobile-back-btn" class="mobile-back-btn"
+                    style="margin-right: 15px; background: transparent; border: none; color: var(--text-main); padding: 5px; cursor: pointer;">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12"></line>
+                      <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                  </button>
+
+                  <img id="chat-target-avatar" src="" alt="Target"
+                    style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
+
+                  <div class="header-metadata-text"
+                    style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                    <h3 id="chat-with-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">
+                      Select Node</h3>
+                    <p id="chat-with-status"
+                      style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8;">Online</p>
                   </div>
+
+                  <button id="start-call-btn" class="glow-btn icon-send-btn hidden"
+                    style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0;"><i
+                      class="fa-solid fa-phone"></i></button>
+                  <button id="save-ghost-btn" class="hidden"
+                    style="margin-left: auto; padding: 6px 16px; border-radius: 20px; background: transparent; border: 1px solid var(--neon-primary); color: var(--neon-primary); font-size: 0.85rem; font-weight: 600; cursor: pointer; flex-shrink: 0; white-space: nowrap; -webkit-appearance: none; box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.1);">Save</button>
+                </div>
+                <div id="chat-box" class="chat-box-stream">
+                </div>
+
+                <div id="message-input-bar" class="message-input-console hidden">
+                  <input type="text" id="msg-input" name="vani-chat-stream" placeholder="Type a message..."
+                    autocomplete="off" autocorrect="on" spellcheck="true" enterkeyhint="send" data-lpignore="true"
+                    data-form-type="other" data-1p-ignore />
+
+                  <button id="send-msg-btn" class="glow-btn icon-send-btn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                  </button>
+                </div>
+              </section>
+            </div>
+          </div>
+          <section id="VIEW-PROFILE" class="view-section">
+            <div class="glass-panel profile-panel">
+              <img id="profile-avatar" class="profile-avatar" src="" alt="Profile" />
+              <h2 id="profile-name">Operator Name</h2>
+              <p id="profile-mobile">+91 0000000000</p>
+              <p id="profile-email">operator@vani.com</p>
+              <button class="glow-btn" id="logoutProfileBtn">Logout System</button>
+            </div>
+          </section>
+          <!-- VIEW B: CONTACTS -->
+          <div id="VIEW-CONTACTS" class="view-section">
+            <div class="view-header">
+              <h2>Contacts</h2>
+            </div>
+            <div class="contacts-directory-grid">
+              <!-- Add Contact Form -->
+              <div class="glass-panel add-contact-card" style="padding: 25px; align-self: start">
+                <h3 style="font-size: 1.1rem; margin-bottom: 10px">
+                  Provision New Contact
+                </h3>
+                <div class="form-group">
+                  <input type="text" id="new-contact-mobile" placeholder="Mobile Number" maxlength="10" />
+                  <input type="text" id="new-contact-name" placeholder="Contact Name" />
+                  <button id="add-contact-btn" class="glow-btn full-width">
+                    Add New Contact
+                  </button>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- VIEW C: SETTINGS (THEMES) -->
-            <div id="VIEW-SETTINGS" class="view-section">
-              <div class="view-header">
-                <h2>Display Calibration</h2>
-                <p>Customise VANI, based on Themes</p>
-              </div>
+          <!-- VIEW C: SETTINGS (THEMES) -->
+          <div id="VIEW-SETTINGS" class="view-section">
+            <div class="view-header">
+              <h2>Display Calibration</h2>
+              <p>Customise VANI, based on Themes</p>
+            </div>
 
-              <!-- NEW: Dynamic Automation Settings -->
-              <div
-                class="settings-controls glass-panel"
-                style="padding: 25px; margin-bottom: 25px"
-              >
-                <!-- Toggle 1: Random Boot -->
-                <div class="setting-row">
-                  <div style="flex: 1; padding-right: 20px">
-                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">
-                     Random Matrix
-                    </h3>
-                    <p
-                      style="
+            <!-- NEW: Dynamic Automation Settings -->
+            <div class="settings-controls glass-panel" style="padding: 25px; margin-bottom: 25px">
+              <!-- Toggle 1: Random Boot -->
+              <div class="setting-row">
+                <div style="flex: 1; padding-right: 20px">
+                  <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">
+                    Random Matrix
+                  </h3>
+                  <p style="
                         font-size: 0.85rem;
                         color: var(--text-muted);
                         margin: 0;
                         line-height: 1.4;
-                      "
-                    >
-                      Automatically overrides your saved theme with a random
-                      spectrum every time the system connects.
-                    </p>
-                  </div>
-                  <label class="matrix-switch">
-                    <input type="checkbox" id="toggle-random-boot" />
-                    <span class="matrix-slider"></span>
-                  </label>
+                      ">
+                    Automatically overrides your saved theme with a random
+                    spectrum every time the system connects.
+                  </p>
                 </div>
+                <label class="matrix-switch">
+                  <input type="checkbox" id="toggle-random-boot" />
+                  <span class="matrix-slider"></span>
+                </label>
+              </div>
 
-                <!-- <hr
+              <!-- <hr
                   style="
                     border: 0;
                     border-top: 1px solid rgba(255, 255, 255, 0.05);
@@ -492,125 +332,149 @@
                   "
                 /> -->
 
-                <!-- Toggle 2: Cinematic Mode -->
-                <div class="setting-row">
-                  <div style="flex: 1; padding-right: 20px">
-                    <h3
-                      style="
+              <!-- Toggle 2: Cinematic Mode -->
+              <div class="setting-row">
+                <div style="flex: 1; padding-right: 20px">
+                  <h3 style="
                         font-size: 1.1rem;
                         margin: 0 0 5px 0;
                         text-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
-                      "
-                    >
-                      Auto-Theme Cycle
-                    </h3>
-                    <p
-                      style="
+                      ">
+                    Auto-Theme Cycle
+                  </h3>
+                  <p style="
                         font-size: 0.85rem;
                         color: var(--text-muted);
                         margin: 0;
                         line-height: 1.4;
-                      "
-                    >
-                      Disables manual overrides. Smoothly and continuously
-                      cycles through the entire color matrix in real-time.
-                    </p>
-                  </div>
-                  <label class="matrix-switch">
-                    <input type="checkbox" id="toggle-cinematic-mode" />
-                    <span class="matrix-slider"></span>
-                  </label>
+                      ">
+                    Disables manual overrides. Smoothly and continuously
+                    cycles through the entire color matrix in real-time.
+                  </p>
                 </div>
-                <!-- <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 20px 0;" /> -->
-
-                <div class="setting-row">
-                  <div style="flex: 1; padding-right: 20px">
-                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">System Audio</h3>
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4">
-                      Enable tactile sounds for incoming and outgoing transmissions.
-                    </p>
-                  </div>
-                  <label class="matrix-switch">
-                    <input type="checkbox" id="toggle-system-audio" />
-                    <span class="matrix-slider"></span>
-                  </label>
-                </div>
+                <label class="matrix-switch">
+                  <input type="checkbox" id="toggle-cinematic-mode" />
+                  <span class="matrix-slider"></span>
+                </label>
               </div>
+              <!-- <hr style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 20px 0;" /> -->
 
-              <!-- Manual Theme Grid -->
-              <div class="theme-grid-box" id="themeButtonsContainer">
-                <!-- Dynamically populated by Theme Engine -->
+              <div class="setting-row">
+                <div style="flex: 1; padding-right: 20px">
+                  <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">System Audio</h3>
+                  <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4">
+                    Enable tactile sounds for incoming and outgoing transmissions.
+                  </p>
+                </div>
+                <label class="matrix-switch">
+                  <input type="checkbox" id="toggle-system-audio" />
+                  <span class="matrix-slider"></span>
+                </label>
               </div>
             </div>
+
+            <!-- Manual Theme Grid -->
+            <div class="theme-grid-box" id="themeButtonsContainer">
+              <!-- Dynamically populated by Theme Engine -->
+            </div>
           </div>
-        </main>
-      </section>
-    </div>
-  <div id="active-call-matrix" class="hidden" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.85); z-index: 9999998; backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); align-items: center; justify-content: center; flex-direction: column;">
-    <div class="glass-panel" style="padding: 40px; width: 100%; max-width: 400px; height: 100%; max-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 1px solid var(--neon-primary); box-shadow: 0 0 40px rgba(var(--neon-rgb), 0.15); transition: border-color 0.1s, box-shadow 0.1s;">
-        
-        <div style="text-align: center; margin-top: 20px;">
-            <p id="call-status-text" style="color: var(--text-muted); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">Calling...</p>
-            <h2 id="call-target-name" style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--text-main); margin: 0;">Target Node</h2>
-            <p id="call-duration-timer" class="hidden" style="font-family: monospace; font-size: 1.2rem; color: var(--neon-primary); margin-top: 10px; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00:00</p>
         </div>
+      </main>
+    </section>
+  </div>
+  <div id="active-call-matrix" class="hidden"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.85); z-index: 9999998; backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); align-items: center; justify-content: center; flex-direction: column;">
+    <div class="glass-panel"
+      style="padding: 40px; width: 100%; max-width: 400px; height: 100%; max-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 1px solid var(--neon-primary); box-shadow: 0 0 40px rgba(var(--neon-rgb), 0.15); transition: border-color 0.1s, box-shadow 0.1s;">
 
-        <img id="call-target-avatar" src="" alt="Target" style="width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.4); object-fit: cover; animation: pulseAvatar 2s infinite;" />
-
-<div style="display: flex; gap: 20px; width: 100%; justify-content: center; margin-bottom: 20px;">
-            <button id="decline-call-btn" class="glow-btn" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #ff4d4d; color: #ff4d4d; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;"><i class="fa-solid fa-phone-slash"></i></button>
-            
-            <button id="accept-call-btn" class="glow-btn hidden" style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #00ff88; color: #00ff88; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);"><i class="fa-solid fa-phone-volume"></i></button>
-        </div>
-        
-        <audio id="remote-audio-stream" autoplay playsinline></audio>
-    </div>
-</div>
-<div id="offline-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.95); z-index: 9999998; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
-      
-      <div class="glass-panel" style="padding: 40px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.15);">
-          
-          <div style="font-size: 3.5rem; color: var(--neon-primary); margin-bottom: 15px; filter: drop-shadow(0 0 15px var(--neon-primary));">⚠️</div>
-          
-          <h2 style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; color: var(--text-main); margin: 0 0 10px 0; letter-spacing: 2px;">CONNECTION LOST!</h2>
-          
-          <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px;">
-            Connection to the VANI network has been lost. VANI is paused awaiting Internet.
-          </p>
-          
-          <button id="offline-reload-btn" class="glow-btn full-width">Attempt Reconnect</button>
-
+      <div style="text-align: center; margin-top: 20px;">
+        <p id="call-status-text"
+          style="color: var(--text-muted); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">
+          Calling...</p>
+        <h2 id="call-target-name"
+          style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--text-main); margin: 0;">Target
+          Node</h2>
+        <p id="call-duration-timer" class="hidden"
+          style="font-family: monospace; font-size: 1.2rem; color: var(--neon-primary); margin-top: 10px; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">
+          00:00</p>
       </div>
-    </div>
-   <div id="ghost-save-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(8, 8, 11, 0.85); align-items: center; justify-content: center; z-index: 9999999; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
-      
-      <div class="glass-panel" style="padding: 25px; width: 90%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; text-align: left; border: 1px solid var(--neon-primary); box-shadow: 0 0 25px rgba(var(--neon-rgb), 0.15);">
-          
-          <h3 style="margin: 0; color: var(--neon-primary); font-size: 1.3rem;">Save Contact</h3>
-          <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Add this new node to your secure directory.</p>
-          
-          <input type="text" id="ghost-save-number" readonly style="opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 1rem;" />
-          
-          <input type="text" id="ghost-save-name" placeholder="Enter Contact Name" autocomplete="off" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 12px; border-radius: 8px; font-size: 1rem; outline: none;" onfocus="this.style.borderColor='var(--neon-primary)'" onblur="this.style.borderColor='var(--glass-border)'" />
-          
-          <div style="display: flex; gap: 10px; margin-top: 5px;">
-              <button id="cancel-ghost-btn" style="flex: 1; padding: 12px; border-radius: 8px; background: transparent; border: 1px solid var(--glass-border); color: white; cursor: pointer; font-weight: 600;">Cancel</button>
-              <button id="confirm-ghost-save-btn" class="glow-btn" style="flex: 1; padding: 12px; border-radius: 8px; font-weight: 600;">Save Node</button>
-          </div>
 
+      <img id="call-target-avatar" src="" alt="Target"
+        style="width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.4); object-fit: cover; animation: pulseAvatar 2s infinite;" />
+
+      <div style="display: flex; gap: 20px; width: 100%; justify-content: center; margin-bottom: 20px;">
+        <button id="decline-call-btn" class="glow-btn"
+          style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #ff4d4d; color: #ff4d4d; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;"><i
+            class="fa-solid fa-phone-slash"></i></button>
+
+        <button id="accept-call-btn" class="glow-btn hidden"
+          style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #00ff88; color: #00ff88; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);"><i
+            class="fa-solid fa-phone-volume"></i></button>
       </div>
-    </div>
 
-    <!-- 1. Supabase Core Engine -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- 2. Your Application Logic -->
-    <script defer>
-      (function() {
-        const cacheBuster = Date.now();
-        const jsScript = document.createElement('script');
-        jsScript.src = 'script.js?v=' + cacheBuster;
-        document.body.appendChild(jsScript);
-      })();
-    </script>
-  </body>
+      <audio id="remote-audio-stream" autoplay playsinline></audio>
+    </div>
+  </div>
+  <div id="offline-overlay"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.95); z-index: 9999998; align-items: center; justify-content: center; backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);">
+
+    <div class="glass-panel"
+      style="padding: 40px; width: 90%; max-width: 400px; text-align: center; border: 1px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.15);">
+
+      <div
+        style="font-size: 3.5rem; color: var(--neon-primary); margin-bottom: 15px; filter: drop-shadow(0 0 15px var(--neon-primary));">
+        ⚠️</div>
+
+      <h2
+        style="font-family: 'Space Grotesk', sans-serif; font-size: 1.8rem; color: var(--text-main); margin: 0 0 10px 0; letter-spacing: 2px;">
+        CONNECTION LOST!</h2>
+
+      <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px;">
+        Connection to the VANI network has been lost. VANI is paused awaiting Internet.
+      </p>
+
+      <button id="offline-reload-btn" class="glow-btn full-width">Attempt Reconnect</button>
+
+    </div>
+  </div>
+  <div id="ghost-save-modal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(8, 8, 11, 0.85); align-items: center; justify-content: center; z-index: 9999999; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+
+    <div class="glass-panel"
+      style="padding: 25px; width: 90%; max-width: 350px; display: flex; flex-direction: column; gap: 15px; text-align: left; border: 1px solid var(--neon-primary); box-shadow: 0 0 25px rgba(var(--neon-rgb), 0.15);">
+
+      <h3 style="margin: 0; color: var(--neon-primary); font-size: 1.3rem;">Save Contact</h3>
+      <p style="margin: 0; font-size: 0.85rem; color: var(--text-muted);">Add this new node to your secure directory.
+      </p>
+
+      <input type="text" id="ghost-save-number" readonly
+        style="opacity: 0.7; cursor: not-allowed; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 1rem;" />
+
+      <input type="text" id="ghost-save-name" placeholder="Enter Contact Name" autocomplete="off"
+        style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 12px; border-radius: 8px; font-size: 1rem; outline: none;"
+        onfocus="this.style.borderColor='var(--neon-primary)'" onblur="this.style.borderColor='var(--glass-border)'" />
+
+      <div style="display: flex; gap: 10px; margin-top: 5px;">
+        <button id="cancel-ghost-btn"
+          style="flex: 1; padding: 12px; border-radius: 8px; background: transparent; border: 1px solid var(--glass-border); color: white; cursor: pointer; font-weight: 600;">Cancel</button>
+        <button id="confirm-ghost-save-btn" class="glow-btn"
+          style="flex: 1; padding: 12px; border-radius: 8px; font-weight: 600;">Save Node</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 1. Supabase Core Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 2. Your Application Logic -->
+  <script defer>
+    (function () {
+      const cacheBuster = Date.now();
+      const jsScript = document.createElement('script');
+      jsScript.src = 'script.js?v=' + cacheBuster;
+      document.body.appendChild(jsScript);
+    })();
+  </script>
+</body>
+
 </html>
