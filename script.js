@@ -377,7 +377,7 @@ const syncContacts = async () => {
       if (!savedMap[number] && number !== State.mobile) {
           finalContacts.push({
               contact: number,
-              name: `Unknown Node`, // Replaced raw number with generic text
+              name: `Unknown`, // Replaced raw number with generic text
               isGhost: true 
           });
       }
