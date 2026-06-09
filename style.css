@@ -1083,3 +1083,9 @@ input, select {
     max-width: 420px !important;
     height: auto !important;
 }
+
+/* Save Button Override */
+#save-ghost-btn {
+    padding: 10px 15px !important;
+    margin-left: 10px !important; 
+}
