@@ -75,36 +75,48 @@ const playSound = (type) => {
 // ==========================================================
 // 2. BULLETPROOF AUTHENTICATION & SESSION
 // ==========================================================
+
 const evalSession = async () => {
   try {
-    const {
-      data: { session },
-    } = await supabaseClient.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (!session) throw new Error("No active session.");
 
-    // EXPLICIT ERROR CHECK: Fetch profile
     const { data: p, error: profileErr } = await supabaseClient
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
+      .from("profiles").select("*").eq("id", session.user.id).single();
 
     if (profileErr) throw new Error(`Database Error: ${profileErr.message}`);
     if (!p) throw new Error("Ghost User: Profile data is missing.");
 
     Object.assign(State, { profile: p, mobile: p.mobile });
-    $("my-avatar").src =
-      p.avatar_url ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
+    $("my-avatar").src = p.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
     $("my-name").textContent = p.name;
-    $("my-mobile-display").textContent = `+91 ${p.mobile}`;
+    
+    // Display Handle instead of Mobile Number in the sidebar
+    $("my-mobile-display").textContent = p.vani_id ? `@${p.vani_id}` : "Pending Handle...";
 
     toggleUI(true);
+
+    // 🚨 FIX: Safely wipe the login/register forms ONLY after a successful boot!
+    $("login-form")?.reset();
+    $("register-form")?.reset();
+    
+    // THE GUARD: If they don't have a Handle, lock them out until they claim one!
+    if (!p.vani_id) {
+        const modal = document.getElementById("claim-handle-modal");
+        if (modal) modal.style.display = "flex";
+        return; // ABORT BOOT SEQUENCE HERE until modal is submitted
+    }
+
     await syncContacts();
     initRealtime();
-    initPresence(); // 🚨 NEW: Boot up the Online Tracker!
+    initPresence(); 
   } catch (err) {
     console.error("SESSION REJECTED:", err.message);
+    
+    // 🚨 FIX: Actually tell the user if the database rejected them (unless it's a standard boot check)
+    if (err.message !== "No active session.") {
+        alert(`System Reject: ${err.message}`);
+    }
     toggleUI(false);
   } finally {
     $("boot-loader")?.remove();
@@ -113,63 +125,66 @@ const evalSession = async () => {
 
 const handleAuth = async (e, isLogin) => {
   e.preventDefault();
+  
+  // 🚨 FIX: Lock the button and give visual feedback so the user knows it's working
+  const btn = e.target.querySelector('button[type="submit"]');
+  const originalText = btn.textContent;
+  
   try {
+    btn.textContent = "Authenticating...";
+    btn.style.opacity = "0.5";
+    btn.disabled = true;
+
     const mobile = $(isLogin ? "login-mobile" : "reg-mobile").value.trim();
     const password = $(isLogin ? "login-password" : "reg-password").value;
 
     if (isLogin) {
-      // EXPLICIT ERROR CHECK: Fetch email for login
       const { data: p, error: fetchErr } = await supabaseClient
-        .from("profiles")
-        .select("email")
-        .eq("mobile", mobile)
-        .single();
+        .from("profiles").select("email").eq("mobile", mobile).single();
 
-      if (fetchErr || !p)
-        throw new Error("Mobile not registered. Please register first.");
+      if (fetchErr || !p) throw new Error("Mobile not registered. Please register first.");
 
-      const { error: authErr } = await supabaseClient.auth.signInWithPassword({
-        email: p.email,
-        password,
-      });
+      const { error: authErr } = await supabaseClient.auth.signInWithPassword({ email: p.email, password });
       if (authErr) throw authErr;
     } else {
       const email = $("reg-email").value.trim();
       const name = $("reg-name").value.trim();
+      
+      const rawHandle = $("reg-handle") ? $("reg-handle").value.trim() : `u_${Date.now().toString().slice(-6)}`;
+      const finalHandle = window.validateVaniHandle(rawHandle, name);
 
-      const {
-        data: { user },
-        error: signUpErr,
-      } = await supabaseClient.auth.signUp({ email, password });
+      const { data: { user }, error: signUpErr } = await supabaseClient.auth.signUp({ email, password });
       if (signUpErr) throw signUpErr;
 
       if (user) {
-        // EXPLICIT ERROR CHECK: Insert profile
-        const { error: insertErr } = await supabaseClient
-          .from("profiles")
-          .insert([
-            {
-              id: user.id,
-              name,
-              mobile,
-              email,
-              gender: $("reg-gender").value,
-              avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
-            },
-          ]);
+        const { error: insertErr } = await supabaseClient.from("profiles").insert([{
+            id: user.id,
+            name,
+            mobile,
+            email,
+            gender: $("reg-gender").value,
+            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+            vani_id: finalHandle 
+        }]);
 
         if (insertErr) {
-          throw new Error(
-            `Profile creation blocked by database: ${insertErr.message}. RLS might be enabled.`,
-          );
+          throw new Error(insertErr.code === '23505' ? "That VANI ID is already taken by another operator!" : `Database error: ${insertErr.message}`);
         }
       }
       alert("Operator Provisioned! Attempting Uplink...");
     }
-    e.target.reset();
+    
+    // Attempt to boot the session
     await evalSession();
+
   } catch (err) {
+    // If the password was wrong, the input stays on the screen so you can easily fix it!
     alert(`Auth Error: ${err.message}`);
+  } finally {
+    // 🚨 FIX: Unlock the button
+    btn.textContent = originalText;
+    btn.style.opacity = "1";
+    btn.disabled = false;
   }
 };
 
@@ -241,8 +256,22 @@ $("profileCard")?.addEventListener("click", () => {
   $("VIEW-PROFILE")?.classList.add("active");
   $("profile-avatar").src = State.profile.avatar_url;
   $("profile-name").textContent = State.profile.name;
-  $("profile-mobile").textContent = `+91 ${State.profile.mobile}`;
+  
+  // 🚨 Show ALL personal details privately
+  $("profile-mobile").textContent = `+91 ${State.profile.mobile}`; 
   $("profile-email").textContent = State.profile.email;
+  
+  // Dynamically inject the Handle into their profile view if it doesn't exist yet
+  if (!$("profile-handle-display")) {
+      $("profile-name").insertAdjacentHTML('afterend', `
+        <p id="profile-handle-display" style="color: var(--neon-primary); font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem;  margin: 5px 0 -10px 0;">
+            @${State.profile.vani_id || "pending"}
+        </p>
+      `);
+  } else {
+      $("profile-handle-display").textContent = `@${State.profile.vani_id}`;
+  }
+  
   if (window.innerWidth <= 992) toggleMobileMenu(true);
 });
 
@@ -257,39 +286,71 @@ const refreshContactsUI = async () => {
 };
 
 $("add-contact-btn")?.addEventListener("click", async () => {
-  const contact = $("new-contact-mobile").value.trim(),
-    name = $("new-contact-name").value.trim();
-  if (contact.length !== 10 || !name || contact === State.mobile)
-    return alert("Invalid or self contact.");
+  const rawHandle = $("new-contact-handle").value.trim();
+  const name = $("new-contact-name").value.trim();
+  
+  if (!rawHandle || !name) return alert("Please enter a VANI ID and a local name.");
+  
+  const cleanHandle = rawHandle.toLowerCase().replace(/@/g, '');
+  if (cleanHandle === State.profile.vani_id) return alert("You cannot add your own node.");
+
+  const btn = $("add-contact-btn");
+  btn.textContent = "Scanning Matrix...";
+  btn.disabled = true;
+
   try {
+    // 1. DISCOVERY: Look up the Handle to find the hidden Mobile Number
+    const { data: targetProfile, error: lookupErr } = await supabaseClient
+        .from("profiles")
+        .select("mobile")
+        .eq("vani_id", cleanHandle)
+        .single();
+
+    if (lookupErr || !targetProfile) throw new Error("VANI ID not found in the matrix.");
+
+    const targetMobile = targetProfile.mobile;
+
+    // 2. CHECK DUPLICATES: See if we already linked this hidden number
+    const { data: existing } = await supabaseClient
+        .from("contacts")
+        .select("id")
+        .match({ mobile: State.mobile, contact: targetMobile });
+        
+    if (existing && existing.length > 0) throw new Error("Node is already linked in your directory.");
+
+    // 3. LINK: Save the mapping to the database
     const { error } = await supabaseClient
       .from("contacts")
-      .insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
+      .insert([{ mobile: State.mobile, name, contact: targetMobile, gender: "Other" }]);
+      
     if (error) throw error;
-    $("new-contact-mobile").value = $("new-contact-name").value = "";
+    
+    $("new-contact-handle").value = $("new-contact-name").value = "";
     await syncContacts();
-    alert("Contact linked successfully.");
+    alert(`Node @${cleanHandle} Linked Successfully.`);
   } catch (err) {
-    alert(`Contact Error: ${err.message}`);
+    alert(`Discovery Error: ${err.message}`);
+  } finally {
+    btn.textContent = "Add New Contact";
+    btn.disabled = false;
   }
 });
 
 // ==========================================================
 // 4. CONTACTS ENGINE (Now with Ghost Profiles & Time Sorting)
 // ==========================================================
+
 const syncContacts = async () => {
   const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
     supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
-    supabaseClient.from("profiles").select("mobile, avatar_url, name"),
+    // 🚨 FIX: Now we fetch vani_id from the database!
+    supabaseClient.from("profiles").select("mobile, avatar_url, name, vani_id"), 
     supabaseClient.from("messages").select("sender_mobile, recipient_mobile, is_read, created_at").or(`sender_mobile.eq.${State.mobile},recipient_mobile.eq.${State.mobile}`),
   ]);
 
   const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
   const latestMsgMap = {};
-  
-  // 🚨 NEW: Map to track unread message counts
   const unreadMap = {}; 
-
   const ghostNumbers = new Set();
 
   m?.forEach((msg) => {
@@ -300,10 +361,7 @@ const syncContacts = async () => {
     }
     ghostNumbers.add(otherParty);
 
-    // 🚨 NEW: Calculate Unread Count
-    // If you are the recipient AND the message is unread...
     if (msg.recipient_mobile === State.mobile && msg.is_read === false) {
-        // ...AND the sender is NOT the person we are currently looking at
         if (String(msg.sender_mobile) !== String(State.activeContact)) {
             unreadMap[msg.sender_mobile] = (unreadMap[msg.sender_mobile] || 0) + 1;
         }
@@ -319,19 +377,18 @@ const syncContacts = async () => {
       if (!savedMap[number] && number !== State.mobile) {
           finalContacts.push({
               contact: number,
-              name: `+91 ${number}`, 
+              name: `Unknown Node`, // Replaced raw number with generic text
               isGhost: true 
           });
       }
   });
 
-  // Sorting Engine
   finalContacts.sort((a, b) => (latestMsgMap[b.contact] || 0) - (latestMsgMap[a.contact] || 0));
 
-  // 🚨 UPDATE: Pass the calculated unreadMap to the render function
   renderContacts(finalContacts, regMap, unreadMap);
   if (typeof updatePresenceUI === "function") updatePresenceUI();
 };
+
 const renderContacts = (contacts, regMap, unreadMap) => {
   const list = $("contacts-list"),
     grid = document.querySelector(".contacts-directory-grid");
@@ -342,23 +399,24 @@ const renderContacts = (contacts, regMap, unreadMap) => {
   if (grid) $$(".directory-card").forEach((c) => c.remove());
 
   contacts.forEach((c) => {
-    const p = regMap[c.contact],
-      unread = unreadMap[c.contact] || 0;
-    const avatar =
-      p?.avatar_url ||
-      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
+    const p = regMap[c.contact];
+    const unread = unreadMap[c.contact] || 0;
+    const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
+    
+    // 🚨 FIX: Extract handle, fallback to 'unclaimed' if they haven't set one yet
+    const displayHandle = p?.vani_id ? `@${p.vani_id}` : "@unclaimed";
 
    if (list) {
       const li = document.createElement("li");
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
       
-      // 🚨 UPDATE: Injects the unread-badge cleanly. Cap count at 99+ to prevent UI breaking.
+      // 🚨 FIX: Replaced +91 ${c.contact} with displayHandle
       li.innerHTML = `
         <img src="${avatar}" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
         <div style="flex:1; min-width:0; overflow:hidden;">
             <h4 style="font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h4>
-            <p style="font-size:0.8rem;color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p>
+            <p style="font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
         </div>
         ${unread > 0 ? `<div class="unread-badge">${unread > 99 ? '99+' : unread}</div>` : ""}
       `;
@@ -372,8 +430,8 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       card.className = "glass-panel directory-card";
       card.style.cssText = "padding:25px;";
       
-      // 🚨 UPGRADE: Hide the "Delete" button if it's a Ghost Profile (since it isn't saved yet)
-      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3>${c.name}</h3><p style="color:var(--text-muted);font-family:monospace;">+91 ${c.contact}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button>${c.isGhost ? '' : '<button class="delete-contact-btn" style="flex:1;border:none;border-radius:12px;cursor:pointer;font-weight:600;background:#ff4d4d;color:white;padding:12px;">Delete</button>'}</div>`;
+      // 🚨 FIX: Replaced +91 ${c.contact} with displayHandle
+      card.innerHTML = `<div style="display:flex;align-items:center;gap:15px;margin-bottom:20px;"><img src="${avatar}" style="width:60px;height:60px;border-radius:16px;"/><div><h3 style="margin:0 0 5px 0;">${c.name}</h3><p style="color:var(--neon-primary);font-family:monospace;margin:0;">${displayHandle}</p></div></div><div style="display:flex;gap:10px;"><button class="glow-btn open-chat-btn" style="flex:1;">Open Chat</button>${c.isGhost ? '' : '<button class="delete-contact-btn" style="flex:1;">Delete</button>'}</div>`;
 
       card.querySelector(".open-chat-btn").onclick = () => {
         openChat(c.contact, c.name, avatar, !!p, c.isGhost);
@@ -383,16 +441,11 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       if (!c.isGhost) {
           card.querySelector(".delete-contact-btn").onclick = async () => {
             if (!confirm(`Delete ${c.name}?`)) return;
-            await supabaseClient
-              .from("contacts")
-              .delete()
-              .match({ mobile: State.mobile, contact: c.contact });
+            await supabaseClient.from("contacts").delete().match({ mobile: State.mobile, contact: c.contact });
             if (State.activeContact === c.contact) {
               State.activeContact = "";
               $("chat-box").innerHTML = "";
-              ["active-chat-header", "message-input-bar"].forEach((id) =>
-                $(id).classList.add("hidden"),
-              );
+              ["active-chat-header", "message-input-bar"].forEach((id) => $(id).classList.add("hidden"));
             }
             syncContacts();
           };
@@ -401,7 +454,6 @@ const renderContacts = (contacts, regMap, unreadMap) => {
     }
   });
 };
-
 // ==========================================================
 // CHAT ENGINE REPLACEMENTS (script.js)
 // ==========================================================
@@ -2024,6 +2076,106 @@ const checkCallButtonVisibility = () => {
             localStorage.setItem("vani-light-theme", "false");
         }
     });
+})();
+
+// ==========================================================
+// 🧬 VANI-ID IDENTITY & DISCOVERY ENGINE (Append at Bottom)
+// ==========================================================
+(function initVaniIdentityEngine() {
+    // 1. Inject VANI ID input into Registration Form dynamically
+    const regEmail = document.getElementById("reg-email");
+    if (regEmail && !document.getElementById("reg-handle")) {
+        regEmail.insertAdjacentHTML('beforebegin', `
+            <input type="text" id="reg-handle" placeholder="VANI ID (eg. john_bill)" minlength="3" maxlength="15" required style="text-transform: lowercase;" />
+        `);
+    }
+
+    // 2. Change 'Add Contact' UI to accept Handles instead of Mobile Numbers
+    const contactMobileInput = document.getElementById("new-contact-mobile");
+    if (contactMobileInput) {
+        contactMobileInput.id = "new-contact-handle";
+        contactMobileInput.placeholder = "Enter Target VANI ID (e.g. neo)";
+        contactMobileInput.removeAttribute("maxlength");
+        contactMobileInput.type = "text";
+    }
+
+    // 3. Inject the Mandatory "Claim Handle" Modal for Legacy Users
+    if (!document.getElementById("claim-handle-modal")) {
+        document.body.insertAdjacentHTML('beforeend', `
+            <div id="claim-handle-modal" style="display: none; position: fixed; inset: 0; background: rgba(3,3,5,0.95); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 99999999; align-items: center; justify-content: center;">
+                <div class="glass-panel" style="padding: 40px; width: 90%; max-width: 400px; text-align: center; border-color: var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.2);">
+                    <h2 style="color: var(--neon-primary); margin-bottom: 10px; font-family: 'Space Grotesk', sans-serif;">Claim Your VANI ID</h2>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">VANI is now handle-first. Protect your identity by claiming a unique ID. Phone numbers are now strictly hidden.</p>
+                    
+                    <div style="display: flex; align-items: center; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.3s;">
+                        <span style="padding: 15px 0 15px 20px; color: var(--neon-primary); font-weight: bold; font-size: 1.1rem; line-height: 1; flex-shrink: 0;">@</span>
+                        <input type="text" id="claim-handle-input" placeholder="your_alias" style="flex: 1; padding: 15px; background: transparent; border: none; color: #fff; font-size: 1rem; outline: none; min-width: 0;" />
+                    </div>
+
+                    <button id="claim-handle-btn" class="glow-btn full-width">Lock Identity Permanently</button>
+                </div>
+            </div>
+        `);
+    }
+
+    // 4. Strict Validation Logic (Runs locally before hitting Database)
+    window.validateVaniHandle = (handle, name) => {
+        const cleanHandle = handle.toLowerCase().replace(/@/g, '').trim();
+        const cleanName = name.toLowerCase().trim();
+
+        if (cleanHandle.length < 3) throw new Error("Handle must be at least 3 characters.");
+        if (!/^[a-z0-9_]+$/.test(cleanHandle)) throw new Error("Handle can only contain lowercase letters, numbers, and underscores.");
+        
+        // Anti-Impersonation Logic
+        if (cleanHandle.includes(cleanName) || cleanName.includes(cleanHandle)) throw new Error("Security Alert: Handle cannot contain your real name.");
+        
+        const reserved = ['admin', 'support', 'vani', 'official', 'system'];
+        if (reserved.some(r => cleanHandle.includes(r))) throw new Error("Reserved system keyword detected in handle.");
+
+        return cleanHandle;
+    };
+
+    // 5. Claim Modal Submission Listener
+    document.getElementById("claim-handle-btn")?.addEventListener("click", async () => {
+        const btn = document.getElementById("claim-handle-btn");
+        btn.textContent = "Locking...";
+        btn.disabled = true;
+
+        try {
+            const rawHandle = document.getElementById("claim-handle-input").value;
+            const finalHandle = window.validateVaniHandle(rawHandle, State.profile.name);
+            
+            // Attempt to permanently save to Supabase
+            const { error } = await supabaseClient.from("profiles").update({ vani_id: finalHandle }).eq("id", State.profile.id);
+            if (error) throw new Error(error.code === '23505' ? "This handle is already taken!" : error.message);
+            
+            // Success! Update State and unlock the UI
+            State.profile.vani_id = finalHandle;
+            document.getElementById("claim-handle-modal").style.display = "none";
+            
+            // Resume Boot Sequence
+            if (typeof syncContacts === "function") await syncContacts();
+            if (typeof initRealtime === "function") initRealtime();
+            if (typeof initPresence === "function") initPresence();
+            
+            alert("Identity Locked! Welcome to VANI.");
+        } catch (err) {
+            alert(err.message);
+            btn.textContent = "Lock Identity Permanently";
+            btn.disabled = false;
+        }
+    });
+
+    // 6. Profiles Realtime Sync (Watch for Avatar/Name changes globally)
+    supabaseClient.channel('vani_profiles_sync')
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, (p) => {
+            // If someone in your contact list changes their profile, auto-refresh the UI!
+            if (typeof syncContacts === "function" && document.getElementById("app").classList.contains("hidden") === false) {
+                syncContacts();
+            }
+        })
+        .subscribe();
+        
 })();
 
 // --- SYSTEM BOOT SEQUENCE ---

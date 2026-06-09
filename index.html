@@ -144,12 +144,14 @@
               type="tel"
               maxlength="10"
               placeholder="Mobile Number"
+              autocomplete="username" 
               required
             />
             <input
               type="password"
               id="login-password"
               placeholder="Password"
+              autocomplete="current-password"
               required
             />
             <button
@@ -215,6 +217,7 @@
               type="text"
               id="reg-name"
               placeholder="First Name"
+              autocomplete="name"
               required
             />
             <input
@@ -223,15 +226,17 @@
               placeholder="Mobile Number"
               maxlength="10"
               pattern="\d{10}"
+              autocomplete="tel"
               required
             />
             <input
               type="email"
               id="reg-email"
               placeholder="Email Address"
+              autocomplete="email"
               required
             />
-            <select id="reg-gender" required>
+            <select id="reg-gender" autocomplete="sex" required>
               <option value="">Select Gender</option>
               <option value="Male">Male</option>
               <option value="Female">Female</option>
@@ -241,6 +246,7 @@
               id="reg-password"
               placeholder="Password (Min 6 chars)"
               minlength="6"
+              autocomplete="new-password"
               required
             />
             <button
