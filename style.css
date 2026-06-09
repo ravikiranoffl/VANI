@@ -975,8 +975,8 @@ input, select {
 /* FULL-PAGE SETTINGS SCROLL FIX */
 /* ========================================================== */
 
-/* 1. Make the entire Settings View the scrollable container */
-#VIEW-SETTINGS {
+/* 1. Make the entire Settings View the scrollable container ONLY when active */
+#VIEW-SETTINGS.active {
     display: block !important; 
     overflow-y: auto !important; 
     height: 100% !important;
