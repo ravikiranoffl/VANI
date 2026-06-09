@@ -1912,6 +1912,91 @@ const checkCallButtonVisibility = () => {
     console.log("☀️ Natural Light Theme Engine v3 Booted Successfully!");
 })();
 
+// ==========================================================
+// ☀️ AUTO-DAY THEME ENGINE (Time-based Automation)
+// ==========================================================
+(function injectAutoDayTheme() {
+    let autoDayInterval = null;
+
+    const runAutoDayLogic = () => {
+        const hour = new Date().getHours();
+        const isDayTime = hour >= 6 && hour < 18;
+        
+        if (isDayTime) {
+            document.body.setAttribute("data-theme", "light");
+        } else {
+            document.body.removeAttribute("data-theme");
+        }
+    };
+
+    const enableAutoDay = () => {
+        runAutoDayLogic(); // Trigger immediately
+        autoDayInterval = setInterval(runAutoDayLogic, 60000); // Check every minute
+    };
+
+    const disableAutoDay = () => {
+        clearInterval(autoDayInterval);
+        autoDayInterval = null;
+    };
+
+    // 1. Inject UI Toggle
+    const settingsPanel = document.querySelector('.settings-controls.glass-panel');
+    if (settingsPanel) {
+        settingsPanel.insertAdjacentHTML('beforeend', `
+            <div class="setting-row">
+                <div style="flex: 1; padding-right: 20px">
+                    <h3 style="font-size: 1.1rem; margin: 0 0 5px 0">Auto-Day Theme</h3>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.4;">
+                        Sync with the Sun: Light (Upto 6PM), Dark (Upto 6AM).
+                    </p>
+                </div>
+                <label class="matrix-switch">
+                    <input type="checkbox" id="toggle-auto-day" />
+                    <span class="matrix-slider"></span>
+                </label>
+            </div>
+        `);
+    }
+
+    // 2. Wire up Logic with Mutual Exclusion
+    const autoToggle = document.getElementById("toggle-auto-day");
+    const lightToggle = document.getElementById("toggle-light-theme");
+
+    const syncAutoDayState = () => {
+        const isOn = localStorage.getItem("vani-auto-day") === "true";
+        if (autoToggle) autoToggle.checked = isOn;
+        if (isOn) enableAutoDay();
+    };
+
+    syncAutoDayState();
+
+    autoToggle?.addEventListener("change", (e) => {
+        const isOn = e.target.checked;
+        localStorage.setItem("vani-auto-day", isOn);
+        
+        if (isOn) {
+            // EXCLUSION: If Auto turns ON, turn Light Manual OFF
+            if (lightToggle && lightToggle.checked) {
+                lightToggle.checked = false;
+                localStorage.setItem("vani-light-theme", "false");
+                document.body.removeAttribute("data-theme");
+            }
+            enableAutoDay();
+        } else {
+            disableAutoDay();
+        }
+    });
+
+    // Patch Light Theme Toggle to turn off Auto-Day
+    lightToggle?.addEventListener("change", (e) => {
+        if (e.target.checked && autoToggle && autoToggle.checked) {
+            autoToggle.checked = false;
+            localStorage.setItem("vani-auto-day", "false");
+            disableAutoDay();
+        }
+    });
+})();
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 

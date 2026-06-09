@@ -980,7 +980,7 @@ input, select {
     display: block !important; 
     overflow-y: auto !important; 
     height: 100% !important;
-    padding-bottom: 120px !important; 
+    padding-bottom: 200px !important; /* Increased padding to accommodate new toggles */
     -webkit-overflow-scrolling: touch !important; 
 }
 
@@ -1003,4 +1003,33 @@ input, select {
 .theme-btn {
     min-height: 65px !important;
     height: 100% !important;
+}
+
+/* ========================================================== */
+/* SPACIOUS-MINIMALIST SETTINGS PATCH */
+/* ========================================================== */
+
+/* 1. Add subtle, consistent breathing room */
+.settings-controls .setting-row {
+    padding: 22px 5px !important; /* Spacious but tight */
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* 2. Remove the last divider for a cleaner look */
+.settings-controls .setting-row:last-child {
+    border-bottom: none !important;
+}
+
+/* 3. Text area breathing room */
+.setting-row > div:first-child {
+    padding-right: 30px !important; /* Prevent text from touching the toggle */
+    flex: 1;
+}
+
+/* 4. Ensure toggle container has consistent size */
+.matrix-switch {
+    margin-left: auto; /* Push toggle to the right */
+    transform: scale(1.05); /* Slightly bigger for premium feel */
 }
