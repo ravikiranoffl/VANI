@@ -267,7 +267,7 @@ const handleAuth = async (e, isLogin) => {
             mobile,
             email,
             gender: $("reg-gender").value,
-            avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`,
+            avatar_url: `https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg`,
             vani_id: finalHandle 
         }]);
 
@@ -512,7 +512,7 @@ const renderContacts = (contacts, regMap, unreadMap) => {
   contacts.forEach((c) => {
     const p = regMap[c.contact];
     const unread = unreadMap[c.contact] || 0;
-    const avatar = p?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(c.name)}`;
+    const avatar = p?.avatar_url || `https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg`;
     const displayHandle = p?.vani_id ? `@${p.vani_id}` : "@unclaimed";
 
     if (list) {
@@ -1535,11 +1535,11 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
     
     // 🚨 PREVENT IDENTITY LEAKS: Temporarily mask the UI while we verify identity
     $("call-target-name").textContent = "Encrypting Identity...";
-    $("call-target-avatar").src = "https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost";
+    $("call-target-avatar").src = "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
 
     (async () => {
-        let callerName = "Unknown Node";
-        let callerAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown";
+        let callerName = "Unknown";
+        let callerAvatar = "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
 
         // 1. Check local DOM to see if they are already saved in our directory
         const localContactLi = document.querySelector(`li[data-mobile="${CallState.targetMobile}"]`);
