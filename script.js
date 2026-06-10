@@ -796,26 +796,35 @@ const hideTypingIndicator = () => {
 };
 
 const sendMsg = async (e) => {
-  if (e) e.preventDefault(); // STOPS silent layout reloads
+  if (e) e.preventDefault(); 
   const content = $("msg-input").value.trim();
   if (!content || !State.activeContact) return;
   
   $("msg-input").value = ""; 
-  hideTypingIndicator(); // Instantly kill my own typing dots
+  hideTypingIndicator(); 
   playSound("send");
 
-  // 💾 BACKGROUND DB UPLOAD
-  const { error } = await supabaseClient.from("messages").insert([
-    {
-      sender_mobile: State.mobile,
-      recipient_mobile: State.activeContact,
-      content,
-      is_read: false,
-    },
-  ]); 
-
-  if (error) {
-      alert(`Send Error: ${error.message}`);
+  // 🔀 THE ROUTER: Send to Random Matrix OR Permanent Matrix
+  if (State.isRandomChat) {
+      // Optimistic UI Update
+      appendBubble({ id: `temp-${Date.now()}`, sender_mobile: State.mobile, content, created_at: new Date().toISOString() }, true);
+      
+      const { error } = await supabaseClient.from("vani_random").insert([{
+          room_id: RandomState.roomId,
+          row_type: 'message',
+          sender_id: RandomState.userId, // Updated variable mapping
+          content: content
+      }]);
+      if (error) alert(`Matrix Error: ${error.message}`);
+      
+  } else {
+      const { error } = await supabaseClient.from("messages").insert([{
+          sender_mobile: State.mobile,
+          recipient_mobile: State.activeContact,
+          content,
+          is_read: false,
+      }]); 
+      if (error) alert(`Send Error: ${error.message}`);
   }
 };
 
@@ -2596,6 +2605,199 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
         });
     }
 })();
+
+// ==========================================================
+// 🎭 ANONYMOUS RANDOM MATRIX ENGINE
+// ==========================================================
+let RandomState = {
+    userId: "", // Updated from fakeId
+    roomId: null,
+    isWaiting: false,
+    timeoutId: null,
+    queueChannel: null,
+    chatChannel: null
+};
+
+// Generates an 8-letter themed word + 4 random digits (e.g. "neonwire7092")
+const generateStrangerID = () => {
+    const matrixWords = [
+        "neonwire", "stardust", "gridlock", "cybernet", "phantomx",
+        "glitcher", "bytecode", "dataflow", "firewall", "backdoor",
+        "terminal", "override", "protocol", "synthwav", "darknode",
+        "hyperion", "solarray", "valkyrie", "obsidian", "specters",
+        "mainframe", "datalink", "netspace", "voidwalk", "cyphersx"
+    ];
+    const randomWord = matrixWords[Math.floor(Math.random() * matrixWords.length)];
+    return randomWord + Math.floor(1000 + Math.random() * 9000);
+};
+
+// Initialize View (Bulletproofed against missing DOM)
+document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", () => {
+    if (!RandomState.userId) {
+        RandomState.userId = generateStrangerID();
+        
+        // Defensive check: Only set the value if the HTML element actually exists
+        const idInput = $("random-fake-id");
+        if (idInput) {
+            idInput.value = RandomState.userId;
+        } else {
+            console.error("🔥 Matrix Error: Random Matrix HTML is missing from index.html!");
+        }
+    }
+    trackActiveStrangers();
+});
+// Update Queue Counter
+const trackActiveStrangers = async () => {
+    const { count } = await supabaseClient
+        .from('vani_random')
+        .select('*', { count: 'exact', head: true })
+        .eq('row_type', 'queue')
+        .eq('status', 'waiting');
+    
+    const counter = $("random-active-counter");
+    if (counter) counter.textContent = (count || 0).toString().padStart(2, '0');
+};
+
+// Listen globally for queue updates
+supabaseClient.channel('vani_random_global')
+    .on("postgres_changes", { event: "*", schema: "public", table: "vani_random", filter: "row_type=eq.queue" }, trackActiveStrangers)
+    .subscribe();
+
+// Terminate / End Chat
+const abortRandomSearch = async (isTimeout = false) => {
+    if (RandomState.timeoutId) clearTimeout(RandomState.timeoutId);
+    if (RandomState.queueChannel) {
+        await supabaseClient.removeChannel(RandomState.queueChannel);
+        RandomState.queueChannel = null;
+    }
+    if (RandomState.chatChannel) {
+        await supabaseClient.removeChannel(RandomState.chatChannel);
+        RandomState.chatChannel = null;
+    }
+    
+    if (RandomState.roomId && RandomState.isWaiting) {
+        await supabaseClient.from('vani_random').delete().eq('id', RandomState.roomId);
+    }
+    
+    RandomState.isWaiting = false;
+    State.isRandomChat = false;
+    
+    $("btn-start-random").classList.remove("hidden");
+    $("btn-stop-random").classList.add("hidden");
+    $("btn-start-random").textContent = "Chat with Stranger";
+    $("btn-start-random").disabled = false;
+    
+    if (isTimeout) {
+        if ($("random-auto-reconnect").checked) {
+            startRandomChat(); // Loop it
+        } else {
+            alert("Strangers are busy. Kindly Try Again.");
+        }
+    }
+};
+
+$("btn-stop-random")?.addEventListener("click", async () => {
+    if (RandomState.roomId) {
+        await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+    }
+    abortRandomSearch();
+    $("mobile-back-btn")?.click(); // Send user back to menu
+});
+
+const startRandomChat = async () => {
+    const btn = $("btn-start-random");
+    btn.textContent = "Scanning Matrix...";
+    btn.disabled = true;
+    $("btn-stop-random").classList.remove("hidden");
+    RandomState.isWaiting = true;
+
+    try {
+        const { data: room, error } = await supabaseClient.rpc('join_random_matrix', {
+            p_user_name: State.profile.name,
+            p_user_id: RandomState.userId
+        });
+
+        if (error) throw error;
+        RandomState.roomId = room.id;
+
+        if (room.status === 'active') {
+            // WE JOINED SOMEONE ELSES ROOM
+            RandomState.isWaiting = false;
+            launchStrangerChatInterface(room);
+        } else {
+            // WE CREATED A ROOM, START THE 10s TIMER
+            btn.textContent = "Waiting for Stranger...";
+            RandomState.timeoutId = setTimeout(() => abortRandomSearch(true), 10000);
+
+            // Listen for someone to join US
+            RandomState.queueChannel = supabaseClient.channel(`queue_${room.id}`)
+                .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${room.id}` }, (p) => {
+                    if (p.new.status === 'active') {
+                        clearTimeout(RandomState.timeoutId);
+                        RandomState.isWaiting = false;
+                        launchStrangerChatInterface(p.new);
+                    }
+                }).subscribe();
+        }
+    } catch (err) {
+        alert("Matrix Error: " + err.message);
+        abortRandomSearch();
+    }
+};
+
+const launchStrangerChatInterface = (roomData) => {
+    if (typeof playSound === "function") playSound("receive");
+    
+    const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
+    
+    // Switch to Chat UI safely
+    const chatBtn = document.querySelector('[data-view="VIEW-CHATS"]');
+    if (chatBtn) chatBtn.click(); 
+    
+    State.isRandomChat = true; 
+    State.activeContact = targetId; // Temporary mask
+
+    $("chat-with-name").textContent = targetId;
+    $("chat-target-avatar").src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
+    $("chat-with-status").textContent = "Stranger Connected";
+    $("chat-with-status").style.color = "var(--neon-primary)";
+
+    // HIDE Call and Save buttons explicitly
+    $("start-call-btn")?.classList.add("hidden");
+    $("save-ghost-btn")?.classList.add("hidden");
+    
+    ["active-chat-header", "message-input-bar"].forEach(id => $(id).classList.remove("hidden"));
+    
+    // Display Disclaimer
+    $("chat-box").innerHTML = `
+        <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
+            <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
+            <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and will be purged. Be respectful.</p>
+        </div>`;
+    
+    // Subscribe to messages strictly for this room
+    RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random", filter: `room_id=eq.${roomData.room_id}` }, (p) => {
+            const msg = p.new;
+            if (msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
+                // Map the payload to match your standard appendBubble format
+                appendBubble({
+                    id: msg.id,
+                    sender_mobile: targetId, // Forces it to render on the left
+                    content: msg.content,
+                    created_at: msg.created_at
+                }, true);
+                if (typeof playSound === "function") playSound("receive");
+            }
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${roomData.room_id}` }, (p) => {
+            if (p.new.status === 'closed') {
+                $("chat-box").insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem;">Stranger disconnected.</div>`);
+                $("message-input-bar").classList.add("hidden"); // Lock input
+            }
+        })
+        .subscribe();
+};
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================

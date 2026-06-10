@@ -202,7 +202,7 @@
           <div class="operator-profile-card glass-panel" id="profileCard" title="View Profile">
             <img id="my-avatar" src="" alt="My Avatar" width="42" height="42" loading="lazy" />
             <div class="user-info-text">
-              <h2 id="my-name">Operator</h2>
+              <h2 id="my-name" style="margin: 0; font-size: 1rem; font-weight: 600;">Operator</h2>
               <p id="my-mobile-display">Syncing...</p>
             </div>
           </div>
@@ -309,6 +309,48 @@
                     Add New Contact
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="VIEW-RANDOM" class="view-section">
+            <div class="view-header">
+              <h2 style="font-family: Outfit !important">Random Matrix</h2>
+              <p>Anonymous Encrypted Routing</p>
+            </div>
+
+            <div class="glass-panel"
+              style="padding: 15px; margin-bottom: 25px; text-align: center; border-color: var(--neon-primary);">
+              <h3 style="margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">
+                Total Strangers Waiting: <span id="random-active-counter"
+                  style="color: var(--neon-primary); font-family: monospace; font-size: 1.5rem; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00</span>
+              </h3>
+            </div>
+
+            <div id="random-setup-container" class="glass-panel"
+              style="padding: 25px; max-width: 500px; margin: 0 auto;">
+              <div class="form-group">
+                <label
+                  style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Your
+                  Temporary Identity</label>
+                <input type="text" id="random-fake-id" readonly
+                  style="background: rgba(0,0,0,0.5); color: var(--neon-primary); font-family: monospace; font-size: 1.2rem; font-weight: bold; text-align: center; cursor: not-allowed;" />
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">Auto-Reconnect if busy</span>
+                  <label class="matrix-switch">
+                    <input type="checkbox" id="random-auto-reconnect" checked />
+                    <span class="matrix-slider"></span>
+                  </label>
+                </div>
+
+                <button id="btn-start-random" class="glow-btn full-width" style="margin-top: 15px; font-size: 1.1rem;">
+                  Chat with Stranger
+                </button>
+                <button id="btn-stop-random" class="glow-btn full-width hidden"
+                  style="margin-top: 15px; font-size: 1.1rem; border-color: #ff4d4d; color: #ff4d4d;">
+                  Disconnect
+                </button>
               </div>
             </div>
           </div>
