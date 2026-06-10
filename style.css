@@ -1148,3 +1148,84 @@ input, select {
     backface-visibility: hidden !important;
    
 }
+/* ========================================================== */
+/* ❤️ HEART LIKE SYSTEM & EXPLOSION PHYSICS (UPGRADED) */
+/* ========================================================== */
+
+.chat-bubble {
+    user-select: none !important; 
+    -webkit-user-select: none !important;
+    -webkit-touch-callout: none !important; 
+}
+
+/* The Base Heart Badge (Transparent & Glowing) */
+.liked-badge {
+    position: absolute;
+    bottom: -10px;
+    width: auto;
+    height: auto;
+    background: transparent !important; 
+    border: none !important;            
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem; 
+    color: var(--neon-primary);
+    filter: drop-shadow(0 0 5px rgba(var(--neon-rgb), 0.6));
+    z-index: 5;
+    animation: popInBounce 0.5s var(--bezier-bounce) forwards;
+}
+
+/* 1. FRIEND'S MESSAGE (Left Side): Heart on the Bottom-Right */
+.message-enter[data-is-me="false"] .liked-badge {
+    right: -5px; 
+    left: auto;
+}
+
+/* 2. MY MESSAGE (Right Side): Heart on the Bottom-Left */
+.message-enter[data-is-me="true"] .liked-badge {
+    left: -5px; 
+    right: auto;
+}
+
+/* 3. TIMESTAMP FLUSH (Forces time to the extreme right edge for everyone) */
+.chat-bubble-time {
+    position: absolute !important;
+    bottom: 4px !important;
+    right: 10px !important; /* Perfectly pinned to the glass edge */
+    font-size: 0.65rem !important;
+    opacity: 0.7 !important;
+}
+
+/* 🚨 FIX: Dynamic CSS-Variable Burst Engine */
+.heart-particle {
+    position: absolute;
+    color: var(--neon-primary);
+    pointer-events: none;
+    z-index: 100;
+    filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.8));
+    /* Reads dynamic trajectories injected by JS */
+    animation: burstOut var(--anim-duration) ease-out forwards;
+}
+
+@keyframes popInBounce {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.4); }
+    100% { transform: scale(1); }
+}
+
+@keyframes burstOut {
+    0% { 
+        transform: translate(0, 0) scale(0.5) rotate(0deg); 
+        opacity: 1; 
+    }
+    30% {
+        opacity: 1; /* Keeps them visible longer before fading */
+    }
+    100% { 
+        /* Explodes outward to random X/Y coordinates set by JS */
+        transform: translate(var(--tx), var(--ty)) scale(var(--end-scale)) rotate(var(--rot)); 
+        opacity: 0; 
+    }
+}

@@ -738,17 +738,15 @@ const appendBubble = (msg, autoScroll = true) => {
 
   box.insertAdjacentHTML(
     "beforeend",
-    `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
-       <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"};
-                                      border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"};
-                                      border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"};
-                                      backdrop-filter:blur(10px);padding:10px 14px; cursor: pointer;">
-         ${bubbleHTML}
+`<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-is-liked="${msg.is_liked || false}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+       <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"}; border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"}; border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"}; padding:10px 14px; cursor: pointer;">
+         ${bubbleContent || bubbleHTML}
          <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
+         ${msg.is_liked ? `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>` : ""}
        </div>
-     </div>`
+</div>`
   );
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
@@ -976,6 +974,28 @@ const initRealtime = async () => {
                 
                 // Refresh the sidebar in case this was the most recent message
                 if (typeof refreshContactsUI === "function") refreshContactsUI();
+            }
+        })
+
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (p) => {
+            const msg = p.new;
+            const bubbleWrapper = document.querySelector(`[data-msg-id="${msg.id}"]`);
+            
+            if (bubbleWrapper) {
+                const wasLiked = bubbleWrapper.dataset.isLiked === "true";
+                
+                // If it was just liked, explode the hearts!
+                if (msg.is_liked && !wasLiked) {
+                    bubbleWrapper.dataset.isLiked = "true";
+                    window.updateLikeUI(bubbleWrapper, true);
+                    window.triggerHeartExplosion(bubbleWrapper);
+                    if (typeof playSound === "function") playSound("send"); 
+                } 
+                // If it was un-liked, remove the badge
+                else if (!msg.is_liked && wasLiked) {
+                    bubbleWrapper.dataset.isLiked = "false";
+                    window.updateLikeUI(bubbleWrapper, false);
+                }
             }
         })
 
@@ -2390,14 +2410,15 @@ const createBubbleHTML = (msg) => {
             </div>`;
     }
 
-    return `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+    return `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-is-liked="${msg.is_liked || false}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
        <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"}; border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"}; border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"}; padding:10px 14px; cursor: pointer;">
-         ${bubbleContent}
+         ${bubbleContent || bubbleHTML}
          <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
+         ${msg.is_liked ? `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>` : ""}
        </div>
-     </div>`;
+</div>`;
 };
 
 // ==========================================================
@@ -2438,6 +2459,142 @@ const animateFLIP = (containerId, domUpdateCallback) => {
     });
 };
 
+// ==========================================================
+// ❤️ VANI LONG-PRESS LIKE ENGINE
+// ==========================================================
+
+window.updateLikeUI = (bubbleWrapper, isLiked) => {
+    const bubble = bubbleWrapper.querySelector(".chat-bubble");
+    let badge = bubble.querySelector(".liked-badge");
+
+    if (isLiked) {
+        if (!badge) {
+            bubble.insertAdjacentHTML("beforeend", `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>`);
+        }
+    } else {
+        if (badge) badge.remove();
+    }
+};
+
+// 🚨 FIX: Smart-Directional Explosion Physics
+window.triggerHeartExplosion = (bubbleWrapper) => {
+    const bubble = bubbleWrapper.querySelector(".chat-bubble");
+    const particleCount = 12; 
+    const isMe = bubbleWrapper.dataset.isMe === "true"; // Detect who sent the message
+    
+    for(let i = 0; i < particleCount; i++) {
+        const heart = document.createElement("i");
+        heart.className = "fa-solid fa-heart heart-particle";
+        
+        // 1. DYNAMIC ORIGIN: Spawn Left for Me, Right for Friend
+        if (isMe) {
+            heart.style.left = `2px`; 
+        } else {
+            heart.style.right = `2px`; 
+        }
+        heart.style.bottom = `-5px`;
+        
+        // 2. TRAJECTORY MATH: Blow away from the bubble edge
+        let tx = 0;
+        if (isMe) {
+            tx = (Math.random() * 80) - 20; // Explode towards the right
+        } else {
+            tx = (Math.random() * -80) + 20; // Explode towards the left
+        }
+        
+        const ty = (Math.random() * -100) - 50; // Shoot upwards
+        const rot = (Math.random() - 0.5) * 90; // Spin
+        const endScale = 0.8 + Math.random() * 0.7; // Size variance
+        const duration = 1.2 + Math.random() * 1.0; // Hangtime
+        
+        heart.style.setProperty('--tx', `${tx}px`);
+        heart.style.setProperty('--ty', `${ty}px`);
+        heart.style.setProperty('--rot', `${rot}deg`);
+        heart.style.setProperty('--end-scale', endScale);
+        heart.style.setProperty('--anim-duration', `${duration}s`);
+        
+        heart.style.fontSize = `${0.8 + Math.random() * 0.6}rem`;
+        
+        bubble.appendChild(heart);
+        setTimeout(() => heart.remove(), 2500); 
+    }
+};
+
+(function initLongPressEngine() {
+    let pressTimer;
+    let isPressing = false;
+    let startY = 0;
+
+    const toggleLikeStatus = async (bubbleWrapper) => {
+        const msgId = bubbleWrapper.dataset.msgId;
+        if (!msgId || msgId.startsWith("temp-")) return;
+
+        // Toggles the state (Like <-> Unlike)
+        const isCurrentlyLiked = bubbleWrapper.dataset.isLiked === "true";
+        const newStatus = !isCurrentlyLiked;
+
+        // 1. Optimistic UI (Instant Feedback)
+        bubbleWrapper.dataset.isLiked = newStatus;
+        window.updateLikeUI(bubbleWrapper, newStatus);
+
+        if (newStatus) {
+            window.triggerHeartExplosion(bubbleWrapper);
+            if (typeof playSound === "function") playSound("send");
+        }
+
+        // 2. Background Database Sync
+        await supabaseClient.from("messages").update({ is_liked: newStatus }).eq("id", msgId);
+    };
+
+    const handleTouchStart = (e) => {
+        const bubbleWrapper = e.target.closest(".message-enter");
+        if (!bubbleWrapper) return;
+
+        isPressing = true;
+        startY = e.touches ? e.touches[0].clientY : e.clientY;
+
+        // Trigger after 400ms hold
+        pressTimer = setTimeout(() => {
+            if (isPressing) {
+                toggleLikeStatus(bubbleWrapper);
+                isPressing = false; // Prevent double firing
+            }
+        }, 400); 
+    };
+
+    const handleTouchEnd = () => {
+        isPressing = false;
+        clearTimeout(pressTimer);
+    };
+
+    const handleTouchMove = (e) => {
+        const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+        // If they scroll more than 10px, cancel the long press
+        if (Math.abs(currentY - startY) > 10) {
+            isPressing = false;
+            clearTimeout(pressTimer);
+        }
+    };
+
+    const box = document.getElementById("chat-box");
+    if (box) {
+        // Mobile Touch Listeners
+        box.addEventListener("touchstart", handleTouchStart, { passive: true });
+        box.addEventListener("touchend", handleTouchEnd);
+        box.addEventListener("touchcancel", handleTouchEnd);
+        box.addEventListener("touchmove", handleTouchMove, { passive: true });
+        
+        // Desktop Mouse Listeners
+        box.addEventListener("mousedown", handleTouchStart);
+        box.addEventListener("mouseup", handleTouchEnd);
+        box.addEventListener("mousemove", handleTouchMove);
+        
+        // Prevent Native Context Menu on messages
+        box.addEventListener("contextmenu", (e) => {
+            if (e.target.closest(".message-enter")) e.preventDefault();
+        });
+    }
+})();
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
