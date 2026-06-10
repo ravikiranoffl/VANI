@@ -6,6 +6,98 @@ const supabaseClient = supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
 );
 
+// ==========================================================
+// 🚨 ABSOLUTE OVERRIDE: VANI CUSTOM ALERT MATRIX ENGINE
+// ==========================================================
+(function initAlertMatrix() {
+    // 1. Inject CSS directly so it cannot be missed, overridden, or delayed
+    const styleId = 'vani-alert-styles';
+    if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+            #vani-alert-matrix {
+                position: fixed; top: max(20px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
+                z-index: 2147483647 !important; display: flex; flex-direction: column; gap: 12px;
+                pointer-events: none; width: 90%; max-width: 400px;
+            }
+            .vani-alert-box {
+                background: rgba(8, 8, 12, 0.95) !important; backdrop-filter: blur(20px) !important;
+                -webkit-backdrop-filter: blur(20px) !important; border: 1px solid var(--neon-primary);
+                color: #fff !important; padding: 16px 24px; border-radius: 16px;
+                font-family: 'Space Grotesk', sans-serif !important; font-size: 0.95rem; font-weight: 600;
+                letter-spacing: 0.5px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(var(--neon-rgb), 0.15);
+                pointer-events: all; cursor: pointer; display: flex; align-items: center; gap: 15px;
+                animation: alertSlideDown 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            }
+            .vani-alert-box.closing { animation: alertSlideUp 0.3s ease-in forwards; }
+            .vani-alert-icon { font-size: 1.2rem; flex-shrink: 0; }
+            @keyframes alertSlideDown {
+                from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+                to { opacity: 1; transform: translateY(0) scale(1); }
+            }
+            @keyframes alertSlideUp {
+                from { opacity: 1; transform: translateY(0) scale(1); }
+                to { opacity: 0; transform: translateY(-20px) scale(0.9); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // 2. Hijack the global window.alert function
+    window.alert = function(message) {
+        let matrix = document.getElementById("vani-alert-matrix");
+        if (!matrix) {
+            matrix = document.createElement("div");
+            matrix.id = "vani-alert-matrix";
+            document.body.appendChild(matrix);
+        }
+
+        const alertBox = document.createElement("div");
+        alertBox.className = "vani-alert-box";
+        
+        // 3. NLP Aesthetic Routing
+        const msgStr = String(message).toLowerCase();
+        let iconHTML = '<i class="fa-solid fa-bell vani-alert-icon" style="color: var(--neon-primary); text-shadow: 0 0 10px var(--neon-primary);"></i>';
+        
+        if (msgStr.includes("error") || msgStr.includes("fail") || msgStr.includes("reject") || msgStr.includes("denied")) {
+            iconHTML = '<i class="fa-solid fa-triangle-exclamation vani-alert-icon" style="color: #ff4d4d; text-shadow: 0 0 10px #ff4d4d;"></i>';
+            alertBox.style.borderColor = "#ff4d4d";
+            alertBox.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(255, 77, 77, 0.15)";
+        } else if (msgStr.includes("success") || msgStr.includes("locked") || msgStr.includes("provisioned") || msgStr.includes("linked")) {
+            iconHTML = '<i class="fa-solid fa-shield-check vani-alert-icon" style="color: #00ff88; text-shadow: 0 0 10px #00ff88;"></i>';
+            alertBox.style.borderColor = "#00ff88";
+            alertBox.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5), inset 0 0 15px rgba(0, 255, 136, 0.15)";
+        }
+
+        alertBox.innerHTML = iconHTML + '<span style="flex: 1; line-height: 1.4;">' + message + '</span>';
+        
+        // 4. Interaction: Click to dismiss
+        alertBox.addEventListener("click", () => {
+            alertBox.classList.add("closing");
+            setTimeout(() => alertBox.remove(), 300);
+        });
+
+        // 5. Inject into DOM
+        matrix.appendChild(alertBox);
+
+        // 6. Audio Feedback
+        if (typeof playSound === "function") {
+            playSound(msgStr.includes("error") ? "delete" : "receive");
+        }
+
+        // 7. Auto-Garbage Collection
+        setTimeout(() => {
+            if (document.body.contains(alertBox)) {
+                alertBox.classList.add("closing");
+                setTimeout(() => alertBox.remove(), 300);
+            }
+        }, 4500);
+    };
+    
+    console.log("🚨 VANI Alert Matrix Overridden Successfully.");
+})();
+
 // Add presenceChannel and onlineUsers to your State memory
 const State = { 
     mobile: "", 
@@ -15,6 +107,7 @@ const State = {
     presenceChannel: null,       // NEW
     onlineUsers: new Set()       // NEW: A high-speed list of online numbers
 };
+
 const $ = (id) => (typeof id === "string" ? document.getElementById(id) : id);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -275,7 +368,7 @@ $("profileCard")?.addEventListener("click", () => {
   // Dynamically inject the Handle into their profile view if it doesn't exist yet
   if (!$("profile-handle-display")) {
       $("profile-name").insertAdjacentHTML('afterend', `
-        <p id="profile-handle-display" style="color: var(--neon-primary); font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem;  margin: 5px 0 -10px 0;">
+        <p id="profile-handle-display" style="letter-spacing: 0; color: var(--neon-primary); font-family: 'Space Grotesk', sans-serif; font-size: 1.3rem;  margin: 5px 0 -10px 0;">
             @${State.profile.vani_id || "pending"}
         </p>
       `);
@@ -303,7 +396,7 @@ $("add-contact-btn")?.addEventListener("click", async () => {
   if (!rawHandle || !name) return alert("Please enter a VANI ID and a local name.");
   
   const cleanHandle = rawHandle.toLowerCase().replace(/@/g, '');
-  if (cleanHandle === State.profile.vani_id) return alert("You cannot add your own node.");
+  if (cleanHandle === State.profile.vani_id) return alert("You cannot add your own Contact.");
 
   const btn = $("add-contact-btn");
   btn.textContent = "Scanning Matrix...";
@@ -327,7 +420,7 @@ $("add-contact-btn")?.addEventListener("click", async () => {
         .select("id")
         .match({ mobile: State.mobile, contact: targetMobile });
         
-    if (existing && existing.length > 0) throw new Error("Node is already linked in your directory.");
+    if (existing && existing.length > 0) throw new Error("Contact is already linked in your directory.");
 
     // 3. LINK: Save the mapping to the database
     const { error } = await supabaseClient
@@ -338,7 +431,7 @@ $("add-contact-btn")?.addEventListener("click", async () => {
     
     $("new-contact-handle").value = $("new-contact-name").value = "";
     await syncContacts();
-    alert(`Node @${cleanHandle} Linked Successfully.`);
+    alert(`Contact @${cleanHandle} Linked Successfully.`);
   } catch (err) {
     alert(`Discovery Error: ${err.message}`);
   } finally {
@@ -373,7 +466,7 @@ const syncContacts = async () => {
       if (!savedMap[row.contact_mobile] && row.contact_mobile !== State.mobile) {
           finalContacts.push({
               contact: row.contact_mobile,
-              name: `Unknown Node`, 
+              name: `Unknown`, 
               isGhost: true 
           });
       }
@@ -1229,13 +1322,11 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 // ==========================================================
-// GHOST PROFILE SAVING ENGINE
+// GHOST PROFILE SAVING ENGINE (SECURE IDENTITY LOCK)
 // ==========================================================
 
-$("save-ghost-btn")?.addEventListener("click", (e) => {
-    e.preventDefault(); // Stop any background layout shifts
-
-    // e.currentTarget guarantees we get the data from the button itself
+$("save-ghost-btn")?.addEventListener("click", async (e) => {
+    e.preventDefault(); 
     const btn = e.currentTarget; 
     const mobile = btn.dataset.mobile; 
     
@@ -1244,17 +1335,33 @@ $("save-ghost-btn")?.addEventListener("click", (e) => {
         return;
     }
     
-    // Inject the number and clear the input
-    $("ghost-save-number").value = `+91 ${mobile}`;
+    // 1. Instantly unhide modal and show a fetching state so the UI feels fast
+    $("ghost-save-number").value = "Fetching Identity...";
     $("ghost-save-name").value = ""; 
-    
-    // Unhide the modal
     $("ghost-save-modal").style.display = "flex";
     
-    // Auto-focus the input box so you can start typing immediately
-    setTimeout(() => {
-        $("ghost-save-name").focus();
-    }, 100);
+    try {
+        // 🚨 SECURE LOOKUP: Fetch the @handle instead of exposing the mobile number
+        const { data, error } = await supabaseClient
+            .from("profiles")
+            .select("vani_id")
+            .eq("mobile", mobile)
+            .single();
+
+        if (error || !data) throw new Error("Matrix identity not found.");
+
+        // Inject the secure handle into the read-only input
+        $("ghost-save-number").value = `@${data.vani_id}`;
+        
+        setTimeout(() => {
+            $("ghost-save-name").focus();
+        }, 100);
+
+    } catch (err) {
+        // Fallback if the profile is somehow corrupted
+        $("ghost-save-number").value = "@unknown_node";
+        console.error("Identity Mask Error:", err.message);
+    }
 });
 
 $("cancel-ghost-btn")?.addEventListener("click", () => {
@@ -1420,15 +1527,48 @@ const stopCallTimerAndLog = async (wasAnswered) => {
     }
 };
 
-// 3. UI CONTROLLER
+// 3. UI CONTROLLER (SECURE CALLER ID ENGINE)
 const setCallUI = (statusText, showAcceptBtn = false) => {
     $("active-call-matrix").classList.remove("hidden");
-    $("active-call-matrix").style.display = "flex"; // 🚨 Force flex layout only when active
+    $("active-call-matrix").style.display = "flex"; 
     $("call-status-text").textContent = statusText;
     
-    // Attempt to grab name/avatar from UI or State
-    $("call-target-name").textContent = $("chat-with-name")?.textContent || CallState.targetMobile;
-    $("call-target-avatar").src = $("chat-target-avatar")?.src || "https://i.pinimg.com/736x/00/b6/cd/00b6cd3089a4740e521d35fc1093006a.jpg";
+    // 🚨 PREVENT IDENTITY LEAKS: Temporarily mask the UI while we verify identity
+    $("call-target-name").textContent = "Encrypting Identity...";
+    $("call-target-avatar").src = "https://api.dicebear.com/7.x/avataaars/svg?seed=Ghost";
+
+    (async () => {
+        let callerName = "Unknown Node";
+        let callerAvatar = "https://api.dicebear.com/7.x/avataaars/svg?seed=Unknown";
+
+        // 1. Check local DOM to see if they are already saved in our directory
+        const localContactLi = document.querySelector(`li[data-mobile="${CallState.targetMobile}"]`);
+
+        if (localContactLi) {
+            callerName = localContactLi.querySelector('h3')?.textContent || callerName;
+            callerAvatar = localContactLi.querySelector('img')?.src || callerAvatar;
+        } else {
+            // 2. If it's a Ghost Node, securely fetch their @handle from the DB
+            try {
+                const { data } = await supabaseClient
+                    .from("profiles")
+                    .select("vani_id, avatar_url")
+                    .eq("mobile", CallState.targetMobile)
+                    .single();
+                    
+                if (data) {
+                    callerName = data.vani_id ? `@${data.vani_id}` : callerName;
+                    callerAvatar = data.avatar_url || callerAvatar;
+                }
+            } catch (e) {
+                console.log("Silent Identity Fetch Failed:", e);
+            }
+        }
+
+        // Inject the safely verified UI
+        $("call-target-name").textContent = callerName;
+        $("call-target-avatar").src = callerAvatar;
+    })();
 
     if (showAcceptBtn) {
         $("accept-call-btn").classList.remove("hidden");
@@ -1632,7 +1772,7 @@ const handleIncomingWebRTCSignal = async (data) => {
 
         case 'BUSY':
             console.log("⚠️ Target is busy.");
-            alert("Node is currently in another transmission.");
+            alert("Contact is currently in another transmission.");
             endCall(false); 
             break;
     }

@@ -1131,6 +1131,10 @@ input, select {
     padding: 10px 15px !important;
     margin-left: 10px !important; 
 }
+#ghost-save-number {
+    font-family: Outfit !important; 
+}
+
 /* ========================================================== */
 /* 🚀 HARDWARE GPU ACCELERATION (120FPS ANIMATIONS) */
 /* ========================================================== */
