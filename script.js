@@ -2303,11 +2303,25 @@ const animateFLIP = (containerId, domUpdateCallback) => {
 // ==========================================================
 
 const bootApp = async () => {
+  // 🚨 THE ANTI-HANG FAILSAFE: 5-Second Nuclear Override
+  // If the database stalls, force the shield down so the user isn't trapped.
+  const failsafeTimer = setTimeout(() => {
+      const loader = document.getElementById("boot-loader");
+      if (loader) {
+          console.warn("⏱️ Matrix Sync Timeout: Forcing shield down to prevent infinite hang.");
+          requestAnimationFrame(() => {
+              loader.style.opacity = "0";
+              loader.style.pointerEvents = "none";
+              setTimeout(() => loader.remove(), 800);
+          });
+      }
+  }, 5000); // Max allowed boot time before aborting
+
   try {
-      // 1. Load user theme preferences
+      // 1. Load user theme preferences immediately so the boot text glows in the correct color
       bootThemeEngine();
 
-      // 2. Verify Supabase successfully loaded from the CDN in index.html
+      // 2. Verify Supabase successfully loaded
       if (typeof supabase === "undefined") {
           throw new Error("Supabase Database Core failed to load. Check network connection.");
       }
@@ -2319,11 +2333,19 @@ const bootApp = async () => {
       console.error("🔥 SYSTEM BOOT FAILURE:", err.message);
       alert(err.message);
       
-      // Failsafe: hide the loader so the user isn't stuck on a blank screen
+      // Instantly drop shield on fatal error so they can see the login screen
       const loader = document.getElementById("boot-loader");
-      if (loader) loader.style.display = "none";
+      if (loader) {
+          loader.style.opacity = "0";
+          loader.style.pointerEvents = "none";
+          setTimeout(() => loader.remove(), 800);
+      }
+  } finally {
+      // If evalSession succeeds quickly, cancel the 5-second nuclear failsafe
+      clearTimeout(failsafeTimer); 
   }
 };
+
 
 // Fire the boot sequence immediately upon script load!
 bootApp();
