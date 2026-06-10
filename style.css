@@ -36,8 +36,8 @@
 /* 🚨 FIX: Solid Fill, 25% Size, Bold Theme-Adopted Text */
 #matrix-boot-text {
     font-family: 'Space Grotesk', sans-serif !important;
-    font-size: 5vw !important; /* Locks exactly to 25% of the viewport width */
-    font-weight: 800 !important; /* Bold and substantial */
+    font-size: 60px !important;
+    font-weight: 700 !important; /* Bold and substantial */
     letter-spacing: 0.1em !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -52,6 +52,7 @@
         
     animation: matrixSolidPulse 2s ease-in-out infinite !important;
 }
+
 
 @keyframes matrixSolidPulse {
     0%, 100% { 
@@ -314,10 +315,11 @@ select {
 }
 .theme-btn {
     padding: 18px 15px; border-radius: 14px; border: 1px solid transparent;
-    background: transparent; font-family: 'Space Grotesk', sans-serif;
+    background: transparent;
     font-weight: 600; font-size: 0.9rem; text-transform: uppercase;
     cursor: pointer; transition: all 0.4s var(--bezier-bounce);
     display: flex; align-items: center; justify-content: center; text-align: center;
+    font-family: Outfit;
 }
 .theme-btn:hover { transform: translateY(-5px) scale(1.03); }
 
@@ -614,6 +616,7 @@ input, select {
 .glow-btn {
     padding: 18px 25px !important; /* Larger call-to-action buttons */
     font-size: 1rem;
+    font-family: Outfit;
 }
 /* ========================================================== */
 /* --- MOBILE SCROLL & VIEWPORT FIX --- */

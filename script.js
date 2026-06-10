@@ -520,8 +520,8 @@ const renderContacts = (contacts, regMap, unreadMap) => {
       li.className = State.activeContact === c.contact ? "active" : "";
       li.dataset.mobile = c.contact;
       
-      li.innerHTML = `
-        <img src="${avatar}" alt="${c.name} avatar" width="45" height="45" style="width:45px;height:45px;border-radius:12px; object-fit: cover;"/>
+      li.innerHTML = 
+`<img src="${avatar}" alt="${name} avatar" width="45" height="45" loading="lazy" style="width:45px;height:45px;border-radius:12px; object-fit: cover;">
         <div style="flex:1; min-width:0; overflow:hidden;">
             <h3 style="margin:0; font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h3>
             <p style="margin:0; font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
@@ -665,6 +665,7 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
 // ==========================================================
 // 📅 GLOBAL DATE PARSER (For History & Bubbles)
 // ==========================================================
+
 window.getVaniDateLabel = (dateString) => {
     const d = new Date(dateString);
     const today = new Date();
@@ -679,6 +680,7 @@ window.getVaniDateLabel = (dateString) => {
 // ==========================================================
 // 💬 APPEND BUBBLE (Restored Date Logic)
 // ==========================================================
+
 const appendBubble = (msg, autoScroll = true) => {
   $("typing-indicator-ui")?.remove();
   const box = $("chat-box");
@@ -689,9 +691,9 @@ const appendBubble = (msg, autoScroll = true) => {
   const msgDate = new Date(msg.created_at);
   const isMe = msg.sender_mobile === State.mobile;
   
-  // 🚨 FIX: Re-activated the Date Divider injection for new incoming messages!
+  // 🚨 Date Divider Injection for incoming messages
   const currentLabel = window.getVaniDateLabel(msg.created_at);
-  const lastLabel = box.dataset.bottomDate; // Lock bottom boundary
+  const lastLabel = box.dataset.bottomDate; 
 
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
@@ -738,15 +740,14 @@ const appendBubble = (msg, autoScroll = true) => {
 
   box.insertAdjacentHTML(
     "beforeend",
-`<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-is-liked="${msg.is_liked || false}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
+    `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-is-liked="${msg.is_liked || false}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
        <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"}; border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"}; border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"}; padding:10px 14px; cursor: pointer;">
-         ${bubbleContent || bubbleHTML}
-         <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
+         ${bubbleHTML} <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
          ${msg.is_liked ? `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>` : ""}
        </div>
-</div>`
+    </div>`
   );
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });

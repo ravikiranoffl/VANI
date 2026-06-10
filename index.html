@@ -11,9 +11,15 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
-    rel="stylesheet">
+    rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet">
+  </noscript>
 
   <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" as="style"
     onload="this.onload=null;this.rel='stylesheet'"
@@ -25,7 +31,7 @@
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   </noscript>
 
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.min.css">
 </head>
 
 <body>
@@ -194,9 +200,9 @@
         <div class="nav-footer">
           <!-- Operator Profiler Card -->
           <div class="operator-profile-card glass-panel" id="profileCard" title="View Profile">
-            <img id="my-avatar" src="" alt="Node" />
+            <img id="my-avatar" src="" alt="My Avatar" width="42" height="42" loading="lazy" />
             <div class="user-info-text">
-              <h4 id="my-name">Operator</h4>
+              <h2 id="my-name">Operator</h2>
               <p id="my-mobile-display">Syncing...</p>
             </div>
           </div>
