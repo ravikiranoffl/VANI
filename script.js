@@ -2558,16 +2558,17 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================================
-// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (100% ISOLATED)
+// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (RELATIONAL ARCHITECTURE)
 // ==========================================================
 
 let RandomState = {
     userId: "", 
-    roomId: null,
+    sessionId: null, // Replaced roomId with sessionId
     isWaiting: false,
     timeoutId: null,
     queueChannel: null,
-    chatChannel: null
+    chatMsgChannel: null, // Channel for messages
+    chatStatusChannel: null // Channel for disconnects
 };
 
 const generateStrangerID = () => {
@@ -2576,7 +2577,7 @@ const generateStrangerID = () => {
     return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
 
-// Hook into the sidebar navigation to initialize the Random UI
+// Hook into sidebar
 document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", () => {
     if (!RandomState.userId) {
         RandomState.userId = generateStrangerID();
@@ -2588,51 +2589,42 @@ document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", (
 
 const trackActiveStrangers = async () => {
     const { count } = await supabaseClient
-        .from('vani_random')
+        .from('random_sessions')
         .select('*', { count: 'exact', head: true })
-        .eq('row_type', 'queue')
         .eq('status', 'waiting');
     
     const counter = $("random-active-counter");
     if (counter) counter.textContent = (count || 0).toString().padStart(2, '0');
 };
 
-// Global Listener: Updates +1 counter instantly for everyone
-supabaseClient.channel('vani_random_global')
-    .on("postgres_changes", { event: "*", schema: "public", table: "vani_random", filter: "row_type=eq.queue" }, trackActiveStrangers)
+supabaseClient.channel('random_global_queue')
+    .on("postgres_changes", { event: "*", schema: "public", table: "random_sessions" }, trackActiveStrangers)
     .subscribe();
 
-// 🚨 ISSUES 1, 2, & 4 FIXED: Massive Abort & Reconnect Engine
 const abortRandomSearch = async (shouldAutoReconnect = false) => {
     if (RandomState.timeoutId) clearTimeout(RandomState.timeoutId);
-    if (RandomState.queueChannel) {
-        await supabaseClient.removeChannel(RandomState.queueChannel);
-        RandomState.queueChannel = null;
-    }
-    if (RandomState.chatChannel) {
-        await supabaseClient.removeChannel(RandomState.chatChannel);
-        RandomState.chatChannel = null;
-    }
-    if (RandomState.roomId && RandomState.isWaiting) {
-        await supabaseClient.from('vani_random').delete().eq('id', RandomState.roomId);
+    if (RandomState.queueChannel) { await supabaseClient.removeChannel(RandomState.queueChannel); RandomState.queueChannel = null; }
+    if (RandomState.chatMsgChannel) { await supabaseClient.removeChannel(RandomState.chatMsgChannel); RandomState.chatMsgChannel = null; }
+    if (RandomState.chatStatusChannel) { await supabaseClient.removeChannel(RandomState.chatStatusChannel); RandomState.chatStatusChannel = null; }
+    
+    if (RandomState.sessionId && RandomState.isWaiting) {
+        // If aborted while waiting, just delete the queue row
+        await supabaseClient.from('random_sessions').delete().eq('session_id', RandomState.sessionId);
     }
     
     RandomState.isWaiting = false;
     State.isRandomChat = false;
-    RandomState.roomId = null; 
+    RandomState.sessionId = null; 
     
-    // 🚨 FIX 2: Release the pure CSS Mobile Lock safely
     document.body.classList.remove("in-random-mobile-chat");
     
+    // Regenerate Identity for next time
     RandomState.userId = generateStrangerID();
     const inputField = $("random-fake-id");
     if (inputField) inputField.value = RandomState.userId;
 
     const chatUI = $("random-chat-interface");
-    if (chatUI) {
-        chatUI.style.display = "none";
-        chatUI.classList.add("hidden");
-    }
+    if (chatUI) { chatUI.style.display = "none"; chatUI.classList.add("hidden"); }
     
     const setupUI = $("random-setup-container");
     if (setupUI) setupUI.style.display = "block";
@@ -2661,9 +2653,9 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
     }
 };
 
-const launchStrangerChatInterface = (roomData) => {
+const launchStrangerChatInterface = (sessionData) => {
     if (typeof playSound === "function") playSound("receive");
-    const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
+    const targetId = sessionData.user1_id === RandomState.userId ? sessionData.user2_id : sessionData.user1_id;
     
     State.isRandomChat = true; 
     State.activeContact = targetId; 
@@ -2676,12 +2668,8 @@ const launchStrangerChatInterface = (roomData) => {
     if (chatUI) {
         chatUI.classList.remove("hidden");
         chatUI.style.display = "flex";
-        
-        if (window.innerWidth <= 992) {
-            document.body.classList.add("in-random-mobile-chat");
-        } else {
-            chatUI.style.height = "100%";
-        }
+        if (window.innerWidth <= 992) document.body.classList.add("in-random-mobile-chat");
+        else chatUI.style.height = "100%";
     }
 
     const nameEl = $("random-target-name");
@@ -2697,73 +2685,61 @@ const launchStrangerChatInterface = (roomData) => {
                 <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
                 <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
             </div>`;
-            
-        if (typeof window.bindMatrixInteractions === "function") {
-            window.bindMatrixInteractions("random-chat-box", "vani_random");
-        }
+        if (typeof window.bindMatrixInteractions === "function") window.bindMatrixInteractions("random-chat-box", "random_chats");
     }
     
-    // 🚨 CRITICAL FIX: We must use roomData.id (The exact Primary Key generated by the queue)
-    RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.id}`)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random" }, (p) => {
+    // 🚨 1. Listen for MESSAGES in `random_chats`
+    RandomState.chatMsgChannel = supabaseClient.channel(`chat_messages_${sessionData.session_id}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "random_chats" }, (p) => {
             const msg = p.new;
-            
-            // 🚨 GUARANTEED DELIVERY MATCH (Using msg.room_id === roomData.id)
-            if (msg.room_id === roomData.id && msg.row_type === 'message') {
-                
-                // Determine who sent it so we can align it correctly (left vs right)
+            if (msg.session_id === sessionData.session_id) {
                 const isMe = msg.sender_id === RandomState.userId;
-                
                 appendBubble({
                     id: msg.id,
-                    sender_mobile: isMe ? State.mobile : targetId, // Tricks CSS into aligning your messages right
+                    sender_mobile: isMe ? State.mobile : targetId, 
                     content: msg.content,
                     created_at: msg.created_at,
                     is_liked: msg.is_liked
                 }, true, "random-chat-box");
-                
-                // Only play receive sound if the other person sent it
                 if (!isMe && typeof playSound === "function") playSound("receive");
             }
-        })
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random" }, (p) => {
+        }).subscribe();
+
+    // 🚨 2. Listen for DISCONNECT in `random_sessions`
+    RandomState.chatStatusChannel = supabaseClient.channel(`chat_status_${sessionData.session_id}`)
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "random_sessions" }, (p) => {
             const row = p.new;
-            // 🚨 Match the roomData.id here as well to detect when the room closes
-            if (row.id === roomData.id && row.status === 'closed') {
+            if (row.session_id === sessionData.session_id && row.status === 'closed') {
                 alert("Stranger disconnected. Connection lost.");
                 abortRandomSearch(true); 
             }
-        })
-        .subscribe();
+        }).subscribe();
 };
 
 const startRandomChat = async () => {
     const btn = $("btn-start-random");
-    if (btn) {
-        btn.textContent = "Scanning Matrix...";
-        btn.disabled = true;
-    }
+    if (btn) { btn.textContent = "Scanning Matrix..."; btn.disabled = true; }
     $("btn-stop-random")?.classList.remove("hidden");
     RandomState.isWaiting = true;
 
     try {
-        const { data: room, error } = await supabaseClient.rpc('join_random_matrix', {
+        const { data: session, error } = await supabaseClient.rpc('join_random_matrix', {
             p_user_name: State.profile.name,
             p_user_id: RandomState.userId
         });
 
         if (error) throw error;
-        RandomState.roomId = room.id;
+        RandomState.sessionId = session.session_id;
 
-        if (room.status === 'active') {
+        if (session.status === 'active') {
             RandomState.isWaiting = false;
-            launchStrangerChatInterface(room);
+            launchStrangerChatInterface(session);
         } else {
             if (btn) btn.textContent = "Waiting for Stranger...";
             RandomState.timeoutId = setTimeout(() => abortRandomSearch(true), 10000);
 
-            RandomState.queueChannel = supabaseClient.channel(`queue_${room.id}`)
-                .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${room.id}` }, (p) => {
+            RandomState.queueChannel = supabaseClient.channel(`queue_${session.session_id}`)
+                .on("postgres_changes", { event: "UPDATE", schema: "public", table: "random_sessions", filter: `session_id=eq.${session.session_id}` }, (p) => {
                     if (p.new.status === 'active') {
                         clearTimeout(RandomState.timeoutId);
                         RandomState.isWaiting = false;
@@ -2777,35 +2753,27 @@ const startRandomChat = async () => {
     }
 };
 
-// --- EVENT BINDINGS FOR ISOLATED RANDOM TAB ---
 $("btn-start-random")?.addEventListener("click", startRandomChat);
 
 $("btn-stop-random")?.addEventListener("click", async () => {
-    if (RandomState.roomId) {
-        await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+    if (RandomState.sessionId) {
+        await supabaseClient.from('random_sessions').update({ status: 'closed', end_time: new Date().toISOString() }).eq('session_id', RandomState.sessionId);
     }
-    abortRandomSearch(false); // Manual Cancel = NO auto reconnect
+    abortRandomSearch(false); 
 });
 
 const sendRandomMsg = async (e) => {
     if (e) e.preventDefault();
     const input = $("random-msg-input");
     const content = input?.value.trim();
-    if (!content || !RandomState.roomId) return;
+    if (!content || !RandomState.sessionId) return;
 
     input.value = "";
     if (typeof playSound === "function") playSound("send");
 
-    appendBubble({
-        id: `temp-${Date.now()}`,
-        sender_mobile: State.mobile, 
-        content,
-        created_at: new Date().toISOString()
-    }, true, "random-chat-box"); 
-
-    const { error } = await supabaseClient.from("vani_random").insert([{
-        room_id: RandomState.roomId,
-        row_type: 'message',
+    // Send to the NEW `random_chats` table
+    const { error } = await supabaseClient.from("random_chats").insert([{
+        session_id: RandomState.sessionId,
         sender_id: RandomState.userId,
         content: content
     }]);
@@ -2814,16 +2782,14 @@ const sendRandomMsg = async (e) => {
 };
 
 $("random-send-btn")?.addEventListener("click", sendRandomMsg);
-$("random-msg-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendRandomMsg(e);
-});
+$("random-msg-input")?.addEventListener("keydown", (e) => { if (e.key === "Enter") sendRandomMsg(e); });
 
 $("random-disconnect-btn")?.addEventListener("click", async () => {
     if(confirm("End connection with stranger?")) {
-        if (RandomState.roomId) {
-            await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+        if (RandomState.sessionId) {
+            await supabaseClient.from('random_sessions').update({ status: 'closed', end_time: new Date().toISOString() }).eq('session_id', RandomState.sessionId);
         }
-        abortRandomSearch(false); // Manual End = NO auto reconnect
+        abortRandomSearch(false); 
     }
 });
 
