@@ -2602,11 +2602,13 @@ const trackActiveStrangers = async () => {
     if (counter) counter.textContent = (count || 0).toString().padStart(2, '0');
 };
 
+// Global Listener: Updates +1 counter instantly for everyone
 supabaseClient.channel('vani_random_global')
     .on("postgres_changes", { event: "*", schema: "public", table: "vani_random", filter: "row_type=eq.queue" }, trackActiveStrangers)
     .subscribe();
 
-const abortRandomSearch = async (isTimeout = false) => {
+// 🚨 ISSUES 1, 2, & 4 FIXED: Massive Abort & Reconnect Engine
+const abortRandomSearch = async (shouldAutoReconnect = false) => {
     if (RandomState.timeoutId) clearTimeout(RandomState.timeoutId);
     if (RandomState.queueChannel) {
         await supabaseClient.removeChannel(RandomState.queueChannel);
@@ -2622,14 +2624,17 @@ const abortRandomSearch = async (isTimeout = false) => {
     
     RandomState.isWaiting = false;
     State.isRandomChat = false;
+    RandomState.roomId = null; // 🚨 Fully detaches from dead room
     
-    // 🚨 RELEASE MOBILE SCREEN LOCK
-    document.body.classList.remove("in-mobile-chat");
-    
-    // RESTORE THE SETUP UI
+    // 🚨 REGENERATE USERNAME: Ensures absolute anonymity on next connection
+    RandomState.userId = generateStrangerID();
+    const inputField = $("random-fake-id");
+    if (inputField) inputField.value = RandomState.userId;
+
+    // RESTORE THE SETUP UI SAFELY
     const chatUI = $("random-chat-interface");
     if (chatUI) {
-        chatUI.style.display = "none";
+        chatUI.style.cssText = "display: none !important;";
         chatUI.classList.add("hidden");
     }
     
@@ -2639,8 +2644,8 @@ const abortRandomSearch = async (isTimeout = false) => {
     const header = $("random-view-header");
     if (header) header.style.display = "block";
     
-    const input = $("random-msg-input");
-    if (input) input.disabled = false; 
+    const chatBox = $("random-chat-box");
+    if (chatBox) chatBox.innerHTML = ""; // Wipe previous chat completely
 
     const startBtn = $("btn-start-random");
     if (startBtn) {
@@ -2650,12 +2655,13 @@ const abortRandomSearch = async (isTimeout = false) => {
     }
     $("btn-stop-random")?.classList.add("hidden");
     
-    if (isTimeout) {
+    // 🚨 AUTO-RECONNECT LOGIC: Automatically loop them back into the matrix
+    if (shouldAutoReconnect) {
         const autoReconnect = $("random-auto-reconnect");
         if (autoReconnect && autoReconnect.checked) {
-            startRandomChat(); 
+            setTimeout(startRandomChat, 500); // Start searching again (adds +1 to queue)
         } else {
-            alert("Strangers are busy. Kindly Try Again.");
+            alert("Stranger disconnected or matrix busy. Kindly try again.");
         }
     }
 };
@@ -2696,7 +2702,7 @@ const startRandomChat = async () => {
         }
     } catch (err) {
         alert("Matrix Error: " + err.message);
-        abortRandomSearch();
+        abortRandomSearch(false);
     }
 };
 
@@ -2704,19 +2710,9 @@ const launchStrangerChatInterface = (roomData) => {
     if (typeof playSound === "function") playSound("receive");
     const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
     
-    // 🚨 REMOVED: `chatBtn.click()` has been permanently deleted so you stay in the Random Tab.
-
     State.isRandomChat = true; 
     State.activeContact = targetId; 
 
-    // 🚨 TRIGGER MOBILE SCREEN LOCK
-    if (window.innerWidth <= 992) {
-        document.body.classList.add("in-mobile-chat");
-        $("sidebarMenu")?.classList.remove("open");
-        $("hamburgerBtn")?.classList.remove("active");
-    }
-
-    // 🚨 HIDE SETUP UI, SHOW ISOLATED CHAT UI IN THE SAME TAB
     $("random-setup-container").style.display = "none";
     const header = $("random-view-header");
     if (header) header.style.display = "none";
@@ -2724,7 +2720,24 @@ const launchStrangerChatInterface = (roomData) => {
     const chatUI = $("random-chat-interface");
     if (chatUI) {
         chatUI.classList.remove("hidden");
-        chatUI.style.display = "flex"; 
+        
+        // 🚨 ISSUE 3 FIXED: Explicit inline CSS for Mobile. 
+        // This overrides all `style.css` rules that were making the screen blank.
+        if (window.innerWidth <= 992) {
+            chatUI.style.cssText = "display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100dvh !important; z-index: 9999999 !important; background: var(--bg-deep) !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important;";
+            
+            const headerBar = chatUI.querySelector('.chat-header-bar');
+            if(headerBar) headerBar.style.cssText = "flex-shrink: 0 !important; padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px !important; background: rgba(8,8,11,0.95) !important; border-bottom: 1px solid var(--glass-border) !important;";
+            
+            const inputBar = chatUI.querySelector('.message-input-console');
+            if(inputBar) inputBar.style.cssText = "flex-shrink: 0 !important; padding: 10px 15px max(15px, env(safe-area-inset-bottom)) 15px !important; background: #08080b !important; border-top: 1px solid var(--glass-border) !important;";
+            
+            const boxStream = chatUI.querySelector('.chat-box-stream');
+            if(boxStream) boxStream.style.cssText = "flex: 1 1 auto !important; height: 0 !important; overflow-y: auto !important; padding: 15px !important;";
+        } else {
+            // Standard PC View
+            chatUI.style.cssText = "display: flex !important; flex-direction: column !important; height: 100%;";
+        }
     }
 
     const nameEl = $("random-target-name");
@@ -2741,7 +2754,6 @@ const launchStrangerChatInterface = (roomData) => {
                 <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
             </div>`;
             
-        // 🚨 BIND DOUBLE-TAP AND LIKE MECHANICS TO THIS SPECIFIC BOX
         if (typeof window.bindMatrixInteractions === "function") {
             window.bindMatrixInteractions("random-chat-box", "vani_random");
         }
@@ -2763,9 +2775,9 @@ const launchStrangerChatInterface = (roomData) => {
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${roomData.room_id}` }, (p) => {
             if (p.new.status === 'closed') {
-                $("random-chat-box")?.insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem; font-weight: bold;">Stranger disconnected.</div>`);
-                const input = $("random-msg-input");
-                if(input) input.disabled = true; 
+                // 🚨 ISSUE 1 FIXED: Immediately alerts you and kicks you out, triggering Auto-Reconnect!
+                alert("Stranger disconnected. Connection lost.");
+                abortRandomSearch(true); 
             }
         })
         .subscribe();
@@ -2778,7 +2790,7 @@ $("btn-stop-random")?.addEventListener("click", async () => {
     if (RandomState.roomId) {
         await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
     }
-    abortRandomSearch();
+    abortRandomSearch(false); // Manual Cancel = NO auto reconnect
 });
 
 const sendRandomMsg = async (e) => {
@@ -2790,7 +2802,6 @@ const sendRandomMsg = async (e) => {
     input.value = "";
     if (typeof playSound === "function") playSound("send");
 
-    // Appends specifically to the random box
     appendBubble({
         id: `temp-${Date.now()}`,
         sender_mobile: State.mobile, 
@@ -2818,11 +2829,10 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
         if (RandomState.roomId) {
             await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
         }
-        abortRandomSearch();
-        const chatBox = $("random-chat-box");
-        if (chatBox) chatBox.innerHTML = ""; // Clear box on exit
+        abortRandomSearch(false); // Manual End = NO auto reconnect
     }
 });
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
