@@ -2598,7 +2598,24 @@ let RandomState = {
 };
 
 const generateStrangerID = () => {
-    const matrixWords = ["neonwire", "stardust", "gridlock", "cybernet", "phantomx", "glitcher", "bytecode", "dataflow", "firewall", "backdoor", "terminal", "override", "protocol", "synthwav", "darknode", "hyperion", "solarray", "valkyrie", "obsidian", "specters", "mainframe", "datalink", "netspace", "voidwalk", "cyphersx"];
+ const matrixWords = [
+  "neonwire", "stardust", "gridlock", "cybernet", "phantomx",
+  "glitcher", "bytecode", "dataflow", "firewall", "backdoor",
+  "terminal", "override", "protocol", "synthwav", "darknode",
+  "hyperion", "solarray", "valkyrie", "obsidian", "specters",
+  "mainframe", "datalink", "netspace", "voidwalk", "cyphersx",
+
+  "strangerx", "unknownr", "outsider", "nomadnet", "wayfarer",
+  "drifterx", "vagabond", "roamerzx", "wanderer", "anonflux",
+  "anonwave", "mystiquex", "enigmatic", "shadowkin", "lostsoul",
+  "faceless", "nameless", "incognit", "cipherman", "maskedup",
+  "hiddenone", "voidguest", "nightroam", "ghostwalk", "ghostnet",
+  "crypticx", "xtranger", "offworldr", "newcomer", "passerby",
+  "travelerx", "farrover", "unseenfx", "mystroam", "otherkind",
+  "odysseyx", "solorift", "darkguest", "straybyte", "lonepath",
+  "riftroam", "anonsoul", "graynomad", "fogwalker", "hollowman",
+  "rogueroam", "silentone", "voidnomad", "nightguest", "unknownx"
+];
     const randomWord = matrixWords[Math.floor(Math.random() * matrixWords.length)];
     return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
