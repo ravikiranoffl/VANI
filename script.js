@@ -336,6 +336,17 @@ $$(".menu-item").forEach((item) => {
   item.addEventListener("click", (e) => {
     if (item.id === "logoutBtn") return;
     e.preventDefault();
+
+    // 🚨 ISOLATION GUARD: Prevent leaving an active random chat accidentally
+    if (typeof RandomState !== "undefined" && RandomState.roomId && item.dataset.view !== "VIEW-RANDOM") {
+        if (!confirm("Are you sure you want to leave? This will permanently disconnect your active stranger chat.")) {
+            return; // 🛑 Abort navigation!
+        }
+        // User confirmed to leave -> Terminate the connection
+        supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+        if (typeof abortRandomSearch === "function") abortRandomSearch();
+    }
+
     $$(".menu-item").forEach((m) => m.classList.remove("active-menu"));
     $$(".view-section").forEach((v) => v.classList.remove("active"));
     item.classList.add("active-menu");
@@ -682,9 +693,10 @@ window.getVaniDateLabel = (dateString) => {
 // 💬 APPEND BUBBLE (Restored Date Logic & Bulletproof Hearts)
 // ==========================================================
 
-const appendBubble = (msg, autoScroll = true) => {
+const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
   $("typing-indicator-ui")?.remove();
-  const box = $("chat-box");
+  const box = $(targetBoxId); // 👈 Now dynamically targets the correct interface
+  if (!box) return;
   box.querySelector(".empty-state")?.remove();
 
   if (msg.id && box.querySelector(`[data-msg-id="${msg.id}"]`)) return;
@@ -728,7 +740,6 @@ const appendBubble = (msg, autoScroll = true) => {
       bubbleHTML = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
   }
 
-  // 🚨 ABSOLUTE OVERRIDE: Inline styling forces the heart position regardless of CSS bugs
   const heartStyle = isMe ? "left: -8px; right: auto;" : "right: -8px; left: auto;";
   const heartHTML = msg.is_liked ? `<div class="liked-badge" style="${heartStyle}"><i class="fa-solid fa-heart"></i></div>` : "";
 
@@ -822,70 +833,6 @@ const sendMsg = async (e) => {
   }
 };
 
-// ==========================================================
-// 🗑️ DOUBLE TAP TO DELETE ENGINE
-// ==========================================================
-$("chat-box")?.addEventListener("dblclick", async (e) => {
-    // Find the message wrapper that was double-tapped
-    const bubbleWrapper = e.target.closest(".message-enter");
-    
-    // Ignore if they didn't tap a message, or if it's still uploading
-    if (!bubbleWrapper || !bubbleWrapper.dataset.msgId || bubbleWrapper.dataset.msgId.startsWith("temp-")) return;
-
-    // Security: Only allow the user to delete their OWN messages
-    if (bubbleWrapper.dataset.isMe !== "true") return; 
-
-    // 1. PLAY THE INSTANT POP SOUND
-    playSound("delete");
-
-    // 2. TRIGGER THE VISUAL POP ANIMATION
-    bubbleWrapper.classList.add("message-deleted");
-
-    // 3. DELETE FROM SUPABASE (Background Process)
-    await supabaseClient.from("messages").delete().eq("id", bubbleWrapper.dataset.msgId);
-
-    // 4. DESTROY THE DOM ELEMENT (After animation completes)
-    setTimeout(() => {
-        bubbleWrapper.remove();
-        
-        // Cleanup: If this was the last message today, hide the "Today" divider
-        const box = $("chat-box");
-        if (box && box.children.length > 0) {
-            const lastChild = box.lastElementChild;
-            if (lastChild && lastChild.classList.contains('date-divider')) {
-                lastChild.remove();
-            }
-        }
-    }, 200); 
-});
-
-// Listeners securely pass the event object to block reloads
-$("send-msg-btn")?.addEventListener("click", (e) => sendMsg(e));
-
-// 1. YOUR OLD CODE: Sends the message when "Enter" is pressed
-$("msg-input")?.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        sendMsg(e);
-    }
-});
-
-// 2. THE NEW CODE: Broadcasts that you are typing when normal keys are pressed
-let lastTypingTime = 0;
-$("msg-input")?.addEventListener("input", () => {
-    if (!State.channel || !State.activeContact) return;
-    
-    const now = Date.now();
-    // Only send a ping once every 1.5 seconds to save battery/bandwidth
-    if (now - lastTypingTime > 1500) { 
-        State.channel.send({
-            type: 'broadcast',
-            event: 'typing',
-            payload: { sender: State.mobile, recipient: State.activeContact }
-        });
-        lastTypingTime = now;
-    }
-});
 
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
@@ -2520,7 +2467,34 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
     }
 };
 
-(function initLongPressEngine() {
+// ==========================================================
+// 🛡️ UNIFIED MATRIX INTERACTIONS (LIKE & DELETE)
+// ==========================================================
+
+window.bindMatrixInteractions = (boxId, tableName) => {
+    const box = $(boxId);
+    if (!box || box.hasAttribute('data-interactions-bound')) return;
+
+    // 1. DOUBLE TAP TO DELETE
+    box.addEventListener("dblclick", async (e) => {
+        const bubbleWrapper = e.target.closest(".message-enter");
+        if (!bubbleWrapper || !bubbleWrapper.dataset.msgId || bubbleWrapper.dataset.msgId.startsWith("temp-")) return;
+        if (bubbleWrapper.dataset.isMe !== "true") return; 
+
+        playSound("delete");
+        bubbleWrapper.classList.add("message-deleted");
+        await supabaseClient.from(tableName).delete().eq("id", bubbleWrapper.dataset.msgId);
+
+        setTimeout(() => {
+            bubbleWrapper.remove();
+            if (box.children.length > 0) {
+                const lastChild = box.lastElementChild;
+                if (lastChild && lastChild.classList.contains('date-divider')) lastChild.remove();
+            }
+        }, 200); 
+    });
+
+    // 2. LONG PRESS TO LIKE
     let pressTimer;
     let isPressing = false;
     let startY = 0;
@@ -2529,11 +2503,9 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
         const msgId = bubbleWrapper.dataset.msgId;
         if (!msgId || msgId.startsWith("temp-")) return;
 
-        // Toggles the state (Like <-> Unlike)
         const isCurrentlyLiked = bubbleWrapper.dataset.isLiked === "true";
         const newStatus = !isCurrentlyLiked;
 
-        // 1. Optimistic UI (Instant Feedback)
         bubbleWrapper.dataset.isLiked = newStatus;
         window.updateLikeUI(bubbleWrapper, newStatus);
 
@@ -2542,22 +2514,18 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
             if (typeof playSound === "function") playSound("send");
         }
 
-        // 2. Background Database Sync
-        await supabaseClient.from("messages").update({ is_liked: newStatus }).eq("id", msgId);
+        await supabaseClient.from(tableName).update({ is_liked: newStatus }).eq("id", msgId);
     };
 
     const handleTouchStart = (e) => {
         const bubbleWrapper = e.target.closest(".message-enter");
         if (!bubbleWrapper) return;
-
         isPressing = true;
         startY = e.touches ? e.touches[0].clientY : e.clientY;
-
-        // Trigger after 400ms hold
         pressTimer = setTimeout(() => {
             if (isPressing) {
                 toggleLikeStatus(bubbleWrapper);
-                isPressing = false; // Prevent double firing
+                isPressing = false; 
             }
         }, 400); 
     };
@@ -2569,35 +2537,33 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
 
     const handleTouchMove = (e) => {
         const currentY = e.touches ? e.touches[0].clientY : e.clientY;
-        // If they scroll more than 10px, cancel the long press
         if (Math.abs(currentY - startY) > 10) {
             isPressing = false;
             clearTimeout(pressTimer);
         }
     };
 
-    const box = document.getElementById("chat-box");
-    if (box) {
-        // Mobile Touch Listeners
-        box.addEventListener("touchstart", handleTouchStart, { passive: true });
-        box.addEventListener("touchend", handleTouchEnd);
-        box.addEventListener("touchcancel", handleTouchEnd);
-        box.addEventListener("touchmove", handleTouchMove, { passive: true });
-        
-        // Desktop Mouse Listeners
-        box.addEventListener("mousedown", handleTouchStart);
-        box.addEventListener("mouseup", handleTouchEnd);
-        box.addEventListener("mousemove", handleTouchMove);
-        
-        // Prevent Native Context Menu on messages
-        box.addEventListener("contextmenu", (e) => {
-            if (e.target.closest(".message-enter")) e.preventDefault();
-        });
-    }
-})();
+    box.addEventListener("touchstart", handleTouchStart, { passive: true });
+    box.addEventListener("touchend", handleTouchEnd);
+    box.addEventListener("touchcancel", handleTouchEnd);
+    box.addEventListener("touchmove", handleTouchMove, { passive: true });
+    box.addEventListener("mousedown", handleTouchStart);
+    box.addEventListener("mouseup", handleTouchEnd);
+    box.addEventListener("mousemove", handleTouchMove);
+    box.addEventListener("contextmenu", (e) => {
+        if (e.target.closest(".message-enter")) e.preventDefault();
+    });
+
+    box.setAttribute('data-interactions-bound', 'true');
+};
+
+// Bind immediately to the main Chat Box
+document.addEventListener("DOMContentLoaded", () => {
+    window.bindMatrixInteractions("chat-box", "messages");
+});
 
 // ==========================================================
-// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (SELF-HEALING)
+// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (100% ISOLATED)
 // ==========================================================
 
 let RandomState = {
@@ -2609,19 +2575,17 @@ let RandomState = {
     chatChannel: null
 };
 
-// Generates 8-letter themed word + 4 digits
 const generateStrangerID = () => {
     const matrixWords = ["neonwire", "stardust", "gridlock", "cybernet", "phantomx", "glitcher", "bytecode", "dataflow", "firewall", "backdoor", "terminal", "override", "protocol", "synthwav", "darknode", "hyperion", "solarray", "valkyrie", "obsidian", "specters", "mainframe", "datalink", "netspace", "voidwalk", "cyphersx"];
     const randomWord = matrixWords[Math.floor(Math.random() * matrixWords.length)];
     return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
 
-// 🚨 SELF-HEALING UI: Builds the HTML dynamically if it's missing or misplaced
+// 🚨 INJECTS A FULLY ISOLATED CHAT CONTAINER STRICTLY INSIDE THE RANDOM TAB
 const injectRandomMatrixUI = () => {
     const mainContainer = $("mainContainer");
     let randomView = document.getElementById("VIEW-RANDOM");
     
-    // If it exists but is placed wrong, remove it to rebuild properly
     if (randomView && mainContainer && !mainContainer.contains(randomView)) {
         randomView.remove();
         randomView = null;
@@ -2630,61 +2594,113 @@ const injectRandomMatrixUI = () => {
     if (mainContainer && !randomView) {
         mainContainer.insertAdjacentHTML("beforeend", `
           <div id="VIEW-RANDOM" class="view-section">
-            <div class="view-header">
+            <div class="view-header" id="random-view-header">
               <h2 style="font-family: Outfit !important">Random Matrix</h2>
               <p>Anonymous Encrypted Routing</p>
             </div>
-            <div class="glass-panel" style="padding: 15px; margin-bottom: 25px; text-align: center; border-color: var(--neon-primary);">
-                <h3 style="margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">
-                    Total Strangers Waiting: <span id="random-active-counter" style="color: var(--neon-primary); font-family: monospace; font-size: 1.5rem; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00</span>
-                </h3>
-            </div>
-            <div id="random-setup-container" class="glass-panel" style="padding: 25px; max-width: 500px; margin: 0 auto;">
-                <div class="form-group">
-                    <label style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Your Temporary Identity</label>
-                    <input type="text" id="random-fake-id" readonly style="background: rgba(0,0,0,0.5); color: var(--neon-primary); font-family: monospace; font-size: 1.2rem; font-weight: bold; text-align: center; cursor: not-allowed;" />
-                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
-                        <span style="font-size: 0.85rem; color: var(--text-muted);">Auto-Reconnect if busy</span>
-                        <label class="matrix-switch">
-                            <input type="checkbox" id="random-auto-reconnect" checked />
-                            <span class="matrix-slider"></span>
-                        </label>
+
+            <div id="random-setup-container" style="width: 100%;">
+                <div class="glass-panel" style="padding: 15px; margin-bottom: 25px; text-align: center; border-color: var(--neon-primary);">
+                    <h3 style="margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">
+                        Total Strangers Waiting: <span id="random-active-counter" style="color: var(--neon-primary); font-family: monospace; font-size: 1.5rem; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00</span>
+                    </h3>
+                </div>
+                <div class="glass-panel" style="padding: 25px; max-width: 500px; margin: 0 auto;">
+                    <div class="form-group">
+                        <label style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Your Temporary Identity</label>
+                        <input type="text" id="random-fake-id" readonly style="background: rgba(0,0,0,0.5); color: var(--neon-primary); font-family: monospace; font-size: 1.2rem; font-weight: bold; text-align: center; cursor: not-allowed;" />
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">Auto-Reconnect if busy</span>
+                            <label class="matrix-switch"><input type="checkbox" id="random-auto-reconnect" checked /><span class="matrix-slider"></span></label>
+                        </div>
+                        <button id="btn-start-random" class="glow-btn full-width" style="margin-top: 15px; font-size: 1.1rem;">Chat with Stranger</button>
+                        <button id="btn-stop-random" class="glow-btn full-width hidden" style="margin-top: 15px; font-size: 1.1rem; border-color: #ff4d4d; color: #ff4d4d;">Cancel Search</button>
                     </div>
-                    <button id="btn-start-random" class="glow-btn full-width" style="margin-top: 15px; font-size: 1.1rem;">Chat with Stranger</button>
-                    <button id="btn-stop-random" class="glow-btn full-width hidden" style="margin-top: 15px; font-size: 1.1rem; border-color: #ff4d4d; color: #ff4d4d;">Disconnect</button>
+                </div>
+            </div>
+
+            <div id="random-chat-interface" class="chat-area-viewport glass-panel hidden" style="display: none; height: 100%; flex-direction: column;">
+                
+                <div class="chat-header-bar" style="flex-shrink: 0; border-bottom: 1px solid var(--glass-border); padding: 15px 20px;">
+                    <img id="random-target-avatar" src="" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
+                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+                        <h3 id="random-target-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Stranger</h3>
+                        <p style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8; color: var(--neon-primary);">Encrypted Connection</p>
+                    </div>
+                    
+                    <button id="random-disconnect-btn" class="glow-btn icon-send-btn" style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0; border-color: #ff4d4d; color: #ff4d4d; box-shadow: 0 0 15px rgba(255,77,77,0.2);">
+                        <i class="fa-solid fa-user-slash"></i>
+                    </button>
+                </div>
+                
+                <div id="random-chat-box" class="chat-box-stream" style="flex: 1; overflow-y: auto; padding: 25px;"></div>
+                
+                <div class="message-input-console" style="flex-shrink: 0; border-top: 1px solid var(--glass-border); padding: 15px 20px;">
+                    <input type="text" id="random-msg-input" placeholder="Type a message..." autocomplete="off" style="flex: 1; padding: 15px 20px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: var(--text-main); outline: none;" />
+                    <button id="random-send-btn" class="glow-btn icon-send-btn">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"></line>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                        </svg>
+                    </button>
                 </div>
             </div>
           </div>
         `);
     }
 
-    // Always ensure the buttons are wired up to the logic functions
-    const startBtn = document.getElementById("btn-start-random");
-    if (startBtn && !startBtn.hasAttribute("data-bound")) {
-        startBtn.addEventListener("click", startRandomChat);
-        startBtn.setAttribute("data-bound", "true");
-    }
+    // Wiring up the dedicated Random Buttons
+    $("btn-start-random")?.addEventListener("click", startRandomChat);
+    $("btn-stop-random")?.addEventListener("click", abortRandomSearch);
     
-    const stopBtn = document.getElementById("btn-stop-random");
-    if (stopBtn && !stopBtn.hasAttribute("data-bound")) {
-        stopBtn.addEventListener("click", async () => {
+    // Dedicated Random Message Sender
+    const sendRandomMsg = async (e) => {
+        if (e) e.preventDefault();
+        const input = $("random-msg-input");
+        const content = input.value.trim();
+        if (!content || !RandomState.roomId) return;
+
+        input.value = "";
+        playSound("send");
+
+        // Appends specifically to the random box
+        appendBubble({
+            id: `temp-${Date.now()}`,
+            sender_mobile: State.mobile, 
+            content,
+            created_at: new Date().toISOString()
+        }, true, "random-chat-box"); 
+
+        const { error } = await supabaseClient.from("vani_random").insert([{
+            room_id: RandomState.roomId,
+            row_type: 'message',
+            sender_id: RandomState.userId,
+            content: content
+        }]);
+
+        if (error) alert(`Matrix Error: ${error.message}`);
+    };
+
+    $("random-send-btn")?.addEventListener("click", sendRandomMsg);
+    $("random-msg-input")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendRandomMsg(e);
+    });
+
+    $("random-disconnect-btn")?.addEventListener("click", async () => {
+        if(confirm("End connection with stranger?")) {
             if (RandomState.roomId) {
                 await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
             }
             abortRandomSearch();
-            document.getElementById("mobile-back-btn")?.click(); 
-        });
-        stopBtn.setAttribute("data-bound", "true");
-    }
+        }
+    });
 };
 
-// Hook into the sidebar navigation to prep the Random UI
 document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", () => {
-    injectRandomMatrixUI(); // Ensure UI exists before interacting
-    
+    injectRandomMatrixUI(); 
     if (!RandomState.userId) {
         RandomState.userId = generateStrangerID();
-        const inputField = document.getElementById("random-fake-id");
+        const inputField = $("random-fake-id");
         if (inputField) inputField.value = RandomState.userId;
     }
     trackActiveStrangers();
@@ -2715,23 +2731,33 @@ const abortRandomSearch = async (isTimeout = false) => {
         await supabaseClient.removeChannel(RandomState.chatChannel);
         RandomState.chatChannel = null;
     }
-    
     if (RandomState.roomId && RandomState.isWaiting) {
         await supabaseClient.from('vani_random').delete().eq('id', RandomState.roomId);
     }
     
     RandomState.isWaiting = false;
-    State.isRandomChat = false;
     
+    // RESTORE THE SETUP UI
+    const chatUI = $("random-chat-interface");
+    if (chatUI) {
+        chatUI.style.display = "none";
+        chatUI.classList.add("hidden");
+    }
+    
+    $("random-setup-container").style.display = "block";
+    const header = $("random-view-header");
+    if (header) header.style.display = "block";
+    
+    const input = $("random-msg-input");
+    if (input) input.disabled = false; 
+
     const startBtn = $("btn-start-random");
-    const stopBtn = $("btn-stop-random");
-    
     if (startBtn) {
         startBtn.classList.remove("hidden");
         startBtn.textContent = "Chat with Stranger";
         startBtn.disabled = false;
     }
-    if (stopBtn) stopBtn.classList.add("hidden");
+    $("btn-stop-random")?.classList.add("hidden");
     
     if (isTimeout) {
         const autoReconnect = $("random-auto-reconnect");
@@ -2785,57 +2811,56 @@ const startRandomChat = async () => {
 
 const launchStrangerChatInterface = (roomData) => {
     if (typeof playSound === "function") playSound("receive");
-    
     const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
     
-    const chatBtn = document.querySelector('[data-view="VIEW-CHATS"]');
-    if (chatBtn) chatBtn.click(); 
+    // 🚨 HIDE THE SETUP UI, SHOW THE CHAT UI IN THE SAME TAB
+    $("random-setup-container").style.display = "none";
+    const header = $("random-view-header");
+    if (header) header.style.display = "none";
     
-    State.isRandomChat = true; 
-    State.activeContact = targetId; 
+    const chatUI = $("random-chat-interface");
+    chatUI.classList.remove("hidden");
+    chatUI.style.display = "flex"; 
 
-    const nameEl = $("chat-with-name");
+    // SET UI INFO
+    const nameEl = $("random-target-name");
     if (nameEl) nameEl.textContent = targetId;
     
-    const avatarEl = $("chat-target-avatar");
+    const avatarEl = $("random-target-avatar");
     if (avatarEl) avatarEl.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
     
-    const statusEl = $("chat-with-status");
-    if (statusEl) {
-        statusEl.textContent = "Stranger Connected";
-        statusEl.style.color = "var(--neon-primary)";
-    }
-
-    $("start-call-btn")?.classList.add("hidden");
-    $("save-ghost-btn")?.classList.add("hidden");
-    ["active-chat-header", "message-input-bar"].forEach(id => $(id)?.classList.remove("hidden"));
-    
-    const chatBox = $("chat-box");
+    const chatBox = $("random-chat-box");
     if (chatBox) {
         chatBox.innerHTML = `
             <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
                 <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
-                <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and will be purged. Be respectful.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
             </div>`;
+            
+        // 🚨 CRITICAL: BIND DOUBLE-TAP AND LIKE MECHANICS TO THIS SPECIFIC BOX
+        window.bindMatrixInteractions("random-chat-box", "vani_random");
     }
     
+    // SUBSCRIBE TO THE ISOLATED CHANNEL
     RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random", filter: `room_id=eq.${roomData.room_id}` }, (p) => {
             const msg = p.new;
             if (msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
                 appendBubble({
                     id: msg.id,
-                    sender_mobile: targetId, 
+                    sender_mobile: targetId, // Tricks `isMe` to be false so it renders on the left
                     content: msg.content,
-                    created_at: msg.created_at
-                }, true);
+                    created_at: msg.created_at,
+                    is_liked: msg.is_liked
+                }, true, "random-chat-box"); // Target the isolated box
                 if (typeof playSound === "function") playSound("receive");
             }
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${roomData.room_id}` }, (p) => {
             if (p.new.status === 'closed') {
-                $("chat-box")?.insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem;">Stranger disconnected.</div>`);
-                $("message-input-bar")?.classList.add("hidden");
+                $("random-chat-box")?.insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem; font-weight: bold;">Stranger disconnected.</div>`);
+                const input = $("random-msg-input");
+                if(input) input.disabled = true; // Lock input when they leave
             }
         })
         .subscribe();
