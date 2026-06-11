@@ -2581,123 +2581,8 @@ const generateStrangerID = () => {
     return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
 
-// 🚨 INJECTS A FULLY ISOLATED CHAT CONTAINER STRICTLY INSIDE THE RANDOM TAB
-const injectRandomMatrixUI = () => {
-    const mainContainer = $("mainContainer");
-    let randomView = document.getElementById("VIEW-RANDOM");
-    
-    if (randomView && mainContainer && !mainContainer.contains(randomView)) {
-        randomView.remove();
-        randomView = null;
-    }
-
-    if (mainContainer && !randomView) {
-        mainContainer.insertAdjacentHTML("beforeend", `
-          <div id="VIEW-RANDOM" class="view-section">
-            <div class="view-header" id="random-view-header">
-              <h2 style="font-family: Outfit !important">Random Matrix</h2>
-              <p>Anonymous Encrypted Routing</p>
-            </div>
-
-            <div id="random-setup-container" style="width: 100%;">
-                <div class="glass-panel" style="padding: 15px; margin-bottom: 25px; text-align: center; border-color: var(--neon-primary);">
-                    <h3 style="margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">
-                        Total Strangers Waiting: <span id="random-active-counter" style="color: var(--neon-primary); font-family: monospace; font-size: 1.5rem; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00</span>
-                    </h3>
-                </div>
-                <div class="glass-panel" style="padding: 25px; max-width: 500px; margin: 0 auto;">
-                    <div class="form-group">
-                        <label style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Your Temporary Identity</label>
-                        <input type="text" id="random-fake-id" readonly style="background: rgba(0,0,0,0.5); color: var(--neon-primary); font-family: monospace; font-size: 1.2rem; font-weight: bold; text-align: center; cursor: not-allowed;" />
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
-                            <span style="font-size: 0.85rem; color: var(--text-muted);">Auto-Reconnect if busy</span>
-                            <label class="matrix-switch"><input type="checkbox" id="random-auto-reconnect" checked /><span class="matrix-slider"></span></label>
-                        </div>
-                        <button id="btn-start-random" class="glow-btn full-width" style="margin-top: 15px; font-size: 1.1rem;">Chat with Stranger</button>
-                        <button id="btn-stop-random" class="glow-btn full-width hidden" style="margin-top: 15px; font-size: 1.1rem; border-color: #ff4d4d; color: #ff4d4d;">Cancel Search</button>
-                    </div>
-                </div>
-            </div>
-
-            <div id="random-chat-interface" class="chat-area-viewport glass-panel hidden" style="display: none; height: 100%; flex-direction: column;">
-                
-                <div class="chat-header-bar" style="flex-shrink: 0; border-bottom: 1px solid var(--glass-border); padding: 15px 20px;">
-                    <img id="random-target-avatar" src="" style="width: 45px; height: 45px; border-radius: 50%; margin-right: 12px; border: 1px solid var(--glass-border); object-fit: cover;" />
-                    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
-                        <h3 id="random-target-name" style="font-size: 1.15rem; font-weight: 600; margin: 0; line-height: 1.2;">Stranger</h3>
-                        <p style="font-size: 0.8rem; font-family: monospace; margin: 2px 0 0 0; opacity: 0.8; color: var(--neon-primary);">Encrypted Connection</p>
-                    </div>
-                    
-                    <button id="random-disconnect-btn" class="glow-btn icon-send-btn" style="margin-left: auto; border-radius: 50%; width: 45px; height: 45px; padding: 0; border-color: #ff4d4d; color: #ff4d4d; box-shadow: 0 0 15px rgba(255,77,77,0.2);">
-                        <i class="fa-solid fa-user-slash"></i>
-                    </button>
-                </div>
-                
-                <div id="random-chat-box" class="chat-box-stream" style="flex: 1; overflow-y: auto; padding: 25px;"></div>
-                
-                <div class="message-input-console" style="flex-shrink: 0; border-top: 1px solid var(--glass-border); padding: 15px 20px;">
-                    <input type="text" id="random-msg-input" placeholder="Type a message..." autocomplete="off" style="flex: 1; padding: 15px 20px; border-radius: 12px; background: rgba(0,0,0,0.4); border: 1px solid var(--glass-border); color: var(--text-main); outline: none;" />
-                    <button id="random-send-btn" class="glow-btn icon-send-btn">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"></line>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-          </div>
-        `);
-    }
-
-    // Wiring up the dedicated Random Buttons
-    $("btn-start-random")?.addEventListener("click", startRandomChat);
-    $("btn-stop-random")?.addEventListener("click", abortRandomSearch);
-    
-    // Dedicated Random Message Sender
-    const sendRandomMsg = async (e) => {
-        if (e) e.preventDefault();
-        const input = $("random-msg-input");
-        const content = input.value.trim();
-        if (!content || !RandomState.roomId) return;
-
-        input.value = "";
-        playSound("send");
-
-        // Appends specifically to the random box
-        appendBubble({
-            id: `temp-${Date.now()}`,
-            sender_mobile: State.mobile, 
-            content,
-            created_at: new Date().toISOString()
-        }, true, "random-chat-box"); 
-
-        const { error } = await supabaseClient.from("vani_random").insert([{
-            room_id: RandomState.roomId,
-            row_type: 'message',
-            sender_id: RandomState.userId,
-            content: content
-        }]);
-
-        if (error) alert(`Matrix Error: ${error.message}`);
-    };
-
-    $("random-send-btn")?.addEventListener("click", sendRandomMsg);
-    $("random-msg-input")?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendRandomMsg(e);
-    });
-
-    $("random-disconnect-btn")?.addEventListener("click", async () => {
-        if(confirm("End connection with stranger?")) {
-            if (RandomState.roomId) {
-                await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
-            }
-            abortRandomSearch();
-        }
-    });
-};
-
+// Hook into the sidebar navigation to initialize the Random UI
 document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", () => {
-    injectRandomMatrixUI(); 
     if (!RandomState.userId) {
         RandomState.userId = generateStrangerID();
         const inputField = $("random-fake-id");
@@ -2736,6 +2621,7 @@ const abortRandomSearch = async (isTimeout = false) => {
     }
     
     RandomState.isWaiting = false;
+    State.isRandomChat = false;
     
     // RESTORE THE SETUP UI
     const chatUI = $("random-chat-interface");
@@ -2744,7 +2630,9 @@ const abortRandomSearch = async (isTimeout = false) => {
         chatUI.classList.add("hidden");
     }
     
-    $("random-setup-container").style.display = "block";
+    const setupUI = $("random-setup-container");
+    if (setupUI) setupUI.style.display = "block";
+    
     const header = $("random-view-header");
     if (header) header.style.display = "block";
     
@@ -2813,22 +2701,26 @@ const launchStrangerChatInterface = (roomData) => {
     if (typeof playSound === "function") playSound("receive");
     const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
     
-    // 🚨 HIDE THE SETUP UI, SHOW THE CHAT UI IN THE SAME TAB
+    State.isRandomChat = true; 
+    State.activeContact = targetId; 
+
+    // 🚨 HIDE SETUP UI, SHOW ISOLATED CHAT UI IN THE SAME TAB
     $("random-setup-container").style.display = "none";
     const header = $("random-view-header");
     if (header) header.style.display = "none";
     
     const chatUI = $("random-chat-interface");
-    chatUI.classList.remove("hidden");
-    chatUI.style.display = "flex"; 
+    if (chatUI) {
+        chatUI.classList.remove("hidden");
+        chatUI.style.display = "flex"; 
+    }
 
-    // SET UI INFO
     const nameEl = $("random-target-name");
     if (nameEl) nameEl.textContent = targetId;
     
     const avatarEl = $("random-target-avatar");
     if (avatarEl) avatarEl.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
-    
+
     const chatBox = $("random-chat-box");
     if (chatBox) {
         chatBox.innerHTML = `
@@ -2838,21 +2730,22 @@ const launchStrangerChatInterface = (roomData) => {
             </div>`;
             
         // 🚨 CRITICAL: BIND DOUBLE-TAP AND LIKE MECHANICS TO THIS SPECIFIC BOX
-        window.bindMatrixInteractions("random-chat-box", "vani_random");
+        if (typeof window.bindMatrixInteractions === "function") {
+            window.bindMatrixInteractions("random-chat-box", "vani_random");
+        }
     }
     
-    // SUBSCRIBE TO THE ISOLATED CHANNEL
     RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random", filter: `room_id=eq.${roomData.room_id}` }, (p) => {
             const msg = p.new;
             if (msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
                 appendBubble({
                     id: msg.id,
-                    sender_mobile: targetId, // Tricks `isMe` to be false so it renders on the left
+                    sender_mobile: targetId, 
                     content: msg.content,
                     created_at: msg.created_at,
                     is_liked: msg.is_liked
-                }, true, "random-chat-box"); // Target the isolated box
+                }, true, "random-chat-box");
                 if (typeof playSound === "function") playSound("receive");
             }
         })
@@ -2860,11 +2753,63 @@ const launchStrangerChatInterface = (roomData) => {
             if (p.new.status === 'closed') {
                 $("random-chat-box")?.insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem; font-weight: bold;">Stranger disconnected.</div>`);
                 const input = $("random-msg-input");
-                if(input) input.disabled = true; // Lock input when they leave
+                if(input) input.disabled = true; 
             }
         })
         .subscribe();
 };
+
+// --- EVENT BINDINGS FOR ISOLATED RANDOM TAB ---
+$("btn-start-random")?.addEventListener("click", startRandomChat);
+$("btn-stop-random")?.addEventListener("click", async () => {
+    if (RandomState.roomId) {
+        await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+    }
+    abortRandomSearch();
+});
+
+const sendRandomMsg = async (e) => {
+    if (e) e.preventDefault();
+    const input = $("random-msg-input");
+    const content = input?.value.trim();
+    if (!content || !RandomState.roomId) return;
+
+    input.value = "";
+    if (typeof playSound === "function") playSound("send");
+
+    // Appends specifically to the random box
+    appendBubble({
+        id: `temp-${Date.now()}`,
+        sender_mobile: State.mobile, 
+        content,
+        created_at: new Date().toISOString()
+    }, true, "random-chat-box"); 
+
+    const { error } = await supabaseClient.from("vani_random").insert([{
+        room_id: RandomState.roomId,
+        row_type: 'message',
+        sender_id: RandomState.userId,
+        content: content
+    }]);
+
+    if (error) alert(`Matrix Error: ${error.message}`);
+};
+
+$("random-send-btn")?.addEventListener("click", sendRandomMsg);
+$("random-msg-input")?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendRandomMsg(e);
+});
+
+$("random-disconnect-btn")?.addEventListener("click", async () => {
+    if(confirm("End connection with stranger?")) {
+        if (RandomState.roomId) {
+            await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+        }
+        abortRandomSearch();
+        const chatBox = $("random-chat-box");
+        if (chatBox) chatBox.innerHTML = ""; // Clear box on exit
+    }
+});
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
