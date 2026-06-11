@@ -930,7 +930,12 @@ const sendMsg = async (e) => {
     },
   ]);
 
-  if (error) alert(`Send Error: ${error.message}`);
+  if (error) {
+    console.error("🔥 SUPABASE REJECTED MESSAGE:", error);
+    alert(
+      `Matrix Error: ${error.message}\nDetails: ${error.details || "Check console."}`,
+    );
+  }
 };
 
 // 🚨 BINDING THE PHYSICAL BUTTONS TO THE ENGINE
