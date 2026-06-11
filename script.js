@@ -800,34 +800,13 @@ const hideTypingIndicator = () => {
     }
 };
 
-const sendRandomMsg = async (e) => {
-    if (e) e.preventDefault();
-    const input = $("random-msg-input");
-    const content = input?.value.trim();
-    if (!content || !RandomState.roomId) return;
-
-    input.value = "";
-    if (typeof playSound === "function") playSound("send");
-
-    // 🚨 FIX: Removed Optimistic UI here as well to prevent duplicates
-    
-    const { error } = await supabaseClient.from("vani_random").insert([{
-        room_id: RandomState.roomId, 
-        row_type: 'message',
-        sender_id: RandomState.userId,
-        content: content
-    }]);
-
-    if (error) alert(`Matrix Error: ${error.message}`);
-};
-
-// 🚨 THE CRITICAL FIX: Reconnecting the physical buttons to the engine!
-document.addEventListener("DOMContentLoaded", () => {
-    $("send-msg-btn")?.addEventListener("click", sendMsg);
-    $("msg-input")?.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") sendMsg(e);
-    });
-});
+// // 🚨 THE CRITICAL FIX: Reconnecting the physical buttons to the engine!
+// document.addEventListener("DOMContentLoaded", () => {
+//     $("send-msg-btn")?.addEventListener("click", sendMsg);
+//     $("msg-input")?.addEventListener("keydown", (e) => {
+//         if (e.key === "Enter") sendMsg(e);
+//     });
+// });
 
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
