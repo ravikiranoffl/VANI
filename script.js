@@ -677,8 +677,9 @@ window.getVaniDateLabel = (dateString) => {
     return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 };
 
+
 // ==========================================================
-// 💬 APPEND BUBBLE (Restored Date Logic)
+// 💬 APPEND BUBBLE (Restored Date Logic & Bulletproof Hearts)
 // ==========================================================
 
 const appendBubble = (msg, autoScroll = true) => {
@@ -691,7 +692,6 @@ const appendBubble = (msg, autoScroll = true) => {
   const msgDate = new Date(msg.created_at);
   const isMe = msg.sender_mobile === State.mobile;
   
-  // 🚨 Date Divider Injection for incoming messages
   const currentLabel = window.getVaniDateLabel(msg.created_at);
   const lastLabel = box.dataset.bottomDate; 
 
@@ -711,32 +711,26 @@ const appendBubble = (msg, autoScroll = true) => {
 
   let bubbleHTML = "";
 
-  // Call Log Parser
   if (msg.content.startsWith("[CALL_LOG:")) {
       const parts = msg.content.replace("[CALL_LOG:", "").replace("]", "").split(":");
-      const type = parts[0]; 
-      const duration = parts[1] || "";
-      
-      const icon = type === "MISSED" ? `<i class="fa-solid fa-phone-slash"></i>` : `<i class="fa-solid fa-phone"></i>`;
-      const title = type === "MISSED" ? "Missed Call" : "Voice Call";
-      const durationText = type === "MISSED" ? "" : duration;
-      const color = type === "MISSED" ? "#ff4d4d" : "var(--neon-primary)";
-
+      const type = parts[0], duration = parts[1] || "";
       bubbleHTML = `
         <div class="call-log-bubble">
-            <div class="call-log-icon" style="color: ${color}; box-shadow: inset 0 0 10px ${type === "MISSED" ? 'rgba(255,77,77,0.2)' : 'rgba(var(--neon-rgb), 0.2)'};">
-                ${icon}
+            <div class="call-log-icon" style="color: ${type === "MISSED" ? "#ff4d4d" : "var(--neon-primary)"};">
+                ${type === "MISSED" ? '<i class="fa-solid fa-phone-slash"></i>' : '<i class="fa-solid fa-phone"></i>'}
             </div>
             <div class="call-log-details">
-                <h4>${title}</h4>
-                ${durationText ? `<p>Duration: ${durationText}</p>` : ''}
+                <h4>${type === "MISSED" ? "Missed Call" : "Voice Call"}</h4>
+                ${duration ? `<p>Duration: ${duration}</p>` : ''}
             </div>
-        </div>
-      `;
+        </div>`;
   } else {
-      // Standard Text
       bubbleHTML = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
   }
+
+  // 🚨 ABSOLUTE OVERRIDE: Inline styling forces the heart position regardless of CSS bugs
+  const heartStyle = isMe ? "left: -8px; right: auto;" : "right: -8px; left: auto;";
+  const heartHTML = msg.is_liked ? `<div class="liked-badge" style="${heartStyle}"><i class="fa-solid fa-heart"></i></div>` : "";
 
   box.insertAdjacentHTML(
     "beforeend",
@@ -745,7 +739,7 @@ const appendBubble = (msg, autoScroll = true) => {
          ${bubbleHTML} <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
-         ${msg.is_liked ? `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>` : ""}
+         ${heartHTML}
        </div>
     </div>`
   );
@@ -2399,7 +2393,6 @@ const loadHistory = async (isLoadMore = false) => {
     attachScrollObserver();
 };
 
-// Helper: Extracted raw HTML generator from your old appendBubble
 const createBubbleHTML = (msg) => {
     const isMe = msg.sender_mobile === State.mobile;
     const msgDate = new Date(msg.created_at);
@@ -2420,13 +2413,16 @@ const createBubbleHTML = (msg) => {
             </div>`;
     }
 
+    const heartStyle = isMe ? "left: -8px; right: auto;" : "right: -8px; left: auto;";
+    const heartHTML = msg.is_liked ? `<div class="liked-badge" style="${heartStyle}"><i class="fa-solid fa-heart"></i></div>` : "";
+
     return `<div class="message-enter" data-msg-id="${msg.id}" data-is-me="${isMe}" data-is-liked="${msg.is_liked || false}" style="display:flex;width:100%;justify-content:${isMe ? "flex-end" : "flex-start"};margin-bottom:12px;">
        <div class="chat-bubble" style="max-width:75%;background:${isMe ? "rgba(var(--neon-rgb), 0.1)" : "rgba(255,255,255,0.03)"}; border:1px solid ${isMe ? "var(--neon-primary)" : "var(--glass-border)"}; border-radius:${isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px"}; padding:10px 14px; cursor: pointer;">
-         ${bubbleContent || bubbleHTML}
+         ${bubbleContent}
          <div class="chat-bubble-time" style="font-size:0.6rem;opacity:0.6;margin-top:4px;text-align:right;">
            ${msgDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
          </div>
-         ${msg.is_liked ? `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>` : ""}
+         ${heartHTML}
        </div>
 </div>`;
 };
@@ -2476,53 +2472,47 @@ const animateFLIP = (containerId, domUpdateCallback) => {
 window.updateLikeUI = (bubbleWrapper, isLiked) => {
     const bubble = bubbleWrapper.querySelector(".chat-bubble");
     let badge = bubble.querySelector(".liked-badge");
+    const isMe = bubbleWrapper.dataset.isMe === "true";
 
     if (isLiked) {
         if (!badge) {
-            bubble.insertAdjacentHTML("beforeend", `<div class="liked-badge"><i class="fa-solid fa-heart"></i></div>`);
+            const heartStyle = isMe ? "left: -8px; right: auto;" : "right: -8px; left: auto;";
+            bubble.insertAdjacentHTML("beforeend", `<div class="liked-badge" style="${heartStyle}"><i class="fa-solid fa-heart"></i></div>`);
         }
     } else {
         if (badge) badge.remove();
     }
 };
 
-// 🚨 FIX: Smart-Directional Explosion Physics
 window.triggerHeartExplosion = (bubbleWrapper) => {
     const bubble = bubbleWrapper.querySelector(".chat-bubble");
     const particleCount = 12; 
-    const isMe = bubbleWrapper.dataset.isMe === "true"; // Detect who sent the message
+    const isMe = bubbleWrapper.dataset.isMe === "true"; 
     
     for(let i = 0; i < particleCount; i++) {
         const heart = document.createElement("i");
         heart.className = "fa-solid fa-heart heart-particle";
         
-        // 1. DYNAMIC ORIGIN: Spawn Left for Me, Right for Friend
         if (isMe) {
             heart.style.left = `2px`; 
+            heart.style.right = `auto`; 
         } else {
             heart.style.right = `2px`; 
+            heart.style.left = `auto`;
         }
         heart.style.bottom = `-5px`;
         
-        // 2. TRAJECTORY MATH: Blow away from the bubble edge
-        let tx = 0;
-        if (isMe) {
-            tx = (Math.random() * 80) - 20; // Explode towards the right
-        } else {
-            tx = (Math.random() * -80) + 20; // Explode towards the left
-        }
-        
-        const ty = (Math.random() * -100) - 50; // Shoot upwards
-        const rot = (Math.random() - 0.5) * 90; // Spin
-        const endScale = 0.8 + Math.random() * 0.7; // Size variance
-        const duration = 1.2 + Math.random() * 1.0; // Hangtime
+        let tx = isMe ? (Math.random() * 80) - 20 : (Math.random() * -80) + 20; 
+        const ty = (Math.random() * -100) - 50; 
+        const rot = (Math.random() - 0.5) * 90; 
+        const endScale = 0.8 + Math.random() * 0.7; 
+        const duration = 1.2 + Math.random() * 1.0; 
         
         heart.style.setProperty('--tx', `${tx}px`);
         heart.style.setProperty('--ty', `${ty}px`);
         heart.style.setProperty('--rot', `${rot}deg`);
         heart.style.setProperty('--end-scale', endScale);
         heart.style.setProperty('--anim-duration', `${duration}s`);
-        
         heart.style.fontSize = `${0.8 + Math.random() * 0.6}rem`;
         
         bubble.appendChild(heart);
@@ -2607,10 +2597,11 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
 })();
 
 // ==========================================================
-// 🎭 ANONYMOUS RANDOM MATRIX ENGINE
+// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (SELF-HEALING)
 // ==========================================================
+
 let RandomState = {
-    userId: "", // Updated from fakeId
+    userId: "", 
     roomId: null,
     isWaiting: false,
     timeoutId: null,
@@ -2618,35 +2609,87 @@ let RandomState = {
     chatChannel: null
 };
 
-// Generates an 8-letter themed word + 4 random digits (e.g. "neonwire7092")
+// Generates 8-letter themed word + 4 digits
 const generateStrangerID = () => {
-    const matrixWords = [
-        "neonwire", "stardust", "gridlock", "cybernet", "phantomx",
-        "glitcher", "bytecode", "dataflow", "firewall", "backdoor",
-        "terminal", "override", "protocol", "synthwav", "darknode",
-        "hyperion", "solarray", "valkyrie", "obsidian", "specters",
-        "mainframe", "datalink", "netspace", "voidwalk", "cyphersx"
-    ];
+    const matrixWords = ["neonwire", "stardust", "gridlock", "cybernet", "phantomx", "glitcher", "bytecode", "dataflow", "firewall", "backdoor", "terminal", "override", "protocol", "synthwav", "darknode", "hyperion", "solarray", "valkyrie", "obsidian", "specters", "mainframe", "datalink", "netspace", "voidwalk", "cyphersx"];
     const randomWord = matrixWords[Math.floor(Math.random() * matrixWords.length)];
     return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
 
-// Initialize View (Bulletproofed against missing DOM)
+// 🚨 SELF-HEALING UI: Builds the HTML dynamically if it's missing or misplaced
+const injectRandomMatrixUI = () => {
+    const mainContainer = $("mainContainer");
+    let randomView = document.getElementById("VIEW-RANDOM");
+    
+    // If it exists but is placed wrong, remove it to rebuild properly
+    if (randomView && mainContainer && !mainContainer.contains(randomView)) {
+        randomView.remove();
+        randomView = null;
+    }
+
+    if (mainContainer && !randomView) {
+        mainContainer.insertAdjacentHTML("beforeend", `
+          <div id="VIEW-RANDOM" class="view-section">
+            <div class="view-header">
+              <h2 style="font-family: Outfit !important">Random Matrix</h2>
+              <p>Anonymous Encrypted Routing</p>
+            </div>
+            <div class="glass-panel" style="padding: 15px; margin-bottom: 25px; text-align: center; border-color: var(--neon-primary);">
+                <h3 style="margin: 0; font-size: 1.2rem; letter-spacing: 2px; text-transform: uppercase;">
+                    Total Strangers Waiting: <span id="random-active-counter" style="color: var(--neon-primary); font-family: monospace; font-size: 1.5rem; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">00</span>
+                </h3>
+            </div>
+            <div id="random-setup-container" class="glass-panel" style="padding: 25px; max-width: 500px; margin: 0 auto;">
+                <div class="form-group">
+                    <label style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Your Temporary Identity</label>
+                    <input type="text" id="random-fake-id" readonly style="background: rgba(0,0,0,0.5); color: var(--neon-primary); font-family: monospace; font-size: 1.2rem; font-weight: bold; text-align: center; cursor: not-allowed;" />
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Auto-Reconnect if busy</span>
+                        <label class="matrix-switch">
+                            <input type="checkbox" id="random-auto-reconnect" checked />
+                            <span class="matrix-slider"></span>
+                        </label>
+                    </div>
+                    <button id="btn-start-random" class="glow-btn full-width" style="margin-top: 15px; font-size: 1.1rem;">Chat with Stranger</button>
+                    <button id="btn-stop-random" class="glow-btn full-width hidden" style="margin-top: 15px; font-size: 1.1rem; border-color: #ff4d4d; color: #ff4d4d;">Disconnect</button>
+                </div>
+            </div>
+          </div>
+        `);
+    }
+
+    // Always ensure the buttons are wired up to the logic functions
+    const startBtn = document.getElementById("btn-start-random");
+    if (startBtn && !startBtn.hasAttribute("data-bound")) {
+        startBtn.addEventListener("click", startRandomChat);
+        startBtn.setAttribute("data-bound", "true");
+    }
+    
+    const stopBtn = document.getElementById("btn-stop-random");
+    if (stopBtn && !stopBtn.hasAttribute("data-bound")) {
+        stopBtn.addEventListener("click", async () => {
+            if (RandomState.roomId) {
+                await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
+            }
+            abortRandomSearch();
+            document.getElementById("mobile-back-btn")?.click(); 
+        });
+        stopBtn.setAttribute("data-bound", "true");
+    }
+};
+
+// Hook into the sidebar navigation to prep the Random UI
 document.querySelector('[data-view="VIEW-RANDOM"]')?.addEventListener("click", () => {
+    injectRandomMatrixUI(); // Ensure UI exists before interacting
+    
     if (!RandomState.userId) {
         RandomState.userId = generateStrangerID();
-        
-        // Defensive check: Only set the value if the HTML element actually exists
-        const idInput = $("random-fake-id");
-        if (idInput) {
-            idInput.value = RandomState.userId;
-        } else {
-            console.error("🔥 Matrix Error: Random Matrix HTML is missing from index.html!");
-        }
+        const inputField = document.getElementById("random-fake-id");
+        if (inputField) inputField.value = RandomState.userId;
     }
     trackActiveStrangers();
 });
-// Update Queue Counter
+
 const trackActiveStrangers = async () => {
     const { count } = await supabaseClient
         .from('vani_random')
@@ -2658,12 +2701,10 @@ const trackActiveStrangers = async () => {
     if (counter) counter.textContent = (count || 0).toString().padStart(2, '0');
 };
 
-// Listen globally for queue updates
 supabaseClient.channel('vani_random_global')
     .on("postgres_changes", { event: "*", schema: "public", table: "vani_random", filter: "row_type=eq.queue" }, trackActiveStrangers)
     .subscribe();
 
-// Terminate / End Chat
 const abortRandomSearch = async (isTimeout = false) => {
     if (RandomState.timeoutId) clearTimeout(RandomState.timeoutId);
     if (RandomState.queueChannel) {
@@ -2682,33 +2723,33 @@ const abortRandomSearch = async (isTimeout = false) => {
     RandomState.isWaiting = false;
     State.isRandomChat = false;
     
-    $("btn-start-random").classList.remove("hidden");
-    $("btn-stop-random").classList.add("hidden");
-    $("btn-start-random").textContent = "Chat with Stranger";
-    $("btn-start-random").disabled = false;
+    const startBtn = $("btn-start-random");
+    const stopBtn = $("btn-stop-random");
+    
+    if (startBtn) {
+        startBtn.classList.remove("hidden");
+        startBtn.textContent = "Chat with Stranger";
+        startBtn.disabled = false;
+    }
+    if (stopBtn) stopBtn.classList.add("hidden");
     
     if (isTimeout) {
-        if ($("random-auto-reconnect").checked) {
-            startRandomChat(); // Loop it
+        const autoReconnect = $("random-auto-reconnect");
+        if (autoReconnect && autoReconnect.checked) {
+            startRandomChat(); 
         } else {
             alert("Strangers are busy. Kindly Try Again.");
         }
     }
 };
 
-$("btn-stop-random")?.addEventListener("click", async () => {
-    if (RandomState.roomId) {
-        await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
-    }
-    abortRandomSearch();
-    $("mobile-back-btn")?.click(); // Send user back to menu
-});
-
 const startRandomChat = async () => {
     const btn = $("btn-start-random");
-    btn.textContent = "Scanning Matrix...";
-    btn.disabled = true;
-    $("btn-stop-random").classList.remove("hidden");
+    if (btn) {
+        btn.textContent = "Scanning Matrix...";
+        btn.disabled = true;
+    }
+    $("btn-stop-random")?.classList.remove("hidden");
     RandomState.isWaiting = true;
 
     try {
@@ -2721,15 +2762,12 @@ const startRandomChat = async () => {
         RandomState.roomId = room.id;
 
         if (room.status === 'active') {
-            // WE JOINED SOMEONE ELSES ROOM
             RandomState.isWaiting = false;
             launchStrangerChatInterface(room);
         } else {
-            // WE CREATED A ROOM, START THE 10s TIMER
-            btn.textContent = "Waiting for Stranger...";
+            if (btn) btn.textContent = "Waiting for Stranger...";
             RandomState.timeoutId = setTimeout(() => abortRandomSearch(true), 10000);
 
-            // Listen for someone to join US
             RandomState.queueChannel = supabaseClient.channel(`queue_${room.id}`)
                 .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${room.id}` }, (p) => {
                     if (p.new.status === 'active') {
@@ -2750,40 +2788,44 @@ const launchStrangerChatInterface = (roomData) => {
     
     const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
     
-    // Switch to Chat UI safely
     const chatBtn = document.querySelector('[data-view="VIEW-CHATS"]');
     if (chatBtn) chatBtn.click(); 
     
     State.isRandomChat = true; 
-    State.activeContact = targetId; // Temporary mask
+    State.activeContact = targetId; 
 
-    $("chat-with-name").textContent = targetId;
-    $("chat-target-avatar").src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
-    $("chat-with-status").textContent = "Stranger Connected";
-    $("chat-with-status").style.color = "var(--neon-primary)";
+    const nameEl = $("chat-with-name");
+    if (nameEl) nameEl.textContent = targetId;
+    
+    const avatarEl = $("chat-target-avatar");
+    if (avatarEl) avatarEl.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
+    
+    const statusEl = $("chat-with-status");
+    if (statusEl) {
+        statusEl.textContent = "Stranger Connected";
+        statusEl.style.color = "var(--neon-primary)";
+    }
 
-    // HIDE Call and Save buttons explicitly
     $("start-call-btn")?.classList.add("hidden");
     $("save-ghost-btn")?.classList.add("hidden");
+    ["active-chat-header", "message-input-bar"].forEach(id => $(id)?.classList.remove("hidden"));
     
-    ["active-chat-header", "message-input-bar"].forEach(id => $(id).classList.remove("hidden"));
+    const chatBox = $("chat-box");
+    if (chatBox) {
+        chatBox.innerHTML = `
+            <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
+                <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and will be purged. Be respectful.</p>
+            </div>`;
+    }
     
-    // Display Disclaimer
-    $("chat-box").innerHTML = `
-        <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
-            <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
-            <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and will be purged. Be respectful.</p>
-        </div>`;
-    
-    // Subscribe to messages strictly for this room
     RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random", filter: `room_id=eq.${roomData.room_id}` }, (p) => {
             const msg = p.new;
             if (msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
-                // Map the payload to match your standard appendBubble format
                 appendBubble({
                     id: msg.id,
-                    sender_mobile: targetId, // Forces it to render on the left
+                    sender_mobile: targetId, 
                     content: msg.content,
                     created_at: msg.created_at
                 }, true);
@@ -2792,8 +2834,8 @@ const launchStrangerChatInterface = (roomData) => {
         })
         .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${roomData.room_id}` }, (p) => {
             if (p.new.status === 'closed') {
-                $("chat-box").insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem;">Stranger disconnected.</div>`);
-                $("message-input-bar").classList.add("hidden"); // Lock input
+                $("chat-box")?.insertAdjacentHTML('beforeend', `<div style="text-align: center; color: #ff4d4d; margin-top: 15px; font-size: 0.85rem;">Stranger disconnected.</div>`);
+                $("message-input-bar")?.classList.add("hidden");
             }
         })
         .subscribe();
