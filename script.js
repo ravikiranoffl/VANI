@@ -800,6 +800,53 @@ const hideTypingIndicator = () => {
     }
 };
 
+// ==========================================================
+// 💬 THE MAIN CHAT ROUTER (RESTORED & OPTIMIZED)
+// ==========================================================
+const sendMsg = async (e) => {
+  if (e) e.preventDefault(); 
+  const input = $("msg-input");
+  if (!input) return;
+  
+  const content = input.value.trim();
+  if (!content || !State.activeContact) return;
+  
+  input.value = ""; 
+  if (typeof hideTypingIndicator === "function") hideTypingIndicator(); 
+  if (typeof playSound === "function") playSound("send"); 
+  
+  // 🚨 Realtime Engine handles the UI update to prevent duplicate bubbles!
+  const { error } = await supabaseClient.from("messages").insert([{
+      sender_mobile: State.mobile,
+      recipient_mobile: State.activeContact,
+      content,
+      is_read: false,
+  }]); 
+  
+  if (error) alert(`Send Error: ${error.message}`);
+};
+
+// 🚨 BINDING THE PHYSICAL BUTTONS TO THE ENGINE
+// We do this immediately so the UI is strictly locked to the function
+setTimeout(() => {
+    const sendBtn = $("send-msg-btn");
+    const msgInput = $("msg-input");
+    
+    if (sendBtn) {
+        // Remove any old ghost listeners just in case
+        const newSendBtn = sendBtn.cloneNode(true);
+        sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+        newSendBtn.addEventListener("click", sendMsg);
+    }
+    
+    if (msgInput) {
+        const newMsgInput = msgInput.cloneNode(true);
+        msgInput.parentNode.replaceChild(newMsgInput, msgInput);
+        newMsgInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") sendMsg(e);
+        });
+    }
+}, 500); 
 
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
