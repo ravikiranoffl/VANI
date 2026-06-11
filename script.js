@@ -800,13 +800,6 @@ const hideTypingIndicator = () => {
     }
 };
 
-// // 🚨 THE CRITICAL FIX: Reconnecting the physical buttons to the engine!
-// document.addEventListener("DOMContentLoaded", () => {
-//     $("send-msg-btn")?.addEventListener("click", sendMsg);
-//     $("msg-input")?.addEventListener("keydown", (e) => {
-//         if (e.key === "Enter") sendMsg(e);
-//     });
-// });
 
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
@@ -2442,14 +2435,14 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
 };
 
 // ==========================================================
-// 🛡️ UNIFIED MATRIX INTERACTIONS (LIKE & DELETE)
+// 🛡️ UNIFIED MATRIX INTERACTIONS (LIKE & HIDE/DELETE)
 // ==========================================================
 
 window.bindMatrixInteractions = (boxId, tableName) => {
     const box = $(boxId);
     if (!box || box.hasAttribute('data-interactions-bound')) return;
 
-    // 1. DOUBLE TAP TO DELETE
+    // 1. DOUBLE TAP TO DELETE / HIDE
     box.addEventListener("dblclick", async (e) => {
         const bubbleWrapper = e.target.closest(".message-enter");
         if (!bubbleWrapper || !bubbleWrapper.dataset.msgId || bubbleWrapper.dataset.msgId.startsWith("temp-")) return;
@@ -2457,7 +2450,15 @@ window.bindMatrixInteractions = (boxId, tableName) => {
 
         playSound("delete");
         bubbleWrapper.classList.add("message-deleted");
-        await supabaseClient.from(tableName).delete().eq("id", bubbleWrapper.dataset.msgId);
+
+        // 🚨 THE ROUTER: Hide for Strangers, Hard Delete for Saved Contacts
+        if (tableName === "random_chats") {
+            // Soft Delete: Flags it as hidden in the DB but keeps the row data intact
+            await supabaseClient.from(tableName).update({ is_hidden: true }).eq("id", bubbleWrapper.dataset.msgId);
+        } else {
+            // Hard Delete: Actually removes the row for standard chats
+            await supabaseClient.from(tableName).delete().eq("id", bubbleWrapper.dataset.msgId);
+        }
 
         setTimeout(() => {
             bubbleWrapper.remove();
@@ -2530,7 +2531,6 @@ window.bindMatrixInteractions = (boxId, tableName) => {
 
     box.setAttribute('data-interactions-bound', 'true');
 };
-
 // Bind immediately to the main Chat Box
 document.addEventListener("DOMContentLoaded", () => {
     window.bindMatrixInteractions("chat-box", "messages");
@@ -2667,11 +2667,13 @@ const launchStrangerChatInterface = (sessionData) => {
         if (typeof window.bindMatrixInteractions === "function") window.bindMatrixInteractions("random-chat-box", "random_chats");
     }
     
-    // 🚨 1. Listen for MESSAGES in `random_chats`
+
+   // 🚨 1. Listen for MESSAGES and UPDATES (Likes/Hides) in `random_chats`
     RandomState.chatMsgChannel = supabaseClient.channel(`chat_messages_${sessionData.session_id}`)
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "random_chats" }, (p) => {
             const msg = p.new;
-            if (msg.session_id === sessionData.session_id) {
+            // Only inject the message if it isn't already hidden
+            if (msg.session_id === sessionData.session_id && !msg.is_hidden) {
                 const isMe = msg.sender_id === RandomState.userId;
                 appendBubble({
                     id: msg.id,
@@ -2681,6 +2683,34 @@ const launchStrangerChatInterface = (sessionData) => {
                     is_liked: msg.is_liked
                 }, true, "random-chat-box");
                 if (!isMe && typeof playSound === "function") playSound("receive");
+            }
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "random_chats" }, (p) => {
+            const msg = p.new;
+            if (msg.session_id === sessionData.session_id) {
+                const bubbleWrapper = document.querySelector(`[data-msg-id="${msg.id}"]`);
+                if (bubbleWrapper) {
+                    
+                    // 🚨 SYNCHRONIZED HIDE: If the sender hid the message, destroy it on the receiver's screen instantly
+                    if (msg.is_hidden) {
+                        bubbleWrapper.classList.add("message-deleted");
+                        setTimeout(() => bubbleWrapper.remove(), 200);
+                        return; // Stop processing further updates for this dead bubble
+                    }
+                    
+                    // SYNCHRONIZED LIKES: Sync heart particles for the stranger
+                    const wasLiked = bubbleWrapper.dataset.isLiked === "true";
+                    if (msg.is_liked && !wasLiked) {
+                        bubbleWrapper.dataset.isLiked = "true";
+                        window.updateLikeUI(bubbleWrapper, true);
+                        window.triggerHeartExplosion(bubbleWrapper);
+                        // Only play the audio ding if they liked YOUR message
+                        if (msg.sender_id !== RandomState.userId && typeof playSound === "function") playSound("send");
+                    } else if (!msg.is_liked && wasLiked) {
+                        bubbleWrapper.dataset.isLiked = "false";
+                        window.updateLikeUI(bubbleWrapper, false);
+                    }
+                }
             }
         }).subscribe();
 
