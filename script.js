@@ -2623,6 +2623,9 @@ const abortRandomSearch = async (isTimeout = false) => {
     RandomState.isWaiting = false;
     State.isRandomChat = false;
     
+    // 🚨 RELEASE MOBILE SCREEN LOCK
+    document.body.classList.remove("in-mobile-chat");
+    
     // RESTORE THE SETUP UI
     const chatUI = $("random-chat-interface");
     if (chatUI) {
@@ -2701,8 +2704,17 @@ const launchStrangerChatInterface = (roomData) => {
     if (typeof playSound === "function") playSound("receive");
     const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
     
+    // 🚨 REMOVED: `chatBtn.click()` has been permanently deleted so you stay in the Random Tab.
+
     State.isRandomChat = true; 
     State.activeContact = targetId; 
+
+    // 🚨 TRIGGER MOBILE SCREEN LOCK
+    if (window.innerWidth <= 992) {
+        document.body.classList.add("in-mobile-chat");
+        $("sidebarMenu")?.classList.remove("open");
+        $("hamburgerBtn")?.classList.remove("active");
+    }
 
     // 🚨 HIDE SETUP UI, SHOW ISOLATED CHAT UI IN THE SAME TAB
     $("random-setup-container").style.display = "none";
@@ -2729,7 +2741,7 @@ const launchStrangerChatInterface = (roomData) => {
                 <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
             </div>`;
             
-        // 🚨 CRITICAL: BIND DOUBLE-TAP AND LIKE MECHANICS TO THIS SPECIFIC BOX
+        // 🚨 BIND DOUBLE-TAP AND LIKE MECHANICS TO THIS SPECIFIC BOX
         if (typeof window.bindMatrixInteractions === "function") {
             window.bindMatrixInteractions("random-chat-box", "vani_random");
         }
@@ -2761,6 +2773,7 @@ const launchStrangerChatInterface = (roomData) => {
 
 // --- EVENT BINDINGS FOR ISOLATED RANDOM TAB ---
 $("btn-start-random")?.addEventListener("click", startRandomChat);
+
 $("btn-stop-random")?.addEventListener("click", async () => {
     if (RandomState.roomId) {
         await supabaseClient.from('vani_random').update({ status: 'closed' }).eq('id', RandomState.roomId);
@@ -2810,7 +2823,6 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
         if (chatBox) chatBox.innerHTML = ""; // Clear box on exit
     }
 });
-
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
