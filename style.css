@@ -1693,3 +1693,7 @@ select {
         background: #08080b !important;
     }
 }
+
+#random-fake-id {
+    font-family: Outfit !important;
+}
