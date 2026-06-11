@@ -800,39 +800,45 @@ const hideTypingIndicator = () => {
     }
 };
 
+// ==========================================================
+// 💬 THE MAIN CHAT ROUTER (RESTORED & OPTIMIZED)
+// ==========================================================
 const sendMsg = async (e) => {
   if (e) e.preventDefault(); 
-  const content = $("msg-input").value.trim();
+  const input = $("msg-input");
+  if (!input) return;
+  
+  const content = input.value.trim();
   if (!content || !State.activeContact) return;
   
-  $("msg-input").value = ""; 
+  input.value = ""; 
   hideTypingIndicator(); 
   playSound("send");
 
-  // 🔀 THE ROUTER: Send to Random Matrix OR Permanent Matrix
-  if (State.isRandomChat) {
-      // Optimistic UI Update
-      appendBubble({ id: `temp-${Date.now()}`, sender_mobile: State.mobile, content, created_at: new Date().toISOString() }, true);
-      
-      const { error } = await supabaseClient.from("vani_random").insert([{
-          room_id: RandomState.roomId,
-          row_type: 'message',
-          sender_id: RandomState.userId, // Updated variable mapping
-          content: content
-      }]);
-      if (error) alert(`Matrix Error: ${error.message}`);
-      
-  } else {
-      const { error } = await supabaseClient.from("messages").insert([{
-          sender_mobile: State.mobile,
-          recipient_mobile: State.activeContact,
-          content,
-          is_read: false,
-      }]); 
-      if (error) alert(`Send Error: ${error.message}`);
-  }
+  // 🚨 FIX 3: Optimistic UI for blazing fast response in the Original Chat
+  appendBubble({ 
+      id: `temp-${Date.now()}`, 
+      sender_mobile: State.mobile, 
+      content, 
+      created_at: new Date().toISOString() 
+  }, true, "chat-box");
+  
+  const { error } = await supabaseClient.from("messages").insert([{
+      sender_mobile: State.mobile,
+      recipient_mobile: State.activeContact,
+      content,
+      is_read: false,
+  }]); 
+  if (error) alert(`Send Error: ${error.message}`);
 };
 
+// 🚨 THE CRITICAL FIX: Reconnecting the physical buttons to the engine!
+document.addEventListener("DOMContentLoaded", () => {
+    $("send-msg-btn")?.addEventListener("click", sendMsg);
+    $("msg-input")?.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMsg(e);
+    });
+});
 
 // ==========================================================
 // 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
@@ -2624,17 +2630,18 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
     
     RandomState.isWaiting = false;
     State.isRandomChat = false;
-    RandomState.roomId = null; // 🚨 Fully detaches from dead room
+    RandomState.roomId = null; 
     
-    // 🚨 REGENERATE USERNAME: Ensures absolute anonymity on next connection
+    // 🚨 FIX 2: Release the pure CSS Mobile Lock safely
+    document.body.classList.remove("in-random-mobile-chat");
+    
     RandomState.userId = generateStrangerID();
     const inputField = $("random-fake-id");
     if (inputField) inputField.value = RandomState.userId;
 
-    // RESTORE THE SETUP UI SAFELY
     const chatUI = $("random-chat-interface");
     if (chatUI) {
-        chatUI.style.cssText = "display: none !important;";
+        chatUI.style.display = "none";
         chatUI.classList.add("hidden");
     }
     
@@ -2645,7 +2652,7 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
     if (header) header.style.display = "block";
     
     const chatBox = $("random-chat-box");
-    if (chatBox) chatBox.innerHTML = ""; // Wipe previous chat completely
+    if (chatBox) chatBox.innerHTML = ""; 
 
     const startBtn = $("btn-start-random");
     if (startBtn) {
@@ -2655,17 +2662,84 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
     }
     $("btn-stop-random")?.classList.add("hidden");
     
-    // 🚨 AUTO-RECONNECT LOGIC: Automatically loop them back into the matrix
     if (shouldAutoReconnect) {
         const autoReconnect = $("random-auto-reconnect");
         if (autoReconnect && autoReconnect.checked) {
-            setTimeout(startRandomChat, 500); // Start searching again (adds +1 to queue)
+            setTimeout(startRandomChat, 500); 
         } else {
             alert("Stranger disconnected or matrix busy. Kindly try again.");
         }
     }
 };
 
+const launchStrangerChatInterface = (roomData) => {
+    if (typeof playSound === "function") playSound("receive");
+    const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
+    
+    State.isRandomChat = true; 
+    State.activeContact = targetId; 
+
+    $("random-setup-container").style.display = "none";
+    const header = $("random-view-header");
+    if (header) header.style.display = "none";
+    
+    const chatUI = $("random-chat-interface");
+    if (chatUI) {
+        chatUI.classList.remove("hidden");
+        chatUI.style.display = "flex";
+        
+        // 🚨 FIX 2: Apply a CSS Class instead of injecting destructive inline code
+        if (window.innerWidth <= 992) {
+            document.body.classList.add("in-random-mobile-chat");
+        } else {
+            chatUI.style.height = "100%";
+        }
+    }
+
+    const nameEl = $("random-target-name");
+    if (nameEl) nameEl.textContent = targetId;
+    
+    const avatarEl = $("random-target-avatar");
+    if (avatarEl) avatarEl.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
+
+    const chatBox = $("random-chat-box");
+    if (chatBox) {
+        chatBox.innerHTML = `
+            <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
+                <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
+                <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
+            </div>`;
+            
+        if (typeof window.bindMatrixInteractions === "function") {
+            window.bindMatrixInteractions("random-chat-box", "vani_random");
+        }
+    }
+    
+    // 🚨 FIX 1: Bypass Supabase Filters entirely. Listen to ALL Random inserts, and filter via JS.
+    RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random" }, (p) => {
+            const msg = p.new;
+            // 🚨 GUARANTEED DELIVERY CHECK
+            if (msg.room_id === roomData.room_id && msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
+                appendBubble({
+                    id: msg.id,
+                    sender_mobile: targetId, 
+                    content: msg.content,
+                    created_at: msg.created_at,
+                    is_liked: msg.is_liked
+                }, true, "random-chat-box");
+                if (typeof playSound === "function") playSound("receive");
+            }
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random" }, (p) => {
+            const row = p.new;
+            if (row.room_id === roomData.room_id && row.status === 'closed') {
+                alert("Stranger disconnected. Connection lost.");
+                abortRandomSearch(true); 
+            }
+        })
+        .subscribe();
+};
 const startRandomChat = async () => {
     const btn = $("btn-start-random");
     if (btn) {
@@ -2704,83 +2778,6 @@ const startRandomChat = async () => {
         alert("Matrix Error: " + err.message);
         abortRandomSearch(false);
     }
-};
-
-const launchStrangerChatInterface = (roomData) => {
-    if (typeof playSound === "function") playSound("receive");
-    const targetId = roomData.user1_id === RandomState.userId ? roomData.user2_id : roomData.user1_id;
-    
-    State.isRandomChat = true; 
-    State.activeContact = targetId; 
-
-    $("random-setup-container").style.display = "none";
-    const header = $("random-view-header");
-    if (header) header.style.display = "none";
-    
-    const chatUI = $("random-chat-interface");
-    if (chatUI) {
-        chatUI.classList.remove("hidden");
-        
-        // 🚨 ISSUE 3 FIXED: Explicit inline CSS for Mobile. 
-        // This overrides all `style.css` rules that were making the screen blank.
-        if (window.innerWidth <= 992) {
-            chatUI.style.cssText = "display: flex !important; flex-direction: column !important; position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100dvh !important; z-index: 9999999 !important; background: var(--bg-deep) !important; border-radius: 0 !important; padding: 0 !important; margin: 0 !important;";
-            
-            const headerBar = chatUI.querySelector('.chat-header-bar');
-            if(headerBar) headerBar.style.cssText = "flex-shrink: 0 !important; padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px !important; background: rgba(8,8,11,0.95) !important; border-bottom: 1px solid var(--glass-border) !important;";
-            
-            const inputBar = chatUI.querySelector('.message-input-console');
-            if(inputBar) inputBar.style.cssText = "flex-shrink: 0 !important; padding: 10px 15px max(15px, env(safe-area-inset-bottom)) 15px !important; background: #08080b !important; border-top: 1px solid var(--glass-border) !important;";
-            
-            const boxStream = chatUI.querySelector('.chat-box-stream');
-            if(boxStream) boxStream.style.cssText = "flex: 1 1 auto !important; height: 0 !important; overflow-y: auto !important; padding: 15px !important;";
-        } else {
-            // Standard PC View
-            chatUI.style.cssText = "display: flex !important; flex-direction: column !important; height: 100%;";
-        }
-    }
-
-    const nameEl = $("random-target-name");
-    if (nameEl) nameEl.textContent = targetId;
-    
-    const avatarEl = $("random-target-avatar");
-    if (avatarEl) avatarEl.src = `https://api.dicebear.com/7.x/identicon/svg?seed=${targetId}`;
-
-    const chatBox = $("random-chat-box");
-    if (chatBox) {
-        chatBox.innerHTML = `
-            <div class="empty-state" style="margin-top:20px; border: 1px solid var(--neon-primary); padding: 15px; border-radius: 12px; background: rgba(var(--neon-rgb), 0.05);">
-                <p style="color: var(--neon-primary); font-weight: bold;">Anonymous Tunnel Secured.</p>
-                <p style="font-size:0.8rem; color:var(--text-muted);">This chat is ephemeral and completely isolated. Be respectful.</p>
-            </div>`;
-            
-        if (typeof window.bindMatrixInteractions === "function") {
-            window.bindMatrixInteractions("random-chat-box", "vani_random");
-        }
-    }
-    
-    RandomState.chatChannel = supabaseClient.channel(`chat_${roomData.room_id}`)
-        .on("postgres_changes", { event: "INSERT", schema: "public", table: "vani_random", filter: `room_id=eq.${roomData.room_id}` }, (p) => {
-            const msg = p.new;
-            if (msg.row_type === 'message' && msg.sender_id !== RandomState.userId) {
-                appendBubble({
-                    id: msg.id,
-                    sender_mobile: targetId, 
-                    content: msg.content,
-                    created_at: msg.created_at,
-                    is_liked: msg.is_liked
-                }, true, "random-chat-box");
-                if (typeof playSound === "function") playSound("receive");
-            }
-        })
-        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "vani_random", filter: `id=eq.${roomData.room_id}` }, (p) => {
-            if (p.new.status === 'closed') {
-                // 🚨 ISSUE 1 FIXED: Immediately alerts you and kicks you out, triggering Auto-Reconnect!
-                alert("Stranger disconnected. Connection lost.");
-                abortRandomSearch(true); 
-            }
-        })
-        .subscribe();
 };
 
 // --- EVENT BINDINGS FOR ISOLATED RANDOM TAB ---
