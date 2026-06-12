@@ -35,7 +35,7 @@
 
 /* 🚨 FIX: Solid Fill, 25% Size, Bold Theme-Adopted Text */
 #matrix-boot-text {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: "Space Grotesk", sans-serif !important;
     font-size: 60px !important;
     font-weight: 700 !important;
     /* Bold and substantial */
@@ -55,7 +55,6 @@
     animation: matrixSolidPulse 2s ease-in-out infinite !important;
 }
 
-
 @keyframes matrixSolidPulse {
 
     0%,
@@ -67,7 +66,9 @@
     50% {
         filter: brightness(1.2);
         transform: scale(1.01);
-        text-shadow: 0 0 30px var(--neon-primary), 0 0 60px rgba(var(--neon-rgb), 0.6) !important;
+        text-shadow:
+            0 0 30px var(--neon-primary),
+            0 0 60px rgba(var(--neon-rgb), 0.6) !important;
     }
 }
 
@@ -82,7 +83,7 @@
 body {
     background-color: var(--bg-deep);
     color: var(--text-main);
-    font-family: 'Outfit', sans-serif;
+    font-family: "Outfit", sans-serif;
     height: 100vh;
     width: 100vw;
     overflow: hidden;
@@ -102,8 +103,12 @@ body {
     height: 100vh;
     z-index: -2;
     background-image:
-        radial-gradient(circle at 15% 50%, rgba(255, 255, 255, 0.01) 0%, transparent 50%),
-        radial-gradient(circle at 85% 30%, rgba(255, 255, 255, 0.015) 0%, transparent 50%);
+        radial-gradient(circle at 15% 50%,
+            rgba(255, 255, 255, 0.01) 0%,
+            transparent 50%),
+        radial-gradient(circle at 85% 30%,
+            rgba(255, 255, 255, 0.015) 0%,
+            transparent 50%);
     background-size: cover;
 }
 
@@ -116,7 +121,9 @@ body {
     height: 60vw;
     border-radius: 50%;
     z-index: -1;
-    background: radial-gradient(circle, rgba(var(--neon-rgb), 0.05) 0%, transparent 70%);
+    background: radial-gradient(circle,
+            rgba(var(--neon-rgb), 0.05) 0%,
+            transparent 70%);
     filter: blur(80px);
     pointer-events: none;
     transition: background 1.5s ease;
@@ -129,8 +136,12 @@ body {
     -webkit-backdrop-filter: blur(24px);
     border: 1px solid var(--glass-border);
     border-radius: 20px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 0 var(--glass-highlight);
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 var(--glass-highlight);
+    transition:
+        border-color 0.4s ease,
+        box-shadow 0.4s ease;
 }
 
 /* --- Layout Architecture --- */
@@ -147,7 +158,9 @@ body {
     width: 280px;
     height: 100dvh;
     /* 🚨 FIX: Changed to dvh (Dynamic Viewport Height) */
-    background: linear-gradient(180deg, rgba(8, 8, 12, 0.8) 0%, rgba(3, 3, 5, 0.9) 100%);
+    background: linear-gradient(180deg,
+            rgba(8, 8, 12, 0.8) 0%,
+            rgba(3, 3, 5, 0.9) 100%);
     border-right: 1px solid var(--glass-border);
     display: flex;
     flex-direction: column;
@@ -160,7 +173,7 @@ body {
 }
 
 .brand-logo {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     font-size: 2rem;
     font-weight: 700;
     letter-spacing: 4px;
@@ -343,7 +356,7 @@ body {
 }
 
 .view-header h2 {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     font-size: 2.2rem;
     font-weight: 700;
     text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
@@ -384,7 +397,7 @@ select {
 .glow-btn {
     padding: 15px 25px;
     border-radius: 12px;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1px;
@@ -400,7 +413,9 @@ select {
 .glow-btn:hover {
     background: var(--neon-primary);
     color: #000;
-    box-shadow: 0 0 25px var(--neon-primary), 0 0 50px rgba(var(--neon-rgb), 0.4);
+    box-shadow:
+        0 0 25px var(--neon-primary),
+        0 0 50px rgba(var(--neon-rgb), 0.4);
     transform: translateY(-2px);
 }
 
@@ -477,7 +492,9 @@ select {
 .lb-list li.active {
     background: rgba(255, 255, 255, 0.05);
     border-color: rgba(var(--neon-rgb), 0.4);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2), inset 0 0 15px rgba(var(--neon-rgb), 0.1);
+    box-shadow:
+        0 5px 15px rgba(0, 0, 0, 0.2),
+        inset 0 0 15px rgba(var(--neon-rgb), 0.1);
     transform: translateX(1px);
 }
 
@@ -766,11 +783,11 @@ select {
 }
 
 .typing-dot:nth-child(2) {
-    animation-delay: .2s;
+    animation-delay: 0.2s;
 }
 
 .typing-dot:nth-child(3) {
-    animation-delay: .4s;
+    animation-delay: 0.4s;
 }
 
 @keyframes typingBounce {
@@ -779,7 +796,7 @@ select {
     80%,
     100% {
         transform: translateY(0);
-        opacity: .4;
+        opacity: 0.4;
     }
 
     40% {
@@ -789,28 +806,25 @@ select {
 }
 
 .message-enter {
-    animation:
-        messageEnter .25s ease;
+    animation: messageEnter 0.25s ease;
 }
 
 @keyframes messageEnter {
     from {
         opacity: 0;
-        transform:
-            translateY(12px) scale(.96);
+        transform: translateY(12px) scale(0.96);
     }
 
     to {
         opacity: 1;
-        transform:
-            translateY(0) scale(1);
+        transform: translateY(0) scale(1);
     }
 }
 
 #contacts-list li {
     transition:
-        transform .2s ease,
-        box-shadow .2s ease;
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .online-pulse {
@@ -827,8 +841,7 @@ select {
     inset: 0;
     border-radius: 50%;
     background: #00ff88;
-    animation:
-        onlinePulse 2s infinite;
+    animation: onlinePulse 2s infinite;
 }
 
 @keyframes onlinePulse {
@@ -862,12 +875,10 @@ select {
     pointer-events: none;
     background:
         radial-gradient(circle at 20% 30%,
-            rgba(var(--neon-rgb),
-                .08),
+            rgba(var(--neon-rgb), 0.08),
             transparent 30%),
         radial-gradient(circle at 80% 70%,
-            rgba(var(--neon-rgb),
-                .08),
+            rgba(var(--neon-rgb), 0.08),
             transparent 30%);
 }
 
@@ -882,7 +893,7 @@ select {
     bottom: 4px;
 
     font-size: 0.65rem;
-    opacity: .65;
+    opacity: 0.65;
 }
 
 .mobile-overlay {
@@ -1127,7 +1138,7 @@ select {
     bottom: 0;
     background-color: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: .4s;
+    transition: 0.4s;
     border-radius: 34px;
 }
 
@@ -1183,7 +1194,7 @@ select {
 }
 
 #profile-name {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     font-size: 1.8rem;
     color: var(--text-main);
 }
@@ -1324,7 +1335,9 @@ select {
     -webkit-user-select: none;
     touch-action: manipulation;
     /* Tells mobile browsers to allow fast double-taps */
-    transition: transform 0.2s var(--bezier-bounce), opacity 0.2s ease;
+    transition:
+        transform 0.2s var(--bezier-bounce),
+        opacity 0.2s ease;
 }
 
 .message-deleted {
@@ -1350,7 +1363,9 @@ select {
     margin-left: auto;
     /* Pushes it strictly to the right side */
     box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);
-    transition: background 0.3s ease, box-shadow 0.3s ease;
+    transition:
+        background 0.3s ease,
+        box-shadow 0.3s ease;
     flex-shrink: 0;
     z-index: 10;
 }
@@ -1464,7 +1479,7 @@ select {
 /* 1. Sidebar & Grid Contact Handles (Soft & Clean) */
 #contacts-list p,
 .directory-card p {
-    font-family: 'Outfit', sans-serif !important;
+    font-family: "Outfit", sans-serif !important;
     font-weight: 500 !important;
     letter-spacing: 0.5px !important;
     font-size: 0.9rem !important;
@@ -1472,7 +1487,7 @@ select {
 
 /* 2. Personal Profile View Handle (Bold & Cyberpunk) */
 #profile-handle-display {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: "Space Grotesk", sans-serif !important;
     font-weight: 700 !important;
     letter-spacing: 1.5px !important;
 }
@@ -1480,7 +1495,7 @@ select {
 /* 3. The Claim Modal @ Symbol and Input (Sharp & Modern) */
 #claim-handle-modal span,
 #claim-handle-input {
-    font-family: 'Space Grotesk', sans-serif !important;
+    font-family: "Space Grotesk", sans-serif !important;
     font-weight: 600 !important;
     letter-spacing: 1px !important;
 }
@@ -1541,7 +1556,6 @@ select {
     will-change: transform, opacity !important;
     -webkit-backface-visibility: hidden !important;
     backface-visibility: hidden !important;
-
 }
 
 /* ========================================================== */
@@ -1696,4 +1710,228 @@ select {
 
 #random-fake-id {
     font-family: Outfit !important;
+}
+
+/* ========================================================== */
+/* 💎 VANI V4.0: ULTIMATE ARCHITECTURAL OVERRIDE              */
+/* ========================================================== */
+
+/* ----------------------------------------------------------
+   1. HARDWARE ACCELERATION & LIGHTHOUSE PERFORMANCE
+   ---------------------------------------------------------- */
+* {
+    /* Optimizes paint layers for 120fps scrolling */
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    /* Accessibility requirement for Lighthouse 100/100 */
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+input:focus-visible,
+button:focus-visible {
+    /* A11Y Keyboard Navigation */
+    outline: 2px solid var(--neon-primary) !important;
+    outline-offset: 2px !important;
+}
+
+/* ----------------------------------------------------------
+   2. SPRING PHYSICS & KINETIC INTERACTIONS
+   ---------------------------------------------------------- */
+.glow-btn {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.4s ease,
+        background 0.4s ease,
+        color 0.4s ease !important;
+}
+
+.glow-btn:active {
+    transform: scale(0.93) translateY(2px) !important;
+}
+
+.lb-list li {
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        background 0.3s ease,
+        box-shadow 0.3s ease !important;
+}
+
+/* ----------------------------------------------------------
+   3. DEEP DARK MODE ENHANCEMENTS (Smooth Glass & Orbs)
+   ---------------------------------------------------------- */
+.glass-panel {
+    /* Hyper-smooth frosted glass with saturation boost */
+    background: linear-gradient(145deg, rgba(20, 20, 26, 0.5) 0%, rgba(10, 10, 15, 0.7) 100%) !important;
+    backdrop-filter: blur(28px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+@keyframes floatOrb {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    }
+
+    33% {
+        transform: translate(-45%, -55%) rotate(120deg) scale(1.1);
+    }
+
+    66% {
+        transform: translate(-55%, -45%) rotate(240deg) scale(0.9);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg) scale(1);
+    }
+}
+
+.neon-ambient-glow {
+    /* Adds cinematic movement to the background glow */
+    animation: floatOrb 25s infinite cubic-bezier(0.4, 0, 0.2, 1) !important;
+    opacity: 0.7 !important;
+    mix-blend-mode: screen;
+}
+
+/* ----------------------------------------------------------
+   4. THE NEW "ARCTIC FROST" LIGHT THEME (Pro Override)
+   ---------------------------------------------------------- */
+/* We use `html body[...]` to mathematically overpower the JS injection */
+
+html body[data-theme="light"] {
+    /* Premium Slate & Pearl Palette */
+    --bg-deep: #f4f7fb !important;
+    --text-main: #0f172a !important;
+    /* Deep Slate for perfect contrast */
+    --text-muted: #64748b !important;
+    --glass-border: rgba(15, 23, 42, 0.08) !important;
+    --glass-highlight: rgba(255, 255, 255, 1) !important;
+}
+
+/* Light Theme Background & Mesh */
+html body[data-theme="light"] .ambient-texture {
+    background-image:
+        radial-gradient(circle at 10% 10%, rgba(var(--neon-rgb), 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(var(--neon-rgb), 0.05) 0%, transparent 40%),
+        linear-gradient(135deg, #f4f7fb 0%, #e2e8f0 100%) !important;
+    z-index: -3 !important;
+}
+
+html body[data-theme="light"] .neon-ambient-glow {
+    display: none !important;
+    /* Too messy for clean light mode */
+}
+
+/* Light Theme Panels */
+html body[data-theme="light"] .glass-panel,
+html body[data-theme="light"] .mobile-header,
+html body[data-theme="light"] .chat-header-bar {
+    background: rgba(255, 255, 255, 0.65) !important;
+    backdrop-filter: blur(30px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
+    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.04),
+        inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Light Theme Side Nav */
+html body[data-theme="light"] .side-nav {
+    background: rgba(248, 250, 252, 0.85) !important;
+    border-right: 1px solid var(--glass-border) !important;
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Typography & Neon Optics Fixes for White Backgrounds */
+html body[data-theme="light"] .brand-logo,
+html body[data-theme="light"] #chat-with-name {
+    background: none !important;
+    -webkit-text-fill-color: #0f172a !important;
+    color: #0f172a !important;
+    filter: none !important;
+    text-shadow: none !important;
+    font-weight: 800 !important;
+}
+
+html body[data-theme="light"] h1,
+html body[data-theme="light"] h2,
+html body[data-theme="light"] h3 {
+    color: #0f172a !important;
+}
+
+/* Light Theme Inputs */
+html body[data-theme="light"] input,
+html body[data-theme="light"] select,
+html body[data-theme="light"] .message-input-console {
+    background: rgba(255, 255, 255, 0.9) !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02) !important;
+}
+
+html body[data-theme="light"] input:focus {
+    background: #ffffff !important;
+    border-color: var(--neon-primary) !important;
+    box-shadow: 0 0 0 3px rgba(var(--neon-rgb), 0.15) !important;
+    transform: translateY(-1px);
+}
+
+html body[data-theme="light"] input::placeholder {
+    color: #94a3b8 !important;
+}
+
+/* Light Theme Chat Bubbles */
+html body[data-theme="light"] .message-enter[data-is-me="false"] .chat-bubble {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.03) !important;
+    color: #1e293b !important;
+}
+
+html body[data-theme="light"] .message-enter[data-is-me="true"] .chat-bubble {
+    background: rgba(var(--neon-rgb), 0.1) !important;
+    border: 1px solid rgba(var(--neon-rgb), 0.2) !important;
+    box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.05) !important;
+    color: #0f172a !important;
+}
+
+/* Light Theme Buttons - Auto-Adjusts Neon colors so they don't vanish on white */
+html body[data-theme="light"] .glow-btn,
+html body[data-theme="light"] .icon-send-btn {
+    background: #ffffff !important;
+    color: var(--neon-primary) !important;
+    filter: brightness(0.65) saturate(1.5) !important;
+    /* Dims neon to read perfectly on white */
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
+    font-weight: 800 !important;
+}
+
+html body[data-theme="light"] .glow-btn:hover,
+html body[data-theme="light"] .icon-send-btn:hover {
+    background: var(--neon-primary) !important;
+    color: #ffffff !important;
+    filter: brightness(0.9) saturate(1.1) !important;
+    box-shadow: 0 8px 25px rgba(var(--neon-rgb), 0.3) !important;
+    border-color: transparent !important;
+}
+
+/* Light Mode Menus */
+html body[data-theme="light"] .menu-item {
+    color: #475569 !important;
+}
+
+html body[data-theme="light"] .menu-item.active-menu {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.08) !important;
+    box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04) !important;
+}
+
+html body[data-theme="light"] .menu-item.active-menu .menu-icon {
+    color: var(--neon-primary) !important;
+    filter: brightness(0.7) !important;
 }
