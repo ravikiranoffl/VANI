@@ -1141,6 +1141,68 @@ const initRealtime = async () => {
 };
 
 // ==========================================================
+// 🔊 EXPERIMENTAL AUDIO ROUTING (SPEAKER / EARPIECE)
+// ==========================================================
+let isSpeakerMode = true;
+
+const toggleAudioOutput = async () => {
+  const audioEl = document.getElementById("remote-audio-stream");
+  const icon = document.getElementById("speaker-icon");
+
+  // Check if the browser supports changing the output device (iOS Safari does NOT)
+  if (!audioEl.setSinkId) {
+    alert("Audio routing is restricted by your browser/OS (common on iOS).");
+    return;
+  }
+
+  try {
+    // Request permission to query devices
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    // Filter for audio output devices
+    const audioOutputs = devices.filter(
+      (device) => device.kind === "audiooutput",
+    );
+
+    if (audioOutputs.length < 2) {
+      alert("No alternative audio outputs detected by the browser.");
+      return;
+    }
+
+    // Simplistic toggle logic: If we are on device 0, switch to device 1.
+    // (Note: Device names/IDs vary wildly between Android phones)
+    if (isSpeakerMode) {
+      // Attempt to find an earpiece/default communications device
+      const earpiece =
+        audioOutputs.find(
+          (d) =>
+            d.label.toLowerCase().includes("earpiece") ||
+            d.label.toLowerCase().includes("phone"),
+        ) || audioOutputs[1];
+      await audioEl.setSinkId(earpiece.deviceId);
+      icon.className = "fa-solid fa-volume-low";
+      isSpeakerMode = false;
+    } else {
+      // Switch back to main speaker
+      const speaker =
+        audioOutputs.find((d) => d.label.toLowerCase().includes("speaker")) ||
+        audioOutputs[0];
+      await audioEl.setSinkId(speaker.deviceId);
+      icon.className = "fa-solid fa-volume-high";
+      isSpeakerMode = true;
+    }
+  } catch (err) {
+    console.error("Audio Routing Failed:", err);
+    alert("Failed to switch audio output. " + err.message);
+  }
+};
+
+document
+  .getElementById("toggle-speaker-btn")
+  ?.addEventListener("click", toggleAudioOutput);
+
+// ==========================================================
 // 6. INIT & UTILS
 // ==========================================================
 
@@ -1816,6 +1878,9 @@ const initWebRTC = async () => {
         $("call-status-text").innerHTML =
           `<span style="color:#00ff88; font-weight:bold; letter-spacing: 4px;">🟢 UPLINK LIVE</span>`;
         $("call-target-avatar").style.borderColor = "#00ff88";
+
+        // REVEAL THE SPEAKER BUTTON WHEN CONNECTED
+        $("toggle-speaker-btn").classList.remove("hidden");
       } else if (state === "disconnected" || state === "failed") {
         endCall(true);
       }
@@ -1890,6 +1955,7 @@ const endCall = (wasAnswered = false) => {
 
   stopCallTimerAndLog(wasAnswered);
   closeCallUI();
+  $("toggle-speaker-btn").classList.add("hidden");
 
   // Reset State
   CallState.isActive = false;

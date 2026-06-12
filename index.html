@@ -476,33 +476,43 @@
     </section>
   </div>
   <div id="active-call-matrix" class="hidden"
-    style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100dvh; background: rgba(3, 3, 5, 0.85); z-index: 9999998; backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); align-items: center; justify-content: center; flex-direction: column;">
+    style="display: none; position: fixed; inset: 0; background: rgba(3, 3, 5, 0.85); z-index: 9999998; backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); align-items: center; justify-content: center; padding: 20px;">
     <div class="glass-panel"
-      style="padding: 40px; width: 100%; max-width: 400px; height: 100%; max-height: 600px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 1px solid var(--neon-primary); box-shadow: 0 0 40px rgba(var(--neon-rgb), 0.15); transition: border-color 0.1s, box-shadow 0.1s;">
+      style="width: 100%; max-width: 400px; max-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 1px solid var(--neon-primary); box-shadow: 0 0 40px rgba(var(--neon-rgb), 0.15); padding: clamp(20px, 5vh, 40px); border-radius: 24px;">
 
-      <div style="text-align: center; margin-top: 20px;">
+      <div style="text-align: center; width: 100%;">
         <p id="call-status-text"
-          style="color: var(--text-muted); font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 15px;">
+          style="color: var(--text-muted); font-size: clamp(0.9rem, 2vw, 1.1rem); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
           Calling...</p>
         <h2 id="call-target-name"
-          style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--text-main); margin: 0;">Target
-          Node</h2>
+          style="font-family: 'Space Grotesk', sans-serif; font-size: clamp(1.5rem, 6vw, 2rem); color: var(--text-main); margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          Target Node</h2>
         <p id="call-duration-timer" class="hidden"
           style="font-family: monospace; font-size: 1.2rem; color: var(--neon-primary); margin-top: 10px; text-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);">
           00:00</p>
       </div>
 
-      <img id="call-target-avatar" src="" alt="Target"
-        style="width: 140px; height: 140px; border-radius: 50%; border: 3px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.4); object-fit: cover; animation: pulseAvatar 2s infinite;" />
+      <div style="margin: 30px 0; position: relative;">
+        <img id="call-target-avatar" src="" alt="Target"
+          style="width: clamp(100px, 30vw, 160px); height: clamp(100px, 30vw, 160px); border-radius: 50%; border: 3px solid var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.4); object-fit: cover; animation: pulseAvatar 2s infinite;" />
+      </div>
 
-      <div style="display: flex; gap: 20px; width: 100%; justify-content: center; margin-bottom: 20px;">
+      <div style="display: flex; gap: 20px; width: 100%; justify-content: center; align-items: center;">
+
+        <button id="toggle-speaker-btn" class="glow-btn hidden"
+          style="display: flex; align-items: center; justify-content: center; border-color: var(--text-muted); color: var(--text-muted); width: 50px; height: 50px; border-radius: 50%; font-size: 1.2rem; padding: 0; background: transparent;">
+          <i class="fa-solid fa-volume-high" id="speaker-icon"></i>
+        </button>
+
         <button id="decline-call-btn" class="glow-btn"
-          style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #ff4d4d; color: #ff4d4d; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;"><i
-            class="fa-solid fa-phone-slash"></i></button>
+          style="display: flex; align-items: center; justify-content: center; border-color: #ff4d4d; color: #ff4d4d; background: rgba(255, 77, 77, 0.1); width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0;">
+          <i class="fa-solid fa-phone-slash"></i>
+        </button>
 
         <button id="accept-call-btn" class="glow-btn hidden"
-          style="display: flex; align-items: center; justify-content: center; letter-spacing: 0; border-color: #00ff88; color: #00ff88; width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);"><i
-            class="fa-solid fa-phone-volume"></i></button>
+          style="display: flex; align-items: center; justify-content: center; border-color: #00ff88; color: #00ff88; background: rgba(0, 255, 136, 0.1); width: 70px; height: 70px; border-radius: 50%; font-size: 1.5rem; padding: 0; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);">
+          <i class="fa-solid fa-phone-volume"></i>
+        </button>
       </div>
 
       <audio id="remote-audio-stream" autoplay playsinline></audio>
