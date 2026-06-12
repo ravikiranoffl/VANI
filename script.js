@@ -954,8 +954,31 @@ setTimeout(() => {
   if (msgInput) {
     const newMsgInput = msgInput.cloneNode(true);
     msgInput.parentNode.replaceChild(newMsgInput, msgInput);
+
+    // 1. Enter Key Listener
     newMsgInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendMsg(e);
+    });
+
+    // 🚨 2. RESTORED: Typing Signal Emitter (Throttled)
+    let typingThrottle = false;
+    newMsgInput.addEventListener("input", () => {
+      // Only broadcast if the channel is active and we are in a chat
+      if (!typingThrottle && State.channel && State.activeContact) {
+        typingThrottle = true;
+
+        // Fire the invisible WebRTC/Broadcast signal to the other user
+        State.channel.send({
+          type: "broadcast",
+          event: "typing",
+          payload: { sender: State.mobile, recipient: State.activeContact },
+        });
+
+        // Throttle: Only send the signal once per second to prevent flooding the server
+        setTimeout(() => {
+          typingThrottle = false;
+        }, 1000);
+      }
     });
   }
 }, 500);
