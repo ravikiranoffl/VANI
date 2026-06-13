@@ -222,6 +222,10 @@ const evalSession = async () => {
 
     toggleUI(true);
 
+    if (State.profile && !State.profile.welcomed_by_helpline) {
+      await triggerHelplineWelcome();
+    }
+
     // 🚨 FIX: Safely wipe the login/register forms ONLY after a successful boot!
     $("login-form")?.reset();
     $("register-form")?.reset();
@@ -1526,7 +1530,6 @@ const updatePresenceUI = () => {
 const initPresence = async () => {
   if (!State.mobile) return;
 
-  // 🚨 FIX: AWAIT the removal
   if (State.presenceChannel) {
     await supabaseClient.removeChannel(State.presenceChannel);
     State.presenceChannel = null;
@@ -1537,7 +1540,6 @@ const initPresence = async () => {
 
   State.presenceChannel
     .on("presence", { event: "sync" }, () => {
-      // Someone joined or left! Rebuild the list of online users.
       const newState = State.presenceChannel.presenceState();
       State.onlineUsers.clear();
       for (const id in newState) {
@@ -1549,7 +1551,16 @@ const initPresence = async () => {
     })
     .subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        // Announce to the network that YOU are online
+        // 🔐 GHOST PROTOCOL BRAKE:
+        // Notice we check State.profile.vani_id to see if you are logged in as helpline
+        if (State.profile && State.profile.vani_id === "helpline") {
+          console.log(
+            "🕵️ Stealth Mode Activated: Presence broadcasting suppressed for @helpline.",
+          );
+          return;
+        }
+
+        // Announce to the network that YOU are online (Only for normal users)
         await State.presenceChannel.track({
           mobile: State.mobile,
           online_at: new Date().toISOString(),
@@ -3464,6 +3475,40 @@ async function linkDeviceToOneSignal() {
     console.log(`🔗 Device hard-linked to node: ${State.mobile}`);
   });
 }
+
+async function triggerHelplineWelcome() {
+  console.log("🤖 First-time user detected. Initializing Helpline Uplink...");
+
+  // 1. Define Helpline Identity
+  const HELPLINE_MOBILE = "8185942428";
+  const welcomeText = `Thanks for registering with us, ${State.profile.name || "Operator"}! Welcome to VANI. You can ask any questions or report issues directly in this secure channel. How can we assist you today?`;
+
+  try {
+    // 2. Inject the message directly from @helpline to the new user
+    const { error: msgError } = await supabaseClient.from("messages").insert({
+      sender_mobile: HELPLINE_MOBILE,
+      recipient_mobile: State.mobile,
+      content: welcomeText,
+      created_at: new Date().toISOString(),
+    });
+
+    if (msgError) throw msgError;
+
+    // 3. Mark user as welcomed so this never fires again
+    await supabaseClient
+      .from("profiles")
+      .update({ welcomed_by_helpline: true })
+      .eq("id", State.user.id);
+
+    console.log("🟢 Helpline Welcome Transmission Successful.");
+
+    // 4. Force UI refresh so the Helpline instantly appears in their sidebar
+    if (typeof syncContacts === "function") await syncContacts();
+  } catch (err) {
+    console.error("❌ Helpline Welcome Protocol Failed:", err);
+  }
+}
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
