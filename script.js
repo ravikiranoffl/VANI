@@ -3386,6 +3386,85 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
   }
 });
 
+// ==========================================================
+// 🔔 VANI LITE NOTIFICATION ENGINE (ZERO-DATABASE APPEND)
+// ==========================================================
+(function initLiteNotifications() {
+  // 1. Request OS Permission silently on boot (if not already granted/denied)
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().catch((err) =>
+      console.warn("VANI: Notification request dismissed."),
+    );
+  }
+
+  // 2. Delay initialization to ensure the main VANI State is fully booted
+  setTimeout(() => {
+    if (!State || !State.mobile) return;
+
+    console.log("🔔 VANI Lite Notifications Armed.");
+
+    // 3. Create an isolated sub-channel just for background alerts
+    supabaseClient
+      .channel("vani_lite_notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `recipient_mobile=eq.${State.mobile}`,
+        },
+        (payload) => {
+          const msg = payload.new;
+
+          // 4. SMART TRIGGER: Only fire if the tab is hidden OR they are looking at a different chat
+          const isActivelyViewingChat =
+            document.visibilityState === "visible" &&
+            State.activeContact === msg.sender_mobile;
+
+          if (!isActivelyViewingChat && Notification.permission === "granted") {
+            // 5. DYNAMIC CUSTOMIZATION: Read the DOM to find the sender's real name and avatar instantly (Zero DB calls!)
+            let senderName = "Unknown Node";
+            let senderAvatar =
+              "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon&backgroundColor=030305";
+
+            const contactCard = document.querySelector(
+              `li[data-mobile="${msg.sender_mobile}"]`,
+            );
+            if (contactCard) {
+              senderName =
+                contactCard.querySelector("h3")?.textContent || senderName;
+              senderAvatar =
+                contactCard.querySelector("img")?.src || senderAvatar;
+            }
+
+            // 6. SANITIZE CONTENT (Hide raw Call Log syntax)
+            const bodyText = msg.content.startsWith("[CALL_LOG:")
+              ? "📞 Missed Voice Transmission"
+              : msg.content;
+
+            // 7. FIRE OS NOTIFICATION
+            const notification = new Notification(`VANI: ${senderName}`, {
+              body: bodyText,
+              icon: senderAvatar, // Uses their actual profile picture!
+              badge:
+                "https://api.dicebear.com/7.x/shapes/svg?seed=vani-badge&backgroundColor=00f3ff",
+              tag: `vani_chat_${msg.sender_mobile}`, // Groups spam messages into a single clean alert
+              silent: false,
+            });
+
+            // 8. INTERACTION: Clicking the notification focuses the VANI tab automatically
+            notification.onclick = function () {
+              window.focus();
+              this.close();
+            };
+          }
+        },
+      )
+      .subscribe();
+  }, 3500); // 3.5 second delay guarantees evalSession() has finished
+})();
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
