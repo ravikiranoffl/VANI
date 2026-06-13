@@ -3470,7 +3470,7 @@ async function linkDeviceToOneSignal() {
     await OneSignal.Slidedown.promptPush();
 
     // Tag this specific device with the user's matrix number
-    // This allows us to send a push directly to this number later
+    // This allows us tocl send a push directly to this number later
     await OneSignal.User.addAlias("vani_mobile", State.mobile);
     console.log(`🔗 Device hard-linked to node: ${State.mobile}`);
   });
