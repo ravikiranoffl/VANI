@@ -2562,9 +2562,6 @@ window.checkCallButtonVisibility = () => {
       );
 
     // Anti-Impersonation Logic
-    if (cleanHandle.includes(cleanName) || cleanName.includes(cleanHandle))
-      throw new Error("Security Alert: Handle cannot contain your real name.");
-
     const reserved = ["admin", "support", "vani", "official", "system"];
     if (reserved.some((r) => cleanHandle.includes(r)))
       throw new Error("Reserved system keyword detected in handle.");
