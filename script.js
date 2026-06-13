@@ -236,6 +236,7 @@ const evalSession = async () => {
     await syncContacts();
     initRealtime();
     initPresence();
+    linkDeviceToOneSignal();
   } catch (err) {
     console.error("SESSION REJECTED:", err.message);
 
@@ -936,7 +937,56 @@ const sendMsg = async (e) => {
       `Matrix Error: ${error.message}\nDetails: ${error.details || "Check console."}`,
     );
   }
+  if (!error) {
+    // Fire the OS notification to the target!
+    triggerOneSignalPush(State.activeContact, State.profile.name, content);
+  }
 };
+
+// Add this helper function anywhere in script.js
+async function triggerOneSignalPush(
+  recipientMobile,
+  senderName,
+  messageContent,
+) {
+  const ONESIGNAL_APP_ID = "30dfa9ba-710b-474d-a12f-a7a1509cb29f"; // 🚨 REPLACE THIS
+  const ONESIGNAL_REST_API_KEY =
+    "os_v2_app_gdp2totrbndu3ijpu6qvbhfst4x6pixofyiejlnvse55xaprufc32wglh7ywvzfsitysvxh65tn5tchsgol7qskr2nm4tw334qk6i3q"; // 🚨 REPLACE THIS (Keep secret in prod)
+
+  const payload = {
+    app_id: ONESIGNAL_APP_ID,
+    target_channel: "push",
+    // Target the specific user using the alias we set during login
+    include_aliases: {
+      vani_mobile: [recipientMobile],
+    },
+    headings: { en: `VANI: ${senderName}` },
+    contents: { en: messageContent },
+    // Aesthetic overrides to keep your Cyberpunk theme
+    small_icon: "ic_stat_onesignal_default",
+    large_icon:
+      "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon&backgroundColor=030305",
+    android_accent_color: "FF00f3ff", // Your VANI Cyan
+  };
+
+  try {
+    // 🚨 SURGICAL FIX: Routed through corsproxy.io to bypass browser CORS blocking
+    const proxyUrl = "https://corsproxy.io/?";
+    const targetUrl = "https://onesignal.com/api/v1/notifications";
+
+    await fetch(proxyUrl + encodeURIComponent(targetUrl), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    console.log("📡 Push trigger successfully routed through managed server.");
+  } catch (e) {
+    console.error("VANI Push Failed:", e);
+  }
+}
 
 // 🚨 BINDING THE PHYSICAL BUTTONS TO THE ENGINE
 // We do this immediately so the UI is strictly locked to the function
@@ -3387,86 +3437,36 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
 });
 
 // ==========================================================
-// 🔔 VANI OS-LEVEL NOTIFICATION ENGINE (SERVICE WORKER UPGRADE)
+// 🚀 ONESIGNAL MANAGED PUSH PROTOCOL (A1)
 // ==========================================================
-(async function initLiteNotifications() {
-  // 1. Request OS Permission silently
-  if ("Notification" in window && Notification.permission === "default") {
-    await Notification.requestPermission().catch(() =>
-      console.warn("VANI: Permission dismissed."),
-    );
-  }
 
-  // 2. 🚨 THE FIX: Android REQUIRES a Service Worker to show notifications outside Chrome.
-  let registration;
-  if ("serviceWorker" in navigator) {
-    try {
-      registration = await navigator.serviceWorker.register("sw.js");
-    } catch (err) {
-      console.error(
-        "VANI: Failed to register sw.js. Make sure the file exists!",
-        err,
-      );
-    }
-  }
+window.OneSignalDeferred = window.OneSignalDeferred || [];
 
-  // 3. Delay initialization to ensure the main VANI State is fully booted
-  setTimeout(() => {
-    if (!State || !State.mobile || !registration) return;
+OneSignalDeferred.push(async function (OneSignal) {
+  await OneSignal.init({
+    appId: "30dfa9ba-710b-474d-a12f-a7a1509cb29f",
+    safari_web_id: "web.onesignal.auto.1997779e-e1de-41f4-ac74-4543cfbf0412",
+    notifyButton: {
+      enable: true,
+    },
+  });
+});
 
-    console.log("🔔 VANI Notifications Armed (OS-Bypass Active).");
+// 2. Map the VANI Identity to the Device
+// 🚨 Call this function directly inside evalSession() right after it succeeds!
+async function linkDeviceToOneSignal() {
+  if (!State || !State.mobile) return;
 
-    supabaseClient
-      .channel("vani_lite_notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `recipient_mobile=eq.${State.mobile}`,
-        },
-        (payload) => {
-          const msg = payload.new;
-          const isActivelyViewingChat =
-            document.visibilityState === "visible" &&
-            State.activeContact === msg.sender_mobile;
+  OneSignalDeferred.push(async function (OneSignal) {
+    // Ask for permission cleanly via the OS
+    await OneSignal.Slidedown.promptPush();
 
-          if (!isActivelyViewingChat && Notification.permission === "granted") {
-            let senderName = "Unknown Node";
-            let senderAvatar =
-              "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon";
-
-            const contactCard = document.querySelector(
-              `li[data-mobile="${msg.sender_mobile}"]`,
-            );
-            if (contactCard) {
-              senderName =
-                contactCard.querySelector("h3")?.textContent || senderName;
-              senderAvatar =
-                contactCard.querySelector("img")?.src || senderAvatar;
-            }
-
-            const bodyText = msg.content.startsWith("[CALL_LOG:")
-              ? "📞 Missed Voice Transmission"
-              : msg.content;
-
-            // 4. 🚨 THE FIX: Use the Service Worker to force the OS to show it outside Chrome
-            registration.showNotification(`VANI: ${senderName}`, {
-              body: bodyText,
-              icon: senderAvatar,
-              badge:
-                "https://api.dicebear.com/7.x/shapes/svg?seed=vani-badge&backgroundColor=00f3ff",
-              tag: `vani_chat_${msg.sender_mobile}`,
-              vibrate: [200, 100, 200],
-            });
-          }
-        },
-      )
-      .subscribe();
-  }, 3500);
-})();
-
+    // Tag this specific device with the user's matrix number
+    // This allows us to send a push directly to this number later
+    await OneSignal.User.addAlias("vani_mobile", State.mobile);
+    console.log(`🔗 Device hard-linked to node: ${State.mobile}`);
+  });
+}
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
