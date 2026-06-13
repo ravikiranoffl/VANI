@@ -3387,23 +3387,35 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
 });
 
 // ==========================================================
-// 🔔 VANI LITE NOTIFICATION ENGINE (ZERO-DATABASE APPEND)
+// 🔔 VANI OS-LEVEL NOTIFICATION ENGINE (SERVICE WORKER UPGRADE)
 // ==========================================================
-(function initLiteNotifications() {
-  // 1. Request OS Permission silently on boot (if not already granted/denied)
+(async function initLiteNotifications() {
+  // 1. Request OS Permission silently
   if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission().catch((err) =>
-      console.warn("VANI: Notification request dismissed."),
+    await Notification.requestPermission().catch(() =>
+      console.warn("VANI: Permission dismissed."),
     );
   }
 
-  // 2. Delay initialization to ensure the main VANI State is fully booted
+  // 2. 🚨 THE FIX: Android REQUIRES a Service Worker to show notifications outside Chrome.
+  let registration;
+  if ("serviceWorker" in navigator) {
+    try {
+      registration = await navigator.serviceWorker.register("sw.js");
+    } catch (err) {
+      console.error(
+        "VANI: Failed to register sw.js. Make sure the file exists!",
+        err,
+      );
+    }
+  }
+
+  // 3. Delay initialization to ensure the main VANI State is fully booted
   setTimeout(() => {
-    if (!State || !State.mobile) return;
+    if (!State || !State.mobile || !registration) return;
 
-    console.log("🔔 VANI Lite Notifications Armed.");
+    console.log("🔔 VANI Notifications Armed (OS-Bypass Active).");
 
-    // 3. Create an isolated sub-channel just for background alerts
     supabaseClient
       .channel("vani_lite_notifications")
       .on(
@@ -3416,17 +3428,14 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
         },
         (payload) => {
           const msg = payload.new;
-
-          // 4. SMART TRIGGER: Only fire if the tab is hidden OR they are looking at a different chat
           const isActivelyViewingChat =
             document.visibilityState === "visible" &&
             State.activeContact === msg.sender_mobile;
 
           if (!isActivelyViewingChat && Notification.permission === "granted") {
-            // 5. DYNAMIC CUSTOMIZATION: Read the DOM to find the sender's real name and avatar instantly (Zero DB calls!)
             let senderName = "Unknown Node";
             let senderAvatar =
-              "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon&backgroundColor=030305";
+              "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon";
 
             const contactCard = document.querySelector(
               `li[data-mobile="${msg.sender_mobile}"]`,
@@ -3438,31 +3447,24 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
                 contactCard.querySelector("img")?.src || senderAvatar;
             }
 
-            // 6. SANITIZE CONTENT (Hide raw Call Log syntax)
             const bodyText = msg.content.startsWith("[CALL_LOG:")
               ? "📞 Missed Voice Transmission"
               : msg.content;
 
-            // 7. FIRE OS NOTIFICATION
-            const notification = new Notification(`VANI: ${senderName}`, {
+            // 4. 🚨 THE FIX: Use the Service Worker to force the OS to show it outside Chrome
+            registration.showNotification(`VANI: ${senderName}`, {
               body: bodyText,
-              icon: senderAvatar, // Uses their actual profile picture!
+              icon: senderAvatar,
               badge:
                 "https://api.dicebear.com/7.x/shapes/svg?seed=vani-badge&backgroundColor=00f3ff",
-              tag: `vani_chat_${msg.sender_mobile}`, // Groups spam messages into a single clean alert
-              silent: false,
+              tag: `vani_chat_${msg.sender_mobile}`,
+              vibrate: [200, 100, 200],
             });
-
-            // 8. INTERACTION: Clicking the notification focuses the VANI tab automatically
-            notification.onclick = function () {
-              window.focus();
-              this.close();
-            };
           }
         },
       )
       .subscribe();
-  }, 3500); // 3.5 second delay guarantees evalSession() has finished
+  }, 3500);
 })();
 
 // --- SYSTEM BOOT SEQUENCE ---
