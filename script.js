@@ -222,7 +222,7 @@ const evalSession = async () => {
 
     toggleUI(true);
 
-    if (State.profile && !State.profile.welcomed_by_helpline) {
+    if (State.profile && !State.profile.welcomed_by_vani) {
       await triggerHelplineWelcome();
     }
 
@@ -3497,13 +3497,13 @@ async function triggerHelplineWelcome() {
     // 3. 🚨 THE FIX: Use State.profile.id instead of State.user.id
     const { error: updateErr } = await supabaseClient
       .from("profiles")
-      .update({ welcomed_by_helpline: true })
+      .update({ welcomed_by_vani: true })
       .eq("id", State.profile.id);
 
     if (updateErr) throw updateErr;
 
     // 4. Update local memory so it doesn't loop during this active session
-    State.profile.welcomed_by_helpline = true;
+    State.profile.welcomed_by_vani = true;
 
     console.log("🟢 Helpline Welcome Transmission Successful.");
 
