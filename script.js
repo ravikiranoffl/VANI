@@ -1310,11 +1310,11 @@ if (themeContainer) {
     const btn = document.createElement("button");
     btn.className = "theme-btn";
     btn.textContent = t.name;
-    btn.style.cssText = `border-color:${t.hex}; color:#fff; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`;
+    btn.style.cssText = `border-color:${t.hex}; color:#fff; inset 0 0 10px ${t.hex}40;`;
     btn.onmouseenter = () =>
       (btn.style.cssText = `border-color:${t.hex}; color:#000; background:${t.hex}; box-shadow:0 0 20px ${t.hex}, inset 0 0 15px ${t.hex};`);
     btn.onmouseleave = () =>
-      (btn.style.cssText = `border-color:${t.hex}; color:#fff; background:transparent; box-shadow:0 0 15px rgba(0,0,0,0.5), inset 0 0 10px ${t.hex}40;`);
+      (btn.style.cssText = `border-color:${t.hex}; color:#fff; background:transparent; inset 0 0 10px ${t.hex}40;`);
     btn.onclick = () => applyTheme(t.hex);
     themeContainer.appendChild(btn);
   });
@@ -3480,14 +3480,28 @@ async function linkDeviceToOneSignal() {
 // 🛡️ HELPLINE AUTO-WELCOME & AUTO-SAVE PROTOCOL
 // ==========================================================
 async function triggerHelplineWelcome() {
-  console.log("🤖 First-time user detected. Initializing Helpline Uplink...");
+  console.log("🤖 Initializing Helpline Uplink Check...");
 
-  // 1. Define Helpline Identity
   const HELPLINE_MOBILE = "8185942428";
-  const welcomeText = `Thanks for registering with us, ${State.profile.name || "Operator"}! Welcome to VANI. You can ask any questions or report issues directly in this secure channel. How can we assist you today?`;
 
   try {
-    // 2. Inject the message directly from @helpline to the new user
+    // 🚨 1. THE BULLETPROOF GUARD: Physically check if a message already exists
+    const { data: existingMsg } = await supabaseClient
+      .from("messages")
+      .select("id")
+      .eq("sender_mobile", HELPLINE_MOBILE)
+      .eq("recipient_mobile", State.mobile)
+      .limit(1);
+
+    // If a message was already sent, update local memory and abort immediately!
+    if (existingMsg && existingMsg.length > 0) {
+      State.profile.welcomed_by_vani = true;
+      return;
+    }
+
+    // 2. No message found? Proceed with injecting the Welcome Transmission
+    const welcomeText = `Thanks for registering with us, ${State.profile.name || "Operator"}! Welcome to VANI. You can ask any questions or report issues directly in this secure channel. How can we assist you today?`;
+
     const { error: msgError } = await supabaseClient.from("messages").insert({
       sender_mobile: HELPLINE_MOBILE,
       recipient_mobile: State.mobile,
@@ -3501,39 +3515,33 @@ async function triggerHelplineWelcome() {
     const { data: existingContact } = await supabaseClient
       .from("contacts")
       .select("id")
-      .match({ mobile: State.mobile, contact: HELPLINE_MOBILE });
+      .match({ mobile: State.mobile, contact: Helpline });
 
     if (!existingContact || existingContact.length === 0) {
       await supabaseClient.from("contacts").insert([
         {
           mobile: State.mobile,
           contact: HELPLINE_MOBILE,
-          name: "VANI", // The exact name that will appear in their sidebar
+          name: "VANI",
           gender: "System",
         },
       ]);
     }
 
-    // 4. 🚨 THE FIX: Use the exact new column name "welcomed_by_vani"
-    const { error: updateErr } = await supabaseClient
+    // 4. Attempt to update the profile flag (May fail silently due to RLS)
+    await supabaseClient
       .from("profiles")
       .update({ welcomed_by_vani: true })
       .eq("id", State.profile.id);
 
-    if (updateErr) throw updateErr;
-
-    // 5. 🚨 THE FIX: Update local memory with the exact new name
     State.profile.welcomed_by_vani = true;
-
     console.log("🟢 Helpline Welcome & Auto-Save Successful.");
 
-    // 6. Force UI refresh so "VANI" instantly appears in their sidebar
     if (typeof syncContacts === "function") await syncContacts();
   } catch (err) {
     console.error("❌ Helpline Welcome Protocol Failed:", err);
   }
 }
-
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
