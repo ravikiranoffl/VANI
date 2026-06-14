@@ -3476,6 +3476,9 @@ async function linkDeviceToOneSignal() {
   });
 }
 
+// ==========================================================
+// 🛡️ HELPLINE AUTO-WELCOME & AUTO-SAVE PROTOCOL
+// ==========================================================
 async function triggerHelplineWelcome() {
   console.log("🤖 First-time user detected. Initializing Helpline Uplink...");
 
@@ -3494,25 +3497,44 @@ async function triggerHelplineWelcome() {
 
     if (msgError) throw msgError;
 
-    // 3. 🚨 THE FIX: Use State.profile.id instead of State.user.id
+    // 3. 🚨 NEW: Auto-Save the Helpline as "VANI" in their Contacts Directory
+    // First check if it somehow already exists to prevent duplication errors
+    const { data: existingContact } = await supabaseClient
+      .from("contacts")
+      .select("id")
+      .match({ mobile: State.mobile, contact: HELPLINE_MOBILE });
+
+    if (!existingContact || existingContact.length === 0) {
+      await supabaseClient.from("contacts").insert([
+        {
+          mobile: State.mobile,
+          contact: HELPLINE_MOBILE,
+          name: "VANI", // The exact name that will appear in their sidebar
+          gender: "System",
+        },
+      ]);
+    }
+
+    // 4. Mark user as welcomed so this never fires again
     const { error: updateErr } = await supabaseClient
       .from("profiles")
-      .update({ welcomed_by_vani: true })
+      .update({ welcomed_by_helpline: true })
       .eq("id", State.profile.id);
 
     if (updateErr) throw updateErr;
 
-    // 4. Update local memory so it doesn't loop during this active session
-    State.profile.welcomed_by_vani = true;
+    // Update local memory
+    State.profile.welcomed_by_helpline = true;
 
-    console.log("🟢 Helpline Welcome Transmission Successful.");
+    console.log("🟢 Helpline Welcome & Auto-Save Successful.");
 
-    // 5. Force UI refresh so the Helpline instantly appears in their sidebar
+    // 5. Force UI refresh so "VANI" instantly appears in their sidebar
     if (typeof syncContacts === "function") await syncContacts();
   } catch (err) {
     console.error("❌ Helpline Welcome Protocol Failed:", err);
   }
 }
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
