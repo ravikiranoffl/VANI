@@ -3494,21 +3494,25 @@ async function triggerHelplineWelcome() {
 
     if (msgError) throw msgError;
 
-    // 3. Mark user as welcomed so this never fires again
-    await supabaseClient
+    // 3. 🚨 THE FIX: Use State.profile.id instead of State.user.id
+    const { error: updateErr } = await supabaseClient
       .from("profiles")
       .update({ welcomed_by_helpline: true })
-      .eq("id", State.user.id);
+      .eq("id", State.profile.id);
+
+    if (updateErr) throw updateErr;
+
+    // 4. Update local memory so it doesn't loop during this active session
+    State.profile.welcomed_by_helpline = true;
 
     console.log("🟢 Helpline Welcome Transmission Successful.");
 
-    // 4. Force UI refresh so the Helpline instantly appears in their sidebar
+    // 5. Force UI refresh so the Helpline instantly appears in their sidebar
     if (typeof syncContacts === "function") await syncContacts();
   } catch (err) {
     console.error("❌ Helpline Welcome Protocol Failed:", err);
   }
 }
-
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
