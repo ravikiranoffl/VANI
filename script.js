@@ -3497,8 +3497,7 @@ async function triggerHelplineWelcome() {
 
     if (msgError) throw msgError;
 
-    // 3. 🚨 NEW: Auto-Save the Helpline as "VANI" in their Contacts Directory
-    // First check if it somehow already exists to prevent duplication errors
+    // 3. Auto-Save the Helpline as "VANI" in their Contacts Directory
     const { data: existingContact } = await supabaseClient
       .from("contacts")
       .select("id")
@@ -3515,20 +3514,20 @@ async function triggerHelplineWelcome() {
       ]);
     }
 
-    // 4. Mark user as welcomed so this never fires again
+    // 4. 🚨 THE FIX: Use the exact new column name "welcomed_by_vani"
     const { error: updateErr } = await supabaseClient
       .from("profiles")
-      .update({ welcomed_by_helpline: true })
+      .update({ welcomed_by_vani: true })
       .eq("id", State.profile.id);
 
     if (updateErr) throw updateErr;
 
-    // Update local memory
-    State.profile.welcomed_by_helpline = true;
+    // 5. 🚨 THE FIX: Update local memory with the exact new name
+    State.profile.welcomed_by_vani = true;
 
     console.log("🟢 Helpline Welcome & Auto-Save Successful.");
 
-    // 5. Force UI refresh so "VANI" instantly appears in their sidebar
+    // 6. Force UI refresh so "VANI" instantly appears in their sidebar
     if (typeof syncContacts === "function") await syncContacts();
   } catch (err) {
     console.error("❌ Helpline Welcome Protocol Failed:", err);
