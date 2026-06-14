@@ -3477,15 +3477,16 @@ async function linkDeviceToOneSignal() {
 }
 
 // ==========================================================
-// 🛡️ HELPLINE AUTO-WELCOME & AUTO-SAVE PROTOCOL
+// 🛡️ HELPLINE & BOT AUTO-WELCOME / AUTO-SAVE PROTOCOL
 // ==========================================================
 async function triggerHelplineWelcome() {
-  console.log("🤖 Initializing Helpline Uplink Check...");
+  console.log("🤖 Initializing System Nodes Uplink Check...");
 
   const HELPLINE_MOBILE = "8185942428";
+  const VANIBOT_MOBILE = "0000000000";
 
   try {
-    // 🚨 1. THE BULLETPROOF GUARD: Physically check if a message already exists
+    // 1. Physically check if a message already exists to prevent loops
     const { data: existingMsg } = await supabaseClient
       .from("messages")
       .select("id")
@@ -3493,13 +3494,12 @@ async function triggerHelplineWelcome() {
       .eq("recipient_mobile", State.mobile)
       .limit(1);
 
-    // If a message was already sent, update local memory and abort immediately!
     if (existingMsg && existingMsg.length > 0) {
       State.profile.welcomed_by_vani = true;
       return;
     }
 
-    // 2. No message found? Proceed with injecting the Welcome Transmission
+    // 2. Inject the Welcome Transmission
     const welcomeText = `Thanks for registering with us, ${State.profile.name || "Operator"}! Welcome to VANI. You can ask any questions or report issues directly in this secure channel. How can we assist you today?`;
 
     const { error: msgError } = await supabaseClient.from("messages").insert({
@@ -3511,37 +3511,55 @@ async function triggerHelplineWelcome() {
 
     if (msgError) throw msgError;
 
-    // 3. Auto-Save the Helpline as "VANI" in their Contacts Directory
-    const { data: existingContact } = await supabaseClient
+    // 3. Auto-Save BOTH Helpline ("VANI") and VaniBot ("Bot")
+    const { data: existingContacts } = await supabaseClient
       .from("contacts")
-      .select("id")
-      .match({ mobile: State.mobile, contact: Helpline });
+      .select("contact")
+      .eq("mobile", State.mobile)
+      .in("contact", [HELPLINE_MOBILE, VANIBOT_MOBILE]);
 
-    if (!existingContact || existingContact.length === 0) {
-      await supabaseClient.from("contacts").insert([
-        {
-          mobile: State.mobile,
-          contact: HELPLINE_MOBILE,
-          name: "VANI",
-          gender: "System",
-        },
-      ]);
+    const savedNumbers = existingContacts
+      ? existingContacts.map((c) => c.contact)
+      : [];
+    const newContactsToInsert = [];
+
+    if (!savedNumbers.includes(HELPLINE_MOBILE)) {
+      newContactsToInsert.push({
+        mobile: State.mobile,
+        contact: HELPLINE_MOBILE,
+        name: "VANI",
+        gender: "System",
+      });
     }
 
-    // 4. Attempt to update the profile flag (May fail silently due to RLS)
+    if (!savedNumbers.includes(VANIBOT_MOBILE)) {
+      newContactsToInsert.push({
+        mobile: State.mobile,
+        contact: VANIBOT_MOBILE,
+        name: "Bot",
+        gender: "System",
+      });
+    }
+
+    if (newContactsToInsert.length > 0) {
+      await supabaseClient.from("contacts").insert(newContactsToInsert);
+    }
+
+    // 4. Update the profile flag
     await supabaseClient
       .from("profiles")
       .update({ welcomed_by_vani: true })
       .eq("id", State.profile.id);
 
     State.profile.welcomed_by_vani = true;
-    console.log("🟢 Helpline Welcome & Auto-Save Successful.");
+    console.log("🟢 Helpline & Bot Auto-Save Successful.");
 
     if (typeof syncContacts === "function") await syncContacts();
   } catch (err) {
-    console.error("❌ Helpline Welcome Protocol Failed:", err);
+    console.error("❌ Welcome Protocol Failed:", err);
   }
 }
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 
