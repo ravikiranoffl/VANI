@@ -3709,6 +3709,68 @@ const VaniCreditsEngine = {
     this.amITheCaller = false;
   },
 };
+
+// ==========================================================
+// 🚀 VANI PWA & NATIVE INSTALLATION ENGINE
+// ==========================================================
+
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById("install-vani-btn");
+
+// 1. Register the Service Worker on Boot
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) =>
+        console.log("🛡️ VANI Service Worker Registered", reg.scope),
+      )
+      .catch((err) => console.error("Service Worker failure:", err));
+  });
+}
+
+// 2. Intercept the Install Prompt
+window.addEventListener("beforeinstallprompt", (e) => {
+  // Prevent the mini-infobar from appearing on mobile
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredInstallPrompt = e;
+
+  // Reveal our custom Cyberpunk Install Button
+  if (installBtn) {
+    installBtn.classList.remove("hidden");
+  }
+
+  console.log("📲 VANI is ready for Native Installation.");
+});
+
+// 3. Handle the Install Button Click
+if (installBtn) {
+  installBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+
+    // Show the native OS install prompt
+    deferredInstallPrompt.prompt();
+
+    // Wait for the user to respond
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    console.log(`User ${outcome} the VANI installation`);
+
+    // We've used the prompt, and can't use it again, throw it away
+    deferredInstallPrompt = null;
+
+    // Hide the button
+    installBtn.classList.add("hidden");
+  });
+}
+
+// 4. Listen for successful installation to clean up UI
+window.addEventListener("appinstalled", () => {
+  console.log("✅ VANI Native Client successfully installed.");
+  if (installBtn) installBtn.classList.add("hidden");
+  deferredInstallPrompt = null;
+});
+
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 

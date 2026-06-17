@@ -9,6 +9,11 @@
   <title>VANI | Communications</title>
   <meta name="theme-color" content="#030305" />
   <link rel="icon" type="image/ico" href="logo.ico">
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VANI" />
+  <link rel="apple-touch-icon" href="logo.ico" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -232,6 +237,10 @@
       <!-- Main Content Matrix -->
       <main class="main-viewport">
         <!-- Mobile Header (Visible only on smaller screens) -->
+        <button id="install-vani-btn" class="glow-btn hidden"
+          style="padding: 8px 15px; font-size: 0.8rem; height: auto;">
+          <i class="fa-solid fa-download"></i> Install App
+        </button>
         <header class="mobile-header">
           <div class="hamburger" id="hamburgerBtn">
             <span></span><span></span><span></span>
