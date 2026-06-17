@@ -3640,11 +3640,16 @@ const VaniCreditsEngine = {
     needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
 
     // 3. Dynamic Heatmap Colors
+    // 3. Dynamic Heatmap Colors
     let color = "var(--neon-primary)";
     if (percentage >= 0.75) color = "#ffaa00"; // 75% = Warning Orange
     if (percentage >= 1) color = "#ff4d4d"; // 100% = Locked Red
 
     fillPath.style.stroke = color;
+
+    // 🚨 INJECTED FIX: Apply the color to the needle's parent container so the CSS 'currentColor' inherits it!
+    needle.style.color = color;
+
     fillPath.style.filter = `drop-shadow(0 0 10px ${color})`;
     needle.querySelector(".needle-base").style.background = color;
     needle.querySelector(".needle-base").style.boxShadow = `0 0 15px ${color}`;
