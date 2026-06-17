@@ -241,6 +241,7 @@ const evalSession = async () => {
     initRealtime();
     initPresence();
     linkDeviceToOneSignal();
+    VaniCreditsEngine.init(State.mobile);
   } catch (err) {
     console.error("SESSION REJECTED:", err.message);
 
@@ -1942,6 +1943,8 @@ const initWebRTC = async () => {
 
         // REVEAL THE SPEAKER BUTTON WHEN CONNECTED
         $("toggle-speaker-btn").classList.remove("hidden");
+
+        VaniCreditsEngine.markCallStarted(CallState.isCaller);
       } else if (state === "disconnected" || state === "failed") {
         endCall(true);
       }
@@ -1965,6 +1968,13 @@ const startCall = async () => {
   if (!State.activeContact) return;
   if (CallState.isActive || CallState.isRinging)
     return alert("System busy. Finish current transmission.");
+
+  // 🚨 THE NEW QUOTA LOCK CHECK
+  if (!VaniCreditsEngine.isCallAllowed()) {
+    return alert(
+      "Network Locked. Your monthly outgoing call quota (20 minutes) has been exhausted. You can still receive incoming calls.",
+    );
+  }
 
   console.log(`📞 Initiating Call to ${State.activeContact}...`);
 
@@ -2017,6 +2027,8 @@ const endCall = (wasAnswered = false) => {
   stopCallTimerAndLog(wasAnswered);
   closeCallUI();
   $("toggle-speaker-btn").classList.add("hidden");
+
+  VaniCreditsEngine.processCallEnd();
 
   // Reset State
   CallState.isActive = false;
@@ -3560,6 +3572,138 @@ async function triggerHelplineWelcome() {
   }
 }
 
+const VaniCreditsEngine = {
+  myMobile: null,
+  callStartTime: null,
+  amITheCaller: false,
+  maxSeconds: 1200, // 20 Minutes (20 * 60)
+  currentSeconds: 0,
+
+  init: function (mobileNumber) {
+    this.myMobile = mobileNumber;
+    this.fetchCurrentCredits();
+    this.subscribeToRealtimeCredits();
+  },
+
+  fetchCurrentCredits: async function () {
+    if (!this.myMobile) return;
+    const { data, error } = await supabaseClient
+      .from("user_credits")
+      .select("call_credits_seconds")
+      .eq("mobile", this.myMobile)
+      .maybeSingle();
+
+    if (data) this.updateUI(data.call_credits_seconds);
+    else this.updateUI(0);
+  },
+
+  subscribeToRealtimeCredits: function () {
+    supabaseClient
+      .channel("public:user_credits")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "user_credits",
+          filter: `mobile=eq.${this.myMobile}`,
+        },
+        (payload) => this.updateUI(payload.new.call_credits_seconds),
+      )
+      .subscribe();
+  },
+
+  updateUI: function (totalSeconds) {
+    this.currentSeconds = totalSeconds;
+    const displayEl = document.getElementById("credits-amount-display");
+    const fillPath = document.getElementById("gauge-fill-path");
+    const needle = document.getElementById("gauge-needle");
+    const warning = document.getElementById("quota-warning-badge");
+
+    if (!displayEl || !fillPath || !needle) return;
+
+    // 1. Format Text
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    displayEl.innerText = `${minutes}m ${seconds}s`;
+
+    // 2. Math & Geometry (Cap at 100%)
+    let percentage = totalSeconds / this.maxSeconds;
+    if (percentage > 1) percentage = 1;
+
+    // Circumference of half-circle (r=90) is ~283. Offset shrinks as usage grows.
+    const dashoffset = 283 - 283 * percentage;
+    fillPath.style.strokeDashoffset = dashoffset;
+
+    // Rotate from -90deg (Empty) to +90deg (Full)
+    const rotation = -90 + 180 * percentage;
+    needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+
+    // 3. Dynamic Heatmap Colors
+    let color = "var(--neon-primary)";
+    if (percentage >= 0.75) color = "#ffaa00"; // 75% = Warning Orange
+    if (percentage >= 1) color = "#ff4d4d"; // 100% = Locked Red
+
+    fillPath.style.stroke = color;
+    fillPath.style.filter = `drop-shadow(0 0 10px ${color})`;
+    needle.querySelector(".needle-base").style.background = color;
+    needle.querySelector(".needle-base").style.boxShadow = `0 0 15px ${color}`;
+
+    // 4. Engage Network Lock if >= 1200
+    if (percentage >= 1) {
+      if (warning) warning.classList.remove("hidden");
+      this.lockOutgoingMatrix(true);
+    } else {
+      if (warning) warning.classList.add("hidden");
+      this.lockOutgoingMatrix(false);
+    }
+
+    displayEl.classList.add("credits-flash");
+    setTimeout(() => displayEl.classList.remove("credits-flash"), 1200);
+  },
+
+  lockOutgoingMatrix: function (isLocked) {
+    const callBtn = document.getElementById("start-call-btn");
+    if (callBtn) {
+      if (isLocked) {
+        callBtn.classList.add("btn-network-locked");
+      } else {
+        callBtn.classList.remove("btn-network-locked");
+      }
+    }
+  },
+
+  isCallAllowed: function () {
+    return this.currentSeconds < this.maxSeconds;
+  },
+
+  markCallStarted: function (isCaller) {
+    this.callStartTime = Date.now();
+    this.amITheCaller = isCaller;
+  },
+
+  processCallEnd: async function () {
+    if (!this.callStartTime || !this.amITheCaller) {
+      this.resetClock();
+      return;
+    }
+    const durationInSeconds = Math.floor(
+      (Date.now() - this.callStartTime) / 1000,
+    );
+    if (durationInSeconds > 0) {
+      await supabaseClient.rpc("increment_call_credits", {
+        p_mobile: this.myMobile,
+        p_seconds: durationInSeconds,
+      });
+    }
+    this.resetClock();
+  },
+
+  resetClock: function () {
+    this.callStartTime = null;
+    this.amITheCaller = false;
+  },
+};
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
 

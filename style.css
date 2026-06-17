@@ -1935,3 +1935,117 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     color: var(--neon-primary) !important;
     filter: brightness(0.7) !important;
 }
+
+/* ==========================================================
+   💎 VANI V5.0: REALTIME CREDITS UI ENGINE
+   ========================================================== */
+.credits-display-box {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 20px;
+    background: rgba(var(--neon-rgb), 0.05);
+    border: 1px solid rgba(var(--neon-rgb), 0.2);
+    border-radius: 14px;
+    margin-top: 15px;
+    width: 100%;
+    transition: transform 0.4s var(--bezier-smooth), box-shadow 0.4s ease;
+}
+
+.credits-display-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(var(--neon-rgb), 0.15);
+}
+
+.credits-icon {
+    font-size: 2rem;
+    filter: drop-shadow(0 0 10px rgba(var(--neon-rgb), 0.5));
+}
+
+.credits-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.credits-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-family: monospace;
+}
+
+#credits-amount-display {
+    margin: 0;
+    font-size: 1.3rem;
+    font-family: 'Outfit', 'Space Grotesk', sans-serif;
+    color: var(--text-main);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Flash animation when the database updates in real-time */
+.credits-flash {
+    color: var(--neon-primary) !important;
+    text-shadow: 0 0 15px var(--neon-primary) !important;
+}
+
+/* ==========================================================
+   ⏱️ VANI V5.1: QUOTA METER & NETWORK LOCK ENGINE
+   ========================================================== */
+.speedometer-container {
+    position: relative;
+    width: 250px;
+    height: 125px; /* Half of width for perfect protractor */
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+.gauge-svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+#gauge-fill-path {
+    /* 283 is the exact mathematical length of a half-circle with r=90 */
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.34, 1.56, 0.64, 1), stroke 0.5s ease;
+    filter: drop-shadow(0 0 10px var(--neon-primary));
+}
+
+.gauge-needle {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 4px;
+    height: 105px;
+    background: linear-gradient(to top, transparent 15%, #ffffff 15%, #ffffff 100%);
+    transform-origin: bottom center;
+    transform: translateX(-50%) rotate(-90deg); /* -90deg is exactly 0% */
+    transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border-radius: 4px;
+    z-index: 2;
+    filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
+.needle-base {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 20px;
+    height: 20px;
+    background: var(--neon-primary);
+    border-radius: 50%;
+    box-shadow: 0 0 15px var(--neon-primary);
+    transition: background 0.5s ease, box-shadow 0.5s ease;
+}
+
+/* Visually destroys the call button if quota is empty */
+.btn-network-locked {
+    filter: grayscale(1) opacity(0.3) !important;
+    pointer-events: none !important;
+    border-color: #ff4d4d !important;
+    color: #ff4d4d !important;
+    transform: scale(0.95) !important;
+}

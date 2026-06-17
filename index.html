@@ -383,6 +383,43 @@
             </div>
           </div>
 
+          <div id="VIEW-CREDITS" class="view-section">
+            <div class="view-header">
+              <h2 style="font-family: Outfit">Relay Quota</h2>
+              <p>TURN Server Bandwidth Usage</p>
+            </div>
+
+            <div class="glass-panel mouse-shine-target"
+              style="padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; max-width: 400px; margin: 0 auto;">
+
+              <div class="speedometer-container">
+                <svg viewBox="0 0 200 100" class="gauge-svg">
+                  <path d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="15"
+                    stroke-linecap="round" />
+                  <path id="gauge-fill-path" d="M 10 100 A 90 90 0 0 1 190 100" fill="none" stroke="var(--neon-primary)"
+                    stroke-width="15" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" />
+                </svg>
+
+                <div class="gauge-needle" id="gauge-needle">
+                  <div class="needle-base"></div>
+                </div>
+              </div>
+
+              <div style="text-align: center; margin-top: 25px;">
+                <h3 id="credits-amount-display"
+                  style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--text-main); margin: 0;">
+                  0m 0s</h3>
+                <p style="color: var(--text-muted); font-family: monospace; letter-spacing: 2px; margin-top: 5px;">
+                  MONTHLY LIMIT: 20m</p>
+              </div>
+
+              <div id="quota-warning-badge" class="hidden"
+                style="margin-top: 20px; background: rgba(255, 77, 77, 0.1); border: 1px solid #ff4d4d; color: #ff4d4d; padding: 10px 20px; border-radius: 12px; font-weight: bold; font-size: 0.85rem; letter-spacing: 1px; animation: pulseAvatar 2s infinite;">
+                ⚠️ UPLINK LOCKED: QUOTA EXCEEDED
+              </div>
+            </div>
+          </div>
+
           <div id="VIEW-RANDOM" class="view-section">
             <div class="view-header" id="random-view-header">
               <h2 style="font-family: Outfit !important">Random Matrix</h2>
