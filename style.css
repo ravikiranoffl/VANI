@@ -1999,14 +1999,9 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     position: relative;
     width: clamp(200px, 100%, 280px);
     aspect-ratio: 2 / 1; 
-    height: auto;
-    /* 🚨 FIX: Increased bottom margin so the glowing core doesn't hit the text */
+    height: auto; 
     margin: 0 auto 35px auto; 
-    
-    /* 🚨 FIX: Replaced 'hidden' with 'visible'. This allows the SVG drop-shadows 
-       and the needle's core box-shadow to bleed organically outside the container. */
-    overflow: visible; 
-    
+   overflow: visible;   
     transform: translateZ(0); 
     animation: hoverFloat 4s ease-in-out infinite; 
 }
