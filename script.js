@@ -620,7 +620,7 @@ const renderContacts = (contacts, regMap, unreadMap) => {
 
       li.innerHTML = `<img src="${avatar}" alt="${name} avatar" width="45" height="45" loading="lazy" style="width:45px;height:45px;border-radius:12px; object-fit: cover;">
         <div style="flex:1; min-width:0; overflow:hidden;">
-            <h3 style="margin:0; font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h3>
+            <h2 style="margin:0; font-size:1rem;font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.name}</h2>
             <p style="margin:0; font-size:0.85rem;color:var(--text-muted);font-family:monospace; letter-spacing: 0.5px;">${displayHandle}</p>
         </div>
         ${unread > 0 ? `<div class="unread-badge">${unread > 99 ? "99+" : unread}</div>` : ""}
@@ -795,7 +795,7 @@ window.getVaniDateLabel = (dateString) => {
 
 const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
   $("typing-indicator-ui")?.remove();
-  const box = $(targetBoxId); // 👈 Now dynamically targets the correct interface
+  const box = $(targetBoxId);
   if (!box) return;
   box.querySelector(".empty-state")?.remove();
 
@@ -807,16 +807,11 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
   const currentLabel = window.getVaniDateLabel(msg.created_at);
   const lastLabel = box.dataset.bottomDate;
 
+  // 1. Properly closed Date Divider Logic
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
       "beforeend",
-      `<div class="date-divider" data-date="${currentLabel}" style="display:flex;justify-content:center;margin:20px 0;">
-        <div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);
-                    border:1px solid var(--glass-border);color:var(--text-muted);
-                    font-size:0.75rem;backdrop-filter:blur(10px)">
-          ${currentLabel}
-        </div>
-      </div>`,
+      `<div class="date-divider" data-date="${currentLabel}" style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.75rem;backdrop-filter:blur(10px)">${currentLabel}</div></div>`,
     );
     box.dataset.bottomDate = currentLabel;
   }
@@ -863,9 +858,15 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
     </div>`,
   );
 
+  // 🚨 2. PROPER INJECTION: Attach the swipe engine AFTER generating the HTML
+  const newlyAddedWrapper = box.querySelector(`[data-msg-id="${msg.id}"]`);
+  if (newlyAddedWrapper) {
+    const bubbleElement = newlyAddedWrapper.querySelector(".chat-bubble");
+    if (bubbleElement) initSwipeToReply(bubbleElement, msg);
+  }
+
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
-
 // ==========================================================
 // 💬 TYPING INDICATOR ENGINE
 // ==========================================================
@@ -3837,6 +3838,58 @@ window.addEventListener("appinstalled", () => {
   }
   deferredInstallPrompt = null;
 });
+
+// 🚨 VANI SWIPE-TO-REPLY ENGINE
+function initSwipeToReply(messageElement, messageData) {
+  let startX;
+  let currentX;
+
+  messageElement.addEventListener(
+    "touchstart",
+    (e) => {
+      startX = e.touches[0].clientX;
+    },
+    { passive: true },
+  );
+
+  messageElement.addEventListener(
+    "touchmove",
+    (e) => {
+      currentX = e.touches[0].clientX;
+      let delta = startX - currentX;
+
+      // If swiping left by more than 50px
+      if (delta > 50) {
+        messageElement.classList.add("swiping");
+        messageElement.style.transform = `translateX(${-delta / 2}px)`;
+      }
+    },
+    { passive: true },
+  );
+
+  messageElement.addEventListener("touchend", (e) => {
+    let delta = startX - e.changedTouches[0].clientX;
+
+    if (delta > 100) {
+      // Threshold reached
+      triggerReply(messageData);
+    }
+
+    // Reset bubble
+    messageElement.classList.remove("swiping");
+    messageElement.style.transform = "translateX(0)";
+  });
+}
+
+function triggerReply(messageData) {
+  // 🚨 Logic to display the "Replying to..." UI bar above input
+  const replyBar = document.getElementById("reply-bar"); // Ensure this element exists in index.html
+  replyBar.classList.remove("hidden");
+  replyBar.innerHTML = `Replying to: <span>${messageData.content.substring(0, 20)}...</span>`;
+
+  // Focus input so keyboard stays open
+  document.getElementById("msg-input").focus();
+}
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================

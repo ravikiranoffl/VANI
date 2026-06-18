@@ -5,8 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="description"
     content="VANI - A secure, handle-first communications matrix. Connect privately without sharing mobile numbers." />
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, interactive-widget=resizes-content" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
   <title>VANI | Communications</title>
   <meta name="theme-color" content="#030305" />
   <link rel="icon" type="image/jpg" href="app-icon.jpg">
@@ -14,6 +13,8 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="VANI" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https: wss: data: blob: 'unsafe-inline' 'unsafe-eval';">
   <link rel="apple-touch-icon" href="logo.ico" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,6 +41,7 @@
       crossorigin="anonymous" referrerpolicy="no-referrer" />
   </noscript>
 
+  <link rel="preload" href="style.css" as="style" />
   <link rel="stylesheet" href="style.css" />
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
 </head>
@@ -339,11 +341,16 @@
                   </button>
                 </div>
                 <div id="chat-box" class="chat-box-stream"></div>
-
+                <div id="reply-bar" class="hidden"
+                  style="background: rgba(0,0,0,0.6); padding: 10px 20px; border-top: 1px solid var(--neon-primary); color: var(--text-muted); font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                  <span>Replying to...</span>
+                  <i class="fa-solid fa-times" style="cursor: pointer;"
+                    onclick="document.getElementById('reply-bar').classList.add('hidden');"></i>
+                </div>
                 <div id="message-input-bar" class="message-input-console hidden">
                   <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="nope" inputmode="text"
                     autocorrect="on" spellcheck="true" enterkeyhint="send" data-lpignore="true" data-form-type="other"
-                    data-1p-ignore role="presentation" />
+                    data-1p-ignore />
 
                   <button id="send-msg-btn" class="glow-btn icon-send-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -415,7 +422,7 @@
                 <h3 id="credits-amount-display"
                   style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--text-main); margin: 0;">
                   0m 0s</h3>
-                <p style="color: var(--text-muted); font-family: monospace; letter-spacing: 2px; margin-top: 5px;">
+                <p style="color: var(--text-muted); font-family: monospace; letter-spacing: 1px; margin-top: 5px;">
                   MONTHLY LIMIT: 20m</p>
               </div>
 
@@ -558,7 +565,7 @@
                     padding: 15px 20px;
                   ">
                 <input type="text" id="random-msg-input" placeholder="Type a message..." autocomplete="nope"
-                  inputmode="text" data-lpignore="true" data-form-type="other" role="presentation" style="
+                  inputmode="text" data-lpignore="true" data-form-type="other" style="
       flex: 1;
       padding: 15px 20px;
       border-radius: 12px;
@@ -610,14 +617,6 @@
                   <span class="matrix-slider"></span>
                 </label>
               </div>
-
-              <!-- <hr
-                  style="
-                    border: 0;
-                    border-top: 1px solid rgba(255, 255, 255, 0.05);
-                    margin: 20px 0;
-                  "
-                /> -->
 
               <!-- Toggle 2: Cinematic Mode -->
               <div class="setting-row">
