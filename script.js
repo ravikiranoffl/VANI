@@ -3784,6 +3784,14 @@ window.addEventListener("appinstalled", () => {
   }
   deferredInstallPrompt = null;
 });
+// 🚨 TEMPORARY TEST: Force the modal to show 2 seconds after the app loads
+setTimeout(() => {
+  const installModal = document.getElementById("pwa-install-modal");
+  if (installModal) {
+    installModal.classList.remove("hidden");
+    requestAnimationFrame(() => installModal.classList.add("slide-up-active"));
+  }
+}, 2000);
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
