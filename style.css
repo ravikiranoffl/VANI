@@ -1281,33 +1281,30 @@ select {
         padding: 0 !important;
     }
 
-    /* 5. TOP HEADER (Immovable, Stapled to the Roof) */
+    /* 5. TOP HEADER (Re-attached to Flexbox to prevent overlap) */
     body.in-mobile-chat .chat-header-bar {
-        position: absolute !important;
-        /* Detaches from layout */
-        top: 0 !important;
-        /* Locks to the absolute top edge */
-        left: 0 !important;
+        position: relative !important;
+        /* 🚨 FIX: Removed absolute positioning */
         width: 100vw !important;
         z-index: 9999 !important;
-        /* Keeps it above everything */
         display: flex !important;
         background: rgba(8, 8, 11, 0.95) !important;
-        /* Slight transparency */
         backdrop-filter: blur(10px) !important;
         -webkit-backdrop-filter: blur(10px) !important;
         padding: max(15px, env(safe-area-inset-top)) 20px 15px 20px !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         box-sizing: border-box !important;
+        flex-shrink: 0 !important;
+        /* 🚨 FIX: Prevents the header from squishing when the keyboard opens */
     }
 
-    /* 6. MESSAGES AREA (Pushed down to clear the stapled header) */
+    /* 6. MESSAGES AREA (Fluidly fills remaining space safely) */
     body.in-mobile-chat .chat-box-stream {
         flex: 1 1 auto !important;
-        width: 100% !important;
+        height: 0 !important;
         overflow-y: auto !important;
-        /* 95px Top Padding prevents the first messages from hiding under the fixed header */
-        padding: 95px 15px 15px 15px !important;
+        /* 🚨 FIX: Changed top padding from 95px back to 15px because the header physically sits above it now */
+        padding: 15px 15px 15px 15px !important;
         box-sizing: border-box !important;
         -webkit-overflow-scrolling: touch !important;
     }
