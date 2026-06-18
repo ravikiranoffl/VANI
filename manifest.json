@@ -1,5 +1,5 @@
 {
-  "name": "VANI Communications",
+  "name": "VANI",
   "short_name": "VANI",
   "description": "Secure, handle-first communications matrix.",
   "start_url": "/index.html",
@@ -9,8 +9,8 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "logo.ico",
-      "type": "image/ico",
+      "src": "app-icon.jpg",
+      "type": "image/jpg",
       "sizes": "192x192"
     },
     {
