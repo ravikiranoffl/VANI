@@ -1005,16 +1005,21 @@ setTimeout(() => {
     const newSendBtn = sendBtn.cloneNode(true);
     sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
 
-    // 1. The Normal Click Handler
-    newSendBtn.addEventListener("click", sendMsg);
-
-    // 🚨 2. THE KEYBOARD LOCK FIX: Prevent the button tap from stealing focus!
-    const preventFocusLoss = (e) => {
-      e.preventDefault();
+    // 🚨 COMBINED FIX: Prevent Focus Loss AND Fire the Send Function Manually
+    const handleSendAction = (e) => {
+      e.preventDefault(); // Stops the keyboard from dropping
       if (msgInput) msgInput.focus();
+
+      // Since preventDefault() blocks the CSS :active state, we fake the button press physically
+      newSendBtn.style.transform = "scale(0.93) translateY(2px)";
+      setTimeout(() => (newSendBtn.style.transform = ""), 150);
+
+      sendMsg(); // Trigger the actual message send instantly
     };
-    newSendBtn.addEventListener("mousedown", preventFocusLoss);
-    newSendBtn.addEventListener("touchstart", preventFocusLoss, {
+
+    // We no longer use "click" because touchstart's preventDefault completely blocks click on mobile
+    newSendBtn.addEventListener("mousedown", handleSendAction);
+    newSendBtn.addEventListener("touchstart", handleSendAction, {
       passive: false,
     });
   }
@@ -3450,15 +3455,20 @@ const randomSendBtn = $("random-send-btn");
 const randomMsgInput = $("random-msg-input");
 
 if (randomSendBtn) {
-  randomSendBtn.addEventListener("click", sendRandomMsg);
-
-  // 🚨 THE KEYBOARD LOCK FIX for Random Matrix
-  const preventRandomFocusLoss = (e) => {
+  // 🚨 COMBINED FIX for Random Matrix
+  const handleRandomSendAction = (e) => {
     e.preventDefault();
     if (randomMsgInput) randomMsgInput.focus();
+
+    // Fake the button press animation physically
+    randomSendBtn.style.transform = "scale(0.93) translateY(2px)";
+    setTimeout(() => (randomSendBtn.style.transform = ""), 150);
+
+    sendRandomMsg();
   };
-  randomSendBtn.addEventListener("mousedown", preventRandomFocusLoss);
-  randomSendBtn.addEventListener("touchstart", preventRandomFocusLoss, {
+
+  randomSendBtn.addEventListener("mousedown", handleRandomSendAction);
+  randomSendBtn.addEventListener("touchstart", handleRandomSendAction, {
     passive: false,
   });
 }

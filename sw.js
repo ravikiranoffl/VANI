@@ -1,4 +1,4 @@
-const CACHE_NAME = "vani-dynamic-cache"; // 🚨 Notice: No more version numbers!
+const CACHE_NAME = "vani-dynamic-cache";
 
 const ASSETS_TO_CACHE = [
   "./",
