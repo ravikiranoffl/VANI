@@ -1,4 +1,5 @@
-const CACHE_NAME = "vani-matrix-cache-v4";
+const CACHE_NAME = "vani-dynamic-cache"; // 🚨 Notice: No more version numbers!
+
 const ASSETS_TO_CACHE = [
   "./",
   "./index.html",
@@ -8,37 +9,39 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener("install", (event) => {
-  self.skipWaiting(); // 🚨 Forces the new SW to take over immediately
+  self.skipWaiting(); // Take over the browser immediately
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log("📦 VANI SW v2: Caching new files...");
       return cache.addAll(ASSETS_TO_CACHE);
     }),
   );
 });
 
-// 🚨 Wipes out the old v1 cache so your new code actually loads!
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log("🗑️ Deleting old cache:", cacheName);
-            return caches.delete(cacheName);
-          }
-        }),
-      );
-    }),
-  );
-  self.clients.claim();
+  self.clients.claim(); // Take control of all open tabs
 });
 
-// 🚨 Network-First Strategy: Always get the newest code from GitHub!
 self.addEventListener("fetch", (event) => {
+  // Only cache GET requests from your GitHub domain (Prevents Supabase API errors)
+  if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  if (url.origin !== location.origin) return;
+
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
-    }),
+    fetch(event.request)
+      .then((networkResponse) => {
+        // 🚨 THE MAGIC: If the internet works, grab the newest file from GitHub,
+        // show it to the user, and silently save a clone of it to the offline cache!
+        const responseClone = networkResponse.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+
+        return networkResponse; // Serve the fresh live file
+      })
+      .catch(() => {
+        // 🛑 OFFLINE MODE: If the internet fails, serve the backup from the cache
+        return caches.match(event.request);
+      }),
   );
 });

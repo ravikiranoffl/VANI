@@ -3749,9 +3749,10 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js")
-      .then((reg) =>
-        console.log("🛡️ VANI Service Worker Registered:", reg.scope),
-      )
+      .then((reg) => {
+        console.log("VANI Service Worker Registered:", reg.scope);
+        reg.update();
+      })
       .catch((err) => console.error("SW FAILED:", err.message));
   });
 }
