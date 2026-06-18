@@ -3709,8 +3709,9 @@ const VaniCreditsEngine = {
     this.amITheCaller = false;
   },
 };
+
 // ==========================================================
-// 🚀 VANI PWA: DYNAMIC INSTALL MODAL ENGINE
+// 🚀 VANI PWA: DYNAMIC INSTALL MODAL ENGINE (FIXED)
 // ==========================================================
 
 let deferredInstallPrompt = null;
@@ -3732,6 +3733,20 @@ if ("serviceWorker" in navigator) {
 
 // 2. Intercept the Install Prompt
 window.addEventListener("beforeinstallprompt", (e) => {
+  // 🚨 THE FIX: Check if already installed or running as an app
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone;
+  const isAlreadyInstalled =
+    localStorage.getItem("vani-pwa-installed") === "true";
+
+  if (isStandalone || isAlreadyInstalled) {
+    console.log(
+      "🛑 Installation aborted: App is already installed or running in standalone mode.",
+    );
+    return; // Stop the modal from ever showing
+  }
+
   // Prevent Chrome from showing the mini-infobar natively
   e.preventDefault();
   deferredInstallPrompt = e;
@@ -3740,7 +3755,6 @@ window.addEventListener("beforeinstallprompt", (e) => {
   if (installModal) {
     setTimeout(() => {
       installModal.classList.remove("hidden");
-      // Small delay ensures the display:flex renders before the transition kicks in
       requestAnimationFrame(() => {
         installModal.classList.add("slide-up-active");
       });
@@ -3761,7 +3775,7 @@ if (acceptBtn) {
     // Cleanup
     deferredInstallPrompt = null;
     installModal.classList.remove("slide-up-active");
-    setTimeout(() => installModal.classList.add("hidden"), 600); // Wait for slide-down animation
+    setTimeout(() => installModal.classList.add("hidden"), 600);
   });
 }
 
@@ -3769,29 +3783,24 @@ if (acceptBtn) {
 if (declineBtn) {
   declineBtn.addEventListener("click", () => {
     // Slide it away gracefully.
-    // We are NOT saving this to localStorage, so if they refresh, they will get the option again!
     installModal.classList.remove("slide-up-active");
     setTimeout(() => installModal.classList.add("hidden"), 600);
   });
 }
 
-// 5. Hide completely if successfully installed
+// 5. Hide completely and save memory if successfully installed
 window.addEventListener("appinstalled", () => {
   console.log("✅ VANI successfully installed to device.");
+
+  // 🚨 THE FIX: Save an eternal flag so it never asks again in the browser
+  localStorage.setItem("vani-pwa-installed", "true");
+
   if (installModal) {
     installModal.classList.remove("slide-up-active");
     setTimeout(() => installModal.classList.add("hidden"), 600);
   }
   deferredInstallPrompt = null;
 });
-// 🚨 TEMPORARY TEST: Force the modal to show 2 seconds after the app loads
-setTimeout(() => {
-  const installModal = document.getElementById("pwa-install-modal");
-  if (installModal) {
-    installModal.classList.remove("hidden");
-    requestAnimationFrame(() => installModal.classList.add("slide-up-active"));
-  }
-}, 2000);
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
