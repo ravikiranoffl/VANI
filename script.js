@@ -3711,65 +3711,64 @@ const VaniCreditsEngine = {
 };
 
 // ==========================================================
-// 🚀 VANI PWA & NATIVE INSTALLATION ENGINE
+// 🚀 VANI PWA NUCLEAR DEBUG ENGINE
 // ==========================================================
 
 let deferredInstallPrompt = null;
 const installBtn = document.getElementById("install-vani-btn");
 
-// 1. Register the Service Worker on Boot
+// 1. Force the button to be massive and fixed to the screen so CSS cannot hide it!
+if (installBtn) {
+  installBtn.style.position = "fixed";
+  installBtn.style.bottom = "20px";
+  installBtn.style.left = "50%";
+  installBtn.style.transform = "translateX(-50%)";
+  installBtn.style.zIndex = "99999999";
+  installBtn.style.boxShadow = "0 0 30px #00f3ff";
+}
+
+// 2. Service Worker Registration Check
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js")
-      .then((reg) =>
-        console.log("🛡️ VANI Service Worker Registered", reg.scope),
-      )
-      .catch((err) => console.error("Service Worker failure:", err));
+      .then((reg) => {
+        console.log("🛡️ SW Registered. Scope:", reg.scope);
+        // Uncomment this line below if you want an alert to prove the SW is loading
+        // alert("Service Worker is Alive!");
+      })
+      .catch((err) => alert("SW FAILED: " + err.message));
   });
 }
 
-// 2. Intercept the Install Prompt
+// 3. The Holy Grail Event: Does the browser approve your app?
 window.addEventListener("beforeinstallprompt", (e) => {
-  // Prevent the mini-infobar from appearing on mobile
   e.preventDefault();
-  // Stash the event so it can be triggered later.
   deferredInstallPrompt = e;
 
-  // Reveal our custom Cyberpunk Install Button
+  // 🚨 THIS IS THE TEST: If this alert pops up on your phone, your code is PERFECT.
+  alert("SYSTEM CHECK: Mobile Browser has approved VANI for installation!");
+
   if (installBtn) {
     installBtn.classList.remove("hidden");
+    installBtn.style.display = "block"; // Force display
   }
-
-  console.log("📲 VANI is ready for Native Installation.");
 });
 
-// 3. Handle the Install Button Click
+// 4. Click Handler
 if (installBtn) {
   installBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) return;
-
-    // Show the native OS install prompt
+    if (!deferredInstallPrompt) {
+      alert("The installation prompt is not ready yet.");
+      return;
+    }
     deferredInstallPrompt.prompt();
-
-    // Wait for the user to respond
     const { outcome } = await deferredInstallPrompt.userChoice;
-    console.log(`User ${outcome} the VANI installation`);
-
-    // We've used the prompt, and can't use it again, throw it away
+    alert(`User selected: ${outcome}`);
     deferredInstallPrompt = null;
-
-    // Hide the button
-    installBtn.classList.add("hidden");
+    installBtn.style.display = "none";
   });
 }
-
-// 4. Listen for successful installation to clean up UI
-window.addEventListener("appinstalled", () => {
-  console.log("✅ VANI Native Client successfully installed.");
-  if (installBtn) installBtn.classList.add("hidden");
-  deferredInstallPrompt = null;
-});
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
