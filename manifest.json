@@ -1,0 +1,22 @@
+{
+  "name": "VANI Communications",
+  "short_name": "VANI",
+  "description": "Secure, handle-first communications matrix.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#030305",
+  "theme_color": "#030305",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "logo.ico",
+      "type": "image/ico",
+      "sizes": "192x192"
+    },
+    {
+      "src": "bot.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
