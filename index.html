@@ -341,9 +341,9 @@
                 <div id="chat-box" class="chat-box-stream"></div>
 
                 <div id="message-input-bar" class="message-input-console hidden">
-                  <input type="text" id="msg-input" name="vani-chat-stream" placeholder="Type a message..."
-                    autocomplete="off" autocorrect="on" spellcheck="true" enterkeyhint="send" data-lpignore="true"
-                    data-form-type="other" data-1p-ignore />
+                  <input type="text" id="msg-input" placeholder="Type a message..." autocomplete="nope" inputmode="text"
+                    autocorrect="on" spellcheck="true" enterkeyhint="send" data-lpignore="true" data-form-type="other"
+                    data-1p-ignore role="presentation" />
 
                   <button id="send-msg-btn" class="glow-btn icon-send-btn">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -557,15 +557,16 @@
                     border-top: 1px solid var(--glass-border);
                     padding: 15px 20px;
                   ">
-                <input type="text" id="random-msg-input" placeholder="Type a message..." autocomplete="off" style="
-                      flex: 1;
-                      padding: 15px 20px;
-                      border-radius: 12px;
-                      background: rgba(0, 0, 0, 0.4);
-                      border: 1px solid var(--glass-border);
-                      color: var(--text-main);
-                      outline: none;
-                    " />
+                <input type="text" id="random-msg-input" placeholder="Type a message..." autocomplete="nope"
+                  inputmode="text" data-lpignore="true" data-form-type="other" role="presentation" style="
+      flex: 1;
+      padding: 15px 20px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      outline: none;
+    " />
                 <button id="random-send-btn" class="glow-btn icon-send-btn">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
