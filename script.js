@@ -923,6 +923,7 @@ const sendMsg = async (e) => {
   if (!content || !State.activeContact) return;
 
   input.value = "";
+  input.focus();
   if (typeof hideTypingIndicator === "function") hideTypingIndicator();
   if (typeof playSound === "function") playSound("send");
 
@@ -995,41 +996,46 @@ async function triggerOneSignalPush(
 
 // 🚨 BINDING THE PHYSICAL BUTTONS TO THE ENGINE
 // We do this immediately so the UI is strictly locked to the function
+
 setTimeout(() => {
   const sendBtn = $("send-msg-btn");
   const msgInput = $("msg-input");
 
   if (sendBtn) {
-    // Remove any old ghost listeners just in case
     const newSendBtn = sendBtn.cloneNode(true);
     sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+
+    // 1. The Normal Click Handler
     newSendBtn.addEventListener("click", sendMsg);
+
+    // 🚨 2. THE KEYBOARD LOCK FIX: Prevent the button tap from stealing focus!
+    const preventFocusLoss = (e) => {
+      e.preventDefault();
+      if (msgInput) msgInput.focus();
+    };
+    newSendBtn.addEventListener("mousedown", preventFocusLoss);
+    newSendBtn.addEventListener("touchstart", preventFocusLoss, {
+      passive: false,
+    });
   }
 
   if (msgInput) {
     const newMsgInput = msgInput.cloneNode(true);
     msgInput.parentNode.replaceChild(newMsgInput, msgInput);
 
-    // 1. Enter Key Listener
     newMsgInput.addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendMsg(e);
     });
 
-    // 🚨 2. RESTORED: Typing Signal Emitter (Throttled)
     let typingThrottle = false;
     newMsgInput.addEventListener("input", () => {
-      // Only broadcast if the channel is active and we are in a chat
       if (!typingThrottle && State.channel && State.activeContact) {
         typingThrottle = true;
-
-        // Fire the invisible WebRTC/Broadcast signal to the other user
         State.channel.send({
           type: "broadcast",
           event: "typing",
           payload: { sender: State.mobile, recipient: State.activeContact },
         });
-
-        // Throttle: Only send the signal once per second to prevent flooding the server
         setTimeout(() => {
           typingThrottle = false;
         }, 1000);
@@ -3425,6 +3431,7 @@ const sendRandomMsg = async (e) => {
   if (!content || !RandomState.sessionId) return;
 
   input.value = "";
+  input.focus();
   if (typeof playSound === "function") playSound("send");
 
   // Send to the NEW `random_chats` table
@@ -3439,10 +3446,28 @@ const sendRandomMsg = async (e) => {
   if (error) alert(`Matrix Error: ${error.message}`);
 };
 
-$("random-send-btn")?.addEventListener("click", sendRandomMsg);
-$("random-msg-input")?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") sendRandomMsg(e);
-});
+const randomSendBtn = $("random-send-btn");
+const randomMsgInput = $("random-msg-input");
+
+if (randomSendBtn) {
+  randomSendBtn.addEventListener("click", sendRandomMsg);
+
+  // 🚨 THE KEYBOARD LOCK FIX for Random Matrix
+  const preventRandomFocusLoss = (e) => {
+    e.preventDefault();
+    if (randomMsgInput) randomMsgInput.focus();
+  };
+  randomSendBtn.addEventListener("mousedown", preventRandomFocusLoss);
+  randomSendBtn.addEventListener("touchstart", preventRandomFocusLoss, {
+    passive: false,
+  });
+}
+
+if (randomMsgInput) {
+  randomMsgInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendRandomMsg(e);
+  });
+}
 
 $("random-disconnect-btn")?.addEventListener("click", async () => {
   if (confirm("End connection with stranger?")) {
