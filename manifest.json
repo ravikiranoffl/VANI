@@ -12,11 +12,6 @@
       "src": "app-icon.jpg",
       "type": "image/jpg",
       "sizes": "192x192"
-    },
-    {
-      "src": "bot.png",
-      "type": "image/png",
-      "sizes": "512x512"
     }
   ]
 }

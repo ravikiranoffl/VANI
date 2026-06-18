@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VANI | Communications</title>
   <meta name="theme-color" content="#030305" />
-  <link rel="icon" type="image/ico" href="logo.ico">
+  <link rel="icon" type="image/jpg" href="app-icon.jpg">
   <link rel="manifest" href="manifest.json" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -237,10 +237,6 @@
       <!-- Main Content Matrix -->
       <main class="main-viewport">
         <!-- Mobile Header (Visible only on smaller screens) -->
-        <button id="install-vani-btn" class="glow-btn hidden"
-          style="padding: 8px 15px; font-size: 0.8rem; height: auto;">
-          <i class="fa-solid fa-download"></i> Install App
-        </button>
         <header class="mobile-header">
           <div class="hamburger" id="hamburgerBtn">
             <span></span><span></span><span></span>
@@ -678,6 +674,23 @@
         </div>
       </main>
     </section>
+  </div>
+  <div id="pwa-install-modal" class="hidden">
+    <div class="glass-panel pwa-modal-content">
+      <div class="pwa-modal-header">
+        <img src="app-icon.jpg" alt="VANI Logo" class="pwa-modal-icon" />
+        <div class="pwa-modal-text">
+          <h3>Install VANI Matrix</h3>
+          <p>Add to your Home Screen for a faster, full-screen, native experience. 100% Secure.</p>
+        </div>
+      </div>
+      <div class="pwa-modal-actions">
+        <button id="pwa-decline-btn" class="glow-btn"
+          style="background: transparent; border-color: var(--glass-border); color: var(--text-muted); box-shadow: none;">Not
+          Now</button>
+        <button id="pwa-accept-btn" class="glow-btn">Install App</button>
+      </div>
+    </div>
   </div>
   <div id="active-call-matrix" class="hidden" style="
         display: none;

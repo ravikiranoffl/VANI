@@ -3709,66 +3709,81 @@ const VaniCreditsEngine = {
     this.amITheCaller = false;
   },
 };
-
 // ==========================================================
-// 🚀 VANI PWA NUCLEAR DEBUG ENGINE
+// 🚀 VANI PWA: DYNAMIC INSTALL MODAL ENGINE
 // ==========================================================
 
 let deferredInstallPrompt = null;
-const installBtn = document.getElementById("install-vani-btn");
+const installModal = document.getElementById("pwa-install-modal");
+const acceptBtn = document.getElementById("pwa-accept-btn");
+const declineBtn = document.getElementById("pwa-decline-btn");
 
-// 1. Force the button to be massive and fixed to the screen so CSS cannot hide it!
-if (installBtn) {
-  installBtn.style.position = "fixed";
-  installBtn.style.bottom = "20px";
-  installBtn.style.left = "50%";
-  installBtn.style.transform = "translateX(-50%)";
-  installBtn.style.zIndex = "99999999";
-  installBtn.style.boxShadow = "0 0 30px #00f3ff";
-}
-
-// 2. Service Worker Registration Check
+// 1. Service Worker Registration
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("./sw.js")
-      .then((reg) => {
-        console.log("🛡️ SW Registered. Scope:", reg.scope);
-        // Uncomment this line below if you want an alert to prove the SW is loading
-        // alert("Service Worker is Alive!");
-      })
-      .catch((err) => alert("SW FAILED: " + err.message));
+      .then((reg) =>
+        console.log("🛡️ VANI Service Worker Registered:", reg.scope),
+      )
+      .catch((err) => console.error("SW FAILED:", err.message));
   });
 }
 
-// 3. The Holy Grail Event: Does the browser approve your app?
+// 2. Intercept the Install Prompt
 window.addEventListener("beforeinstallprompt", (e) => {
+  // Prevent Chrome from showing the mini-infobar natively
   e.preventDefault();
   deferredInstallPrompt = e;
 
-  // 🚨 THIS IS THE TEST: If this alert pops up on your phone, your code is PERFECT.
-  alert("SYSTEM CHECK: Mobile Browser has approved VANI for installation!");
-
-  if (installBtn) {
-    installBtn.classList.remove("hidden");
-    installBtn.style.display = "block"; // Force display
+  // Wait 1.5 seconds after boot to show the modal for dramatic, premium pacing
+  if (installModal) {
+    setTimeout(() => {
+      installModal.classList.remove("hidden");
+      // Small delay ensures the display:flex renders before the transition kicks in
+      requestAnimationFrame(() => {
+        installModal.classList.add("slide-up-active");
+      });
+    }, 1500);
   }
 });
 
-// 4. Click Handler
-if (installBtn) {
-  installBtn.addEventListener("click", async () => {
-    if (!deferredInstallPrompt) {
-      alert("The installation prompt is not ready yet.");
-      return;
-    }
+// 3. User Clicks "Install App"
+if (acceptBtn) {
+  acceptBtn.addEventListener("click", async () => {
+    if (!deferredInstallPrompt) return;
+
+    // Trigger the native OS install prompt
     deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
-    alert(`User selected: ${outcome}`);
+    console.log(`User PWA Choice: ${outcome}`);
+
+    // Cleanup
     deferredInstallPrompt = null;
-    installBtn.style.display = "none";
+    installModal.classList.remove("slide-up-active");
+    setTimeout(() => installModal.classList.add("hidden"), 600); // Wait for slide-down animation
   });
 }
+
+// 4. User Clicks "Not Now"
+if (declineBtn) {
+  declineBtn.addEventListener("click", () => {
+    // Slide it away gracefully.
+    // We are NOT saving this to localStorage, so if they refresh, they will get the option again!
+    installModal.classList.remove("slide-up-active");
+    setTimeout(() => installModal.classList.add("hidden"), 600);
+  });
+}
+
+// 5. Hide completely if successfully installed
+window.addEventListener("appinstalled", () => {
+  console.log("✅ VANI successfully installed to device.");
+  if (installModal) {
+    installModal.classList.remove("slide-up-active");
+    setTimeout(() => installModal.classList.add("hidden"), 600);
+  }
+  deferredInstallPrompt = null;
+});
 
 // --- SYSTEM BOOT SEQUENCE ---
 // ==========================================================
