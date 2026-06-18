@@ -2,7 +2,7 @@
   "name": "VANI",
   "short_name": "VANI",
   "description": "Secure, handle-first communications matrix.",
-  "start_url": "/index.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#030305",
   "theme_color": "#030305",
