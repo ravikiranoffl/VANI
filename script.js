@@ -3498,13 +3498,16 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
 
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 
-OneSignalDeferred.push(async function (OneSignal) {
+window.OneSignalDeferred.push(async function (OneSignal) {
   await OneSignal.init({
     appId: "30dfa9ba-710b-474d-a12f-a7a1509cb29f",
     safari_web_id: "web.onesignal.auto.1997779e-e1de-41f4-ac74-4543cfbf0412",
     notifyButton: {
       enable: false,
     },
+    path: "/VANI/",
+    serviceWorkerParam: { scope: "/VANI/" },
+    serviceWorkerPath: "VANI/OneSignalSDKWorker.js",
   });
 });
 
