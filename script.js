@@ -1989,20 +1989,20 @@ window.checkCallButtonVisibility = () => {
   style = document.createElement("style");
   style.id = styleId;
   style.innerHTML = `
-        
 
-        
+
+
         body[data-theme="light"] {
-            --bg-deep: #f0f2f5; 
-            --bg-panel: rgba(255, 255, 255, 0.75); 
+            --bg-deep: #f0f2f5;
+            --bg-panel: rgba(255, 255, 255, 0.75);
             --bg-panel-hover: rgba(255, 255, 255, 0.95);
-            --text-main: #111827; 
-            --text-muted: #6b7280; 
-            --glass-border: rgba(0, 0, 0, 0.12); 
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --glass-border: rgba(0, 0, 0, 0.12);
             --glass-highlight: rgba(0, 0, 0, 0.05);
         }
 
-        
+
         .brand-logo, body[data-theme="light"] .brand-logo {
             background: none !important;
             -webkit-text-fill-color: var(--neon-primary) !important;
@@ -2011,7 +2011,7 @@ window.checkCallButtonVisibility = () => {
             text-shadow: none !important;
         }
 
-        
+
         .brand-logo, body[data-theme="light"] .brand-logo {
             background: none !important;
             -webkit-text-fill-color: var(--neon-primary) !important;
@@ -2020,7 +2020,7 @@ window.checkCallButtonVisibility = () => {
             text-shadow: none !important;
         }
 
-        
+
         body[data-theme="light"] .brand-logo,
         body[data-theme="light"] .glow-btn,
         body[data-theme="light"] .icon-send-btn,
@@ -2029,7 +2029,7 @@ window.checkCallButtonVisibility = () => {
             filter: brightness(0.85) saturate(1.2) !important;
         }
 
-        
+
         body[data-theme="light"] .mobile-header,
         body[data-theme="light"].in-mobile-chat .chat-header-bar {
             background: rgba(255, 255, 255, 0.95) !important;
@@ -2053,7 +2053,7 @@ window.checkCallButtonVisibility = () => {
 
         body[data-theme="light"] .side-nav {
             background: linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%) !important;
-            box-shadow: 20px 0 50px rgba(0,0,0,0.05) !important; 
+            box-shadow: 20px 0 50px rgba(0,0,0,0.05) !important;
         }
 
         body[data-theme="light"] .mobile-back-btn,
@@ -2065,14 +2065,14 @@ window.checkCallButtonVisibility = () => {
             box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.15) !important;
         }
 
-        
-        body[data-theme="light"] input, 
+
+        body[data-theme="light"] input,
         body[data-theme="light"] select {
             background: rgba(255, 255, 255, 0.9) !important;
             color: var(--text-main) !important;
             border: 1px solid rgba(0,0,0,0.2) !important;
         }
-        body[data-theme="light"] input:focus, 
+        body[data-theme="light"] input:focus,
         body[data-theme="light"] select:focus {
             background: #ffffff !important;
             border-color: var(--neon-primary) !important;
@@ -2089,7 +2089,7 @@ window.checkCallButtonVisibility = () => {
             color: var(--text-main) !important;
         }
 
-        
+
         body[data-theme="light"] .matrix-slider {
             background-color: rgba(0, 0, 0, 0.1) !important;
             border: 1px solid rgba(0, 0, 0, 0.2) !important;
@@ -2110,7 +2110,7 @@ window.checkCallButtonVisibility = () => {
         body[data-theme="light"] .theme-btn { color: var(--text-main) !important; }
         body[data-theme="light"] .theme-btn:hover { color: #fff !important; }
 
-        
+
         body[data-theme="light"] #active-call-matrix,
         body[data-theme="light"] #offline-overlay,
         body[data-theme="light"] #ghost-save-modal {
@@ -2118,7 +2118,7 @@ window.checkCallButtonVisibility = () => {
         }
 
         body[data-theme="light"] .ambient-texture {
-            background-image: 
+            background-image:
                 radial-gradient(circle at 15% 50%, rgba(0,0,0,0.04) 0%, transparent 50%),
                 radial-gradient(circle at 85% 30%, rgba(var(--neon-rgb), 0.06) 0%, transparent 50%) !important;
         }
@@ -2316,7 +2316,7 @@ window.checkCallButtonVisibility = () => {
                 <div class="glass-panel" style="padding: 40px; width: 90%; max-width: 400px; text-align: center; border-color: var(--neon-primary); box-shadow: 0 0 30px rgba(var(--neon-rgb), 0.2);">
                     <h2 style="color: var(--neon-primary); margin-bottom: 10px; font-family: 'Space Grotesk', sans-serif;">Claim Your VANI ID</h2>
                     <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px;">VANI is now handle-first. Protect your identity by claiming a unique ID. Phone numbers are now strictly hidden.</p>
-                    
+
                     <div style="display: flex; align-items: center; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); border-radius: 12px; margin-bottom: 20px; overflow: hidden; transition: border-color 0.3s;">
                         <span style="padding: 15px 0 15px 20px; color: var(--neon-primary); font-weight: bold; font-size: 1.1rem; line-height: 1; flex-shrink: 0;">@</span>
                         <input type="text" id="claim-handle-input" placeholder="your_alias" style="flex: 1; padding: 15px; background: transparent; border: none; color: #fff; font-size: 1rem; outline: none; min-width: 0;" />
