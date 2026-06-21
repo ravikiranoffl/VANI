@@ -2192,18 +2192,6 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     transform-origin: center bottom;
 }
 
-@keyframes holoFloat {
-
-    0%,
-    100% {
-        transform: translateY(0) scale(1);
-    }
-
-    50% {
-        transform: translateY(-15px) scale(1.02);
-    }
-}
-
 /* 5. Button Redesign (Tactile Squircles) */
 #decline-call-btn,
 #accept-call-btn,
