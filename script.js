@@ -1,16 +1,9 @@
-// ==========================================================
-// 1. SETUP, STATE & HELPERS
-// ==========================================================
 const supabaseClient = supabase.createClient(
   "https://gxuqhaxboagwsktoupyv.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
 );
 
-// ==========================================================
-// 🚨 ABSOLUTE OVERRIDE: VANI CUSTOM ALERT MATRIX ENGINE
-// ==========================================================
 (function initAlertMatrix() {
-  // 1. Inject CSS directly so it cannot be missed, overridden, or delayed
   const styleId = "vani-alert-styles";
   if (!document.getElementById(styleId)) {
     const style = document.createElement("style");
@@ -44,7 +37,6 @@ const supabaseClient = supabase.createClient(
     document.head.appendChild(style);
   }
 
-  // 2. Hijack the global window.alert function
   window.alert = function (message) {
     let matrix = document.getElementById("vani-alert-matrix");
     if (!matrix) {
@@ -56,7 +48,6 @@ const supabaseClient = supabase.createClient(
     const alertBox = document.createElement("div");
     alertBox.className = "vani-alert-box";
 
-    // 3. NLP Aesthetic Routing
     const msgStr = String(message).toLowerCase();
     let iconHTML =
       '<i class="fa-solid fa-bell vani-alert-icon" style="color: var(--neon-primary); text-shadow: 0 0 10px var(--neon-primary);"></i>';
@@ -91,21 +82,17 @@ const supabaseClient = supabase.createClient(
       message +
       "</span>";
 
-    // 4. Interaction: Click to dismiss
     alertBox.addEventListener("click", () => {
       alertBox.classList.add("closing");
       setTimeout(() => alertBox.remove(), 300);
     });
 
-    // 5. Inject into DOM
     matrix.appendChild(alertBox);
 
-    // 6. Audio Feedback
     if (typeof playSound === "function") {
       playSound(msgStr.includes("error") ? "delete" : "receive");
     }
 
-    // 7. Auto-Garbage Collection
     setTimeout(() => {
       if (document.body.contains(alertBox)) {
         alertBox.classList.add("closing");
@@ -117,14 +104,13 @@ const supabaseClient = supabase.createClient(
   console.log("🚨 VANI Alert Matrix Overridden Successfully.");
 })();
 
-// Add presenceChannel and onlineUsers to your State memory
 const State = {
   mobile: "",
   profile: null,
   activeContact: "",
   channel: null,
-  presenceChannel: null, // NEW
-  onlineUsers: new Set(), // NEW: A high-speed list of online numbers
+  presenceChannel: null,
+  onlineUsers: new Set(),
 };
 
 const $ = (id) => (typeof id === "string" ? document.getElementById(id) : id);
@@ -175,11 +161,10 @@ const playSound = (type) => {
       osc.start();
       osc.stop(ctx.currentTime + 0.3);
     } else if (type === "delete") {
-      // 💥 THE NEW POP OUT SOUND (High frequency dropping rapidly to zero)
       osc.type = "sine";
       osc.frequency.setValueAtTime(900, ctx.currentTime);
       osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.8, ctx.currentTime); // Slightly louder for impact
+      gain.gain.setValueAtTime(0.8, ctx.currentTime);
       gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
       osc.start();
       osc.stop(ctx.currentTime + 0.08);
@@ -188,10 +173,6 @@ const playSound = (type) => {
     console.warn("Audio blocked by browser.");
   }
 };
-
-// ==========================================================
-// 2. BULLETPROOF AUTHENTICATION & SESSION
-// ==========================================================
 
 const evalSession = async () => {
   try {
@@ -215,7 +196,6 @@ const evalSession = async () => {
       `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`;
     $("my-name").textContent = p.name;
 
-    // Display Handle instead of Mobile Number in the sidebar
     $("my-mobile-display").textContent = p.vani_id
       ? `@${p.vani_id}`
       : "Pending Handle...";
@@ -226,15 +206,13 @@ const evalSession = async () => {
       await triggerHelplineWelcome();
     }
 
-    // 🚨 FIX: Safely wipe the login/register forms ONLY after a successful boot!
     $("login-form")?.reset();
     $("register-form")?.reset();
 
-    // THE GUARD: If they don't have a Handle, lock them out until they claim one!
     if (!p.vani_id) {
       const modal = document.getElementById("claim-handle-modal");
       if (modal) modal.style.display = "flex";
-      return; // ABORT BOOT SEQUENCE HERE until modal is submitted
+      return;
     }
 
     await syncContacts();
@@ -245,21 +223,17 @@ const evalSession = async () => {
   } catch (err) {
     console.error("SESSION REJECTED:", err.message);
 
-    // 🚨 FIX: Actually tell the user if the database rejected them (unless it's a standard boot check)
     if (err.message !== "No active session.") {
       alert(`System Reject: ${err.message}`);
     }
     toggleUI(false);
   } finally {
-    // 🚨 FIX: Premium Boot Loader Fade-Out!
     const loader = $("boot-loader");
     if (loader) {
-      // 1. Keep the shield up for 1.2 seconds to hide background UI rendering
       setTimeout(() => {
         loader.style.opacity = "0";
         loader.style.transition = "opacity 0.8s ease-in-out";
 
-        // 2. Safely delete it from the DOM after the fade completes
         setTimeout(() => loader.remove(), 800);
       }, 1200);
     }
@@ -269,7 +243,6 @@ const evalSession = async () => {
 const handleAuth = async (e, isLogin) => {
   e.preventDefault();
 
-  // 🚨 FIX: Lock the button and give visual feedback so the user knows it's working
   const btn = e.target.querySelector('button[type="submit"]');
   const originalText = btn.textContent;
 
@@ -337,13 +310,10 @@ const handleAuth = async (e, isLogin) => {
       alert("Operator Provisioned! Attempting Uplink...");
     }
 
-    // Attempt to boot the session
     await evalSession();
   } catch (err) {
-    // If the password was wrong, the input stays on the screen so you can easily fix it!
     alert(`Auth Error: ${err.message}`);
   } finally {
-    // 🚨 FIX: Unlock the button
     btn.textContent = originalText;
     btn.style.opacity = "1";
     btn.disabled = false;
@@ -372,9 +342,6 @@ const logout = async () => {
 );
 $("my-avatar")?.parentElement?.addEventListener("dblclick", logout);
 
-// ==========================================================
-// 3. NAVIGATION, OVERLAY & UI VIEWS
-// ==========================================================
 document.body.insertAdjacentHTML(
   "beforeend",
   `<div id="mobile-overlay" class="mobile-overlay"></div>`,
@@ -395,7 +362,6 @@ $$(".menu-item").forEach((item) => {
     if (item.id === "logoutBtn") return;
     e.preventDefault();
 
-    // 🚨 ISOLATION GUARD: Prevent leaving an active random chat accidentally
     if (
       typeof RandomState !== "undefined" &&
       RandomState.roomId &&
@@ -406,9 +372,9 @@ $$(".menu-item").forEach((item) => {
           "Are you sure you want to leave? This will permanently disconnect your active stranger chat.",
         )
       ) {
-        return; // 🛑 Abort navigation!
+        return;
       }
-      // User confirmed to leave -> Terminate the connection
+
       supabaseClient
         .from("vani_random")
         .update({ status: "closed" })
@@ -440,11 +406,9 @@ $("profileCard")?.addEventListener("click", () => {
   $("profile-avatar").src = State.profile.avatar_url;
   $("profile-name").textContent = State.profile.name;
 
-  // 🚨 Show ALL personal details privately
   $("profile-mobile").textContent = `+91 ${State.profile.mobile}`;
   $("profile-email").textContent = State.profile.email;
 
-  // Dynamically inject the Handle into their profile view if it doesn't exist yet
   if (!$("profile-handle-display")) {
     $("profile-name").insertAdjacentHTML(
       "afterend",
@@ -461,12 +425,7 @@ $("profileCard")?.addEventListener("click", () => {
   if (window.innerWidth <= 992) toggleMobileMenu(true);
 });
 
-// ==========================================================
-// 4. CONTACTS ENGINE (Now with Timestamp Sorting)
-// ==========================================================
-
 const refreshContactsUI = async () => {
-  // We re-run syncContacts, which contains your sorting logic
   await syncContacts();
 };
 
@@ -486,7 +445,6 @@ $("add-contact-btn")?.addEventListener("click", async () => {
   btn.disabled = true;
 
   try {
-    // 1. DISCOVERY: Look up the Handle to find the hidden Mobile Number
     const { data: targetProfile, error: lookupErr } = await supabaseClient
       .from("profiles")
       .select("mobile")
@@ -498,7 +456,6 @@ $("add-contact-btn")?.addEventListener("click", async () => {
 
     const targetMobile = targetProfile.mobile;
 
-    // 2. CHECK DUPLICATES: See if we already linked this hidden number
     const { data: existing } = await supabaseClient
       .from("contacts")
       .select("id")
@@ -507,7 +464,6 @@ $("add-contact-btn")?.addEventListener("click", async () => {
     if (existing && existing.length > 0)
       throw new Error("Contact is already linked in your directory.");
 
-    // 3. LINK: Save the mapping to the database
     const { error } = await supabaseClient
       .from("contacts")
       .insert([
@@ -527,21 +483,15 @@ $("add-contact-btn")?.addEventListener("click", async () => {
   }
 });
 
-// ==========================================================
-// 4. CONTACTS ENGINE (SECURE & ANTI-FLICKER)
-// ==========================================================
-
 const syncContacts = async () => {
-  // 🚀 HIGH PERFORMANCE RPC FETCH: Downloads ~10 rows instead of 10,000!
   const [{ data: c }, { data: p }, { data: m }] = await Promise.all([
     supabaseClient.from("contacts").select("*").eq("mobile", State.mobile),
     supabaseClient.from("profiles").select("mobile, avatar_url, name, vani_id"),
-    supabaseClient.rpc("get_recent_chats", { user_mobile: State.mobile }), // Call the DB Engine
+    supabaseClient.rpc("get_recent_chats", { user_mobile: State.mobile }),
   ]);
 
   const regMap = Object.fromEntries(p?.map((x) => [x.mobile, x]) || []);
 
-  // m is now already cleanly formatted by the database!
   const latestMsgMap = Object.fromEntries(
     m?.map((row) => [
       row.contact_mobile,
@@ -578,7 +528,6 @@ const renderContacts = (contacts, regMap, unreadMap) => {
   const list = $("contacts-list");
   const grid = document.querySelector(".contacts-directory-grid");
 
-  // 🚨 FIX: The Virtual DOM Snapshot to stop the black Image Flickering!
   const stateSnapshot = JSON.stringify({
     active: State.activeContact,
     data: contacts.map((c) => ({
@@ -591,7 +540,6 @@ const renderContacts = (contacts, regMap, unreadMap) => {
     })),
   });
 
-  // Freeze the UI if the data hasn't changed!
   if (list && list.dataset.snapshot === stateSnapshot) return;
   if (list) list.dataset.snapshot = stateSnapshot;
 
@@ -674,7 +622,6 @@ const renderContacts = (contacts, regMap, unreadMap) => {
     }
   });
 
-  // 🚨 FIX: Actually trigger the FLIP physics engine!
   if (list && contacts.length > 0) {
     if (typeof animateFLIP === "function") {
       animateFLIP("contacts-list", () => {
@@ -688,10 +635,6 @@ const renderContacts = (contacts, regMap, unreadMap) => {
   if (grid) grid.appendChild(gridFragment);
 };
 
-// ==========================================================
-// CHAT ENGINE REPLACEMENTS (script.js)
-// ==========================================================
-
 const clearUnreadBadgeFromUI = (mobile) => {
   const li = document.querySelector(`li[data-mobile="${mobile}"]`);
   if (li) {
@@ -701,7 +644,7 @@ const clearUnreadBadgeFromUI = (mobile) => {
 };
 
 const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
-  clearUnreadBadgeFromUI(mobile); // Instantly remove badge
+  clearUnreadBadgeFromUI(mobile);
   State.activeContact = mobile;
   State.activeContact = mobile;
   $$("#contacts-list li").forEach((li) =>
@@ -717,12 +660,11 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
     $(id).classList.remove("hidden"),
   );
 
-  // 👻 GHOST PROFILE LOGIC: Show or hide the Save button
   const saveBtn = $("save-ghost-btn");
   if (saveBtn) {
     if (isGhost) {
       saveBtn.classList.remove("hidden");
-      saveBtn.dataset.mobile = mobile; // Attach number for the modal
+      saveBtn.dataset.mobile = mobile;
     } else {
       saveBtn.classList.add("hidden");
     }
@@ -737,16 +679,14 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
   $("chat-box").innerHTML = "";
   loadHistory();
 
-  updatePresenceUI(); // Instantly color the header when chat opens
+  updatePresenceUI();
 
-  // 🚨 1. OPTIMISTIC UI: Instantly kill the badge in the DOM so it feels blazing fast
   const activeContactLi = document.querySelector(`li[data-mobile="${mobile}"]`);
   if (activeContactLi) {
     const badge = activeContactLi.querySelector(".unread-badge");
     if (badge) badge.remove();
   }
 
-  // 🚨 2. STRICT AWAIT: Force the app to wait for database confirmation
   const { error: updateErr } = await supabaseClient
     .from("messages")
     .update({ is_read: true })
@@ -755,13 +695,11 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
     .eq("is_read", false);
 
   if (updateErr) {
-    // If this fires, your RLS policy is missing an UPDATE rule for messages!
     console.error(
       "Matrix Error: Database rejected the Read-Receipt update.",
       updateErr.message,
     );
   } else {
-    // 3. Sync silently in the background only AFTER confirmation
     syncContacts();
   }
 
@@ -769,10 +707,6 @@ const openChat = async (mobile, name, avatar, isReg, isGhost = false) => {
     checkCallButtonVisibility();
   }
 };
-
-// ==========================================================
-// 📅 GLOBAL DATE PARSER (For History & Bubbles)
-// ==========================================================
 
 window.getVaniDateLabel = (dateString) => {
   const d = new Date(dateString);
@@ -789,10 +723,6 @@ window.getVaniDateLabel = (dateString) => {
   });
 };
 
-// ==========================================================
-// 💬 APPEND BUBBLE (Restored Date Logic & Bulletproof Hearts)
-// ==========================================================
-
 const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
   $("typing-indicator-ui")?.remove();
   const box = $(targetBoxId);
@@ -807,7 +737,6 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
   const currentLabel = window.getVaniDateLabel(msg.created_at);
   const lastLabel = box.dataset.bottomDate;
 
-  // 1. Properly closed Date Divider Logic
   if (lastLabel !== currentLabel) {
     box.insertAdjacentHTML(
       "beforeend",
@@ -858,7 +787,6 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
     </div>`,
   );
 
-  // 🚨 2. PROPER INJECTION: Attach the swipe engine AFTER generating the HTML
   const newlyAddedWrapper = box.querySelector(`[data-msg-id="${msg.id}"]`);
   if (newlyAddedWrapper) {
     const bubbleElement = newlyAddedWrapper.querySelector(".chat-bubble");
@@ -867,15 +795,12 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
 
   if (autoScroll) box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
 };
-// ==========================================================
-// 💬 TYPING INDICATOR ENGINE
-// ==========================================================
+
 let typingHideTimeout = null;
 
 const showTypingIndicator = () => {
   let indicator = $("typing-indicator-ui");
 
-  // If it's not on screen, create it
   if (!indicator) {
     const box = $("chat-box");
     box.insertAdjacentHTML(
@@ -892,29 +817,24 @@ const showTypingIndicator = () => {
     );
     box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
   } else {
-    // If it's already there, make sure it's fully visible
     indicator.style.opacity = "1";
   }
 
-  // Reset the fade-out timer every time they press a key
   if (typingHideTimeout) clearTimeout(typingHideTimeout);
 
   typingHideTimeout = setTimeout(() => {
     hideTypingIndicator();
-  }, 2000); // 2 Seconds of silence = Fade out
+  }, 2000);
 };
 
 const hideTypingIndicator = () => {
   const indicator = $("typing-indicator-ui");
   if (indicator) {
-    indicator.style.opacity = "0"; // Smooth fade out
-    setTimeout(() => indicator.remove(), 400); // Destroy after fade completes
+    indicator.style.opacity = "0";
+    setTimeout(() => indicator.remove(), 400);
   }
 };
 
-// ==========================================================
-// 💬 THE MAIN CHAT ROUTER (RESTORED & OPTIMIZED)
-// ==========================================================
 const sendMsg = async (e) => {
   if (e) e.preventDefault();
   const input = $("msg-input");
@@ -928,7 +848,6 @@ const sendMsg = async (e) => {
   if (typeof hideTypingIndicator === "function") hideTypingIndicator();
   if (typeof playSound === "function") playSound("send");
 
-  // 🚨 Realtime Engine handles the UI update to prevent duplicate bubbles!
   const { error } = await supabaseClient.from("messages").insert([
     {
       sender_mobile: State.mobile,
@@ -945,39 +864,36 @@ const sendMsg = async (e) => {
     );
   }
   if (!error) {
-    // Fire the OS notification to the target!
     triggerOneSignalPush(State.activeContact, State.profile.name, content);
   }
 };
 
-// Add this helper function anywhere in script.js
 async function triggerOneSignalPush(
   recipientMobile,
   senderName,
   messageContent,
 ) {
-  const ONESIGNAL_APP_ID = "30dfa9ba-710b-474d-a12f-a7a1509cb29f"; // 🚨 REPLACE THIS
+  const ONESIGNAL_APP_ID = "30dfa9ba-710b-474d-a12f-a7a1509cb29f";
   const ONESIGNAL_REST_API_KEY =
-    "os_v2_app_gdp2totrbndu3ijpu6qvbhfst4x6pixofyiejlnvse55xaprufc32wglh7ywvzfsitysvxh65tn5tchsgol7qskr2nm4tw334qk6i3q"; // 🚨 REPLACE THIS (Keep secret in prod)
+    "os_v2_app_gdp2totrbndu3ijpu6qvbhfst4x6pixofyiejlnvse55xaprufc32wglh7ywvzfsitysvxh65tn5tchsgol7qskr2nm4tw334qk6i3q";
 
   const payload = {
     app_id: ONESIGNAL_APP_ID,
     target_channel: "push",
-    // Target the specific user using the alias we set during login
+
     include_aliases: {
       vani_mobile: [recipientMobile],
     },
     headings: { en: `VANI: ${senderName}` },
     contents: { en: messageContent },
-    // Aesthetic overrides to keep your Cyberpunk theme
+
     small_icon: "ic_stat_onesignal_default",
     large_icon:
       "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon&backgroundColor=030305",
-    android_accent_color: "FF00f3ff", // Your VANI Cyan
+    android_accent_color: "FF00f3ff",
   };
 
   try {
-    // 🚨 SURGICAL FIX: Routed through corsproxy.io to bypass browser CORS blocking
     const proxyUrl = "https://corsproxy.io/?";
     const targetUrl = "https://onesignal.com/api/v1/notifications";
 
@@ -995,9 +911,6 @@ async function triggerOneSignalPush(
   }
 }
 
-// 🚨 BINDING THE PHYSICAL BUTTONS TO THE ENGINE
-// We do this immediately so the UI is strictly locked to the function
-
 setTimeout(() => {
   const sendBtn = $("send-msg-btn");
   const msgInput = $("msg-input");
@@ -1006,19 +919,16 @@ setTimeout(() => {
     const newSendBtn = sendBtn.cloneNode(true);
     sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
 
-    // 🚨 COMBINED FIX: Prevent Focus Loss AND Fire the Send Function Manually
     const handleSendAction = (e) => {
-      e.preventDefault(); // Stops the keyboard from dropping
+      e.preventDefault();
       if (msgInput) msgInput.focus();
 
-      // Since preventDefault() blocks the CSS :active state, we fake the button press physically
       newSendBtn.style.transform = "scale(0.93) translateY(2px)";
       setTimeout(() => (newSendBtn.style.transform = ""), 150);
 
-      sendMsg(); // Trigger the actual message send instantly
+      sendMsg();
     };
 
-    // We no longer use "click" because touchstart's preventDefault completely blocks click on mobile
     newSendBtn.addEventListener("mousedown", handleSendAction);
     newSendBtn.addEventListener("touchstart", handleSendAction, {
       passive: false,
@@ -1050,11 +960,7 @@ setTimeout(() => {
   }
 }, 500);
 
-// ==========================================================
-// 📡 THE DIAGNOSTIC REALTIME ENGINE (WITH DELETE SYNC)
-// ==========================================================
 const initRealtime = async () => {
-  // 1. Verify State before we even try to connect
   if (!State || !State.mobile) {
     console.error(
       "❌ REALTIME ABORTED: State.mobile is missing. You must log in first!",
@@ -1064,15 +970,11 @@ const initRealtime = async () => {
 
   console.log(`🔌 Initializing Realtime for User: ${State.mobile}`);
 
-  // 2. Clean up any old ghost subscriptions safely
-  // 🚨 FIX: AWAIT the removal of the old channel so the server doesn't crash
   if (State.channel) {
     await supabaseClient.removeChannel(State.channel);
     State.channel = null;
   }
 
-  // 3. Boot the Realtime Socket
-  // 🚨 FIX: Everyone MUST be on the exact same channel name for Broadcasts to connect!
   State.channel = supabaseClient
     .channel("vani_global_matrix", {
       config: {
@@ -1080,7 +982,6 @@ const initRealtime = async () => {
       },
     })
 
-    // 🟢 LISTEN FOR NEW MESSAGES (INSERT)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "messages" },
@@ -1100,31 +1001,26 @@ const initRealtime = async () => {
           msg.sender_mobile != State.activeContact;
 
         if (isCurrentlyViewingChat) {
-          // SCENARIO A: You are looking at the chat when they text you.
           playSound("receive");
           appendBubble(msg, true);
 
-          // Instantly burn the unread status in the database
           await supabaseClient
             .from("messages")
             .update({ is_read: true })
             .eq("id", msg.id);
-          // 🛑 We explicitly DO NOT call syncContacts() here to prevent the badge from flickering.
         } else if (isMyOwnMessage) {
-          // 🚨 SCENARIO B (RESTORED): You sent a message. Append it to your own screen!
           appendBubble(msg, true);
-          await refreshContactsUI(); // Moves the contact to the top of the sidebar
+          await refreshContactsUI();
         } else if (isForMeButImElsewhere) {
-          // SCENARIO C: Someone texts you while you are in another chat/menu.
           playSound("receive");
-          await refreshContactsUI(); // Generates the green badge and moves them to the top
+          await refreshContactsUI();
         }
       },
     )
-    // 💬 LISTEN FOR TYPING BROADCASTS (NO DATABASE NEEDED)
+
     .on("broadcast", { event: "typing" }, (payload) => {
       const data = payload.payload;
-      // If they are typing to ME, and I am currently looking at THEM
+
       if (
         data.recipient == State.mobile &&
         data.sender == State.activeContact
@@ -1133,7 +1029,6 @@ const initRealtime = async () => {
       }
     })
 
-    // 📞 LISTEN FOR WEBRTC SIGNALS
     .on("broadcast", { event: "webrtc_signal" }, (payload) => {
       const data = payload.payload;
       if (data.recipient === State.mobile) {
@@ -1142,7 +1037,6 @@ const initRealtime = async () => {
       }
     })
 
-    // 🔴 LISTEN FOR DELETED MESSAGES (DOUBLE-TAP FEATURE)
     .on(
       "postgres_changes",
       { event: "DELETE", schema: "public", table: "messages" },
@@ -1152,13 +1046,11 @@ const initRealtime = async () => {
         const bubble = document.querySelector(`[data-msg-id="${deletedId}"]`);
 
         if (bubble) {
-          // Animate it shrinking away, then remove it from the DOM
           bubble.classList.add("message-deleted");
           setTimeout(() => {
             bubble.remove();
           }, 200);
 
-          // Refresh the sidebar in case this was the most recent message
           if (typeof refreshContactsUI === "function") refreshContactsUI();
         }
       },
@@ -1176,15 +1068,12 @@ const initRealtime = async () => {
         if (bubbleWrapper) {
           const wasLiked = bubbleWrapper.dataset.isLiked === "true";
 
-          // If it was just liked, explode the hearts!
           if (msg.is_liked && !wasLiked) {
             bubbleWrapper.dataset.isLiked = "true";
             window.updateLikeUI(bubbleWrapper, true);
             window.triggerHeartExplosion(bubbleWrapper);
             if (typeof playSound === "function") playSound("send");
-          }
-          // If it was un-liked, remove the badge
-          else if (!msg.is_liked && wasLiked) {
+          } else if (!msg.is_liked && wasLiked) {
             bubbleWrapper.dataset.isLiked = "false";
             window.updateLikeUI(bubbleWrapper, false);
           }
@@ -1192,7 +1081,6 @@ const initRealtime = async () => {
       },
     )
 
-    // 🔌 CONNECT THE SOCKET
     .subscribe((status, err) => {
       if (status === "SUBSCRIBED") {
         console.log("🟢 VANI REALTIME IS LIVE AND LISTENING.");
@@ -1207,27 +1095,21 @@ const initRealtime = async () => {
     });
 };
 
-// ==========================================================
-// 🔊 EXPERIMENTAL AUDIO ROUTING (SPEAKER / EARPIECE)
-// ==========================================================
 let isSpeakerMode = true;
 
 const toggleAudioOutput = async () => {
   const audioEl = document.getElementById("remote-audio-stream");
   const icon = document.getElementById("speaker-icon");
 
-  // Check if the browser supports changing the output device (iOS Safari does NOT)
   if (!audioEl.setSinkId) {
     alert("Audio routing is restricted by your browser/OS (common on iOS).");
     return;
   }
 
   try {
-    // Request permission to query devices
     await navigator.mediaDevices.getUserMedia({ audio: true });
     const devices = await navigator.mediaDevices.enumerateDevices();
 
-    // Filter for audio output devices
     const audioOutputs = devices.filter(
       (device) => device.kind === "audiooutput",
     );
@@ -1237,10 +1119,7 @@ const toggleAudioOutput = async () => {
       return;
     }
 
-    // Simplistic toggle logic: If we are on device 0, switch to device 1.
-    // (Note: Device names/IDs vary wildly between Android phones)
     if (isSpeakerMode) {
-      // Attempt to find an earpiece/default communications device
       const earpiece =
         audioOutputs.find(
           (d) =>
@@ -1251,7 +1130,6 @@ const toggleAudioOutput = async () => {
       icon.className = "fa-solid fa-volume-low";
       isSpeakerMode = false;
     } else {
-      // Switch back to main speaker
       const speaker =
         audioOutputs.find((d) => d.label.toLowerCase().includes("speaker")) ||
         audioOutputs[0];
@@ -1268,10 +1146,6 @@ const toggleAudioOutput = async () => {
 document
   .getElementById("toggle-speaker-btn")
   ?.addEventListener("click", toggleAudioOutput);
-
-// ==========================================================
-// 6. INIT & UTILS
-// ==========================================================
 
 const neonThemes = [
   { name: "Cyberpunk Pink", hex: "#ff007f" },
@@ -1316,7 +1190,6 @@ const applyTheme = (hex) => {
   localStorage.setItem("vani-theme", hex);
 };
 
-// Generate Settings Theme Buttons dynamically
 const themeContainer = $("themeButtonsContainer");
 if (themeContainer) {
   neonThemes.forEach((t) => {
@@ -1332,14 +1205,10 @@ if (themeContainer) {
     themeContainer.appendChild(btn);
   });
 }
-// ==========================================================
-// 7. ADVANCED AUTOMATION & 60FPS CINEMATIC ENGINE
-// ==========================================================
 
 let cinematicFrameId = null;
 let cinematicStartTime = null;
 
-// Mathematical converter to turn smooth Light/Color waves into strict RGB codes
 const hslToRgb = (h, s, l) => {
   s /= 100;
   l /= 100;
@@ -1354,52 +1223,39 @@ const hslToRgb = (h, s, l) => {
   ];
 };
 
-// The 60 Frames-Per-Second Render Loop
 const cinematicLoop = (timestamp) => {
   if (!cinematicStartTime) cinematicStartTime = timestamp;
   const elapsed = timestamp - cinematicStartTime;
 
-  // 25-Second Seamless Loop
   const cycle = (elapsed % 25000) / 25000;
   const hue = cycle * 360;
 
-  // The "Dimming" Physics (Breathes between 50% and 35% brightness)
   const lightness = 50 + 15 * Math.cos(cycle * Math.PI * 2);
 
-  // Calculate exact RGB
   const [r, g, b] = hslToRgb(hue, 100, lightness);
 
-  // Surgically inject the new colors directly into the CSS variables
   document.documentElement.style.setProperty(
     "--neon-primary",
     `rgb(${r}, ${g}, ${b})`,
   );
   document.documentElement.style.setProperty("--neon-rgb", `${r}, ${g}, ${b}`);
 
-  // Request the next frame
   cinematicFrameId = requestAnimationFrame(cinematicLoop);
 };
 
 const enableCinematicMode = () => {
-  // 🚨 UI LOCKS REMOVED: No elements will be disabled or blocked!
-
-  // Ignite the render engine
   if (!cinematicFrameId) {
-    cinematicStartTime = null; // Reset timer
+    cinematicStartTime = null;
     cinematicFrameId = requestAnimationFrame(cinematicLoop);
   }
 };
 
 const disableCinematicMode = () => {
-  // 🚨 UI LOCKS REMOVED: No elements will be disabled or blocked!
-
-  // Kill the render engine
   if (cinematicFrameId) {
     cancelAnimationFrame(cinematicFrameId);
     cinematicFrameId = null;
   }
 
-  // Snap back to a valid theme
   if ($("toggle-random-boot") && $("toggle-random-boot").checked) {
     const randomTheme =
       neonThemes[Math.floor(Math.random() * neonThemes.length)];
@@ -1419,30 +1275,25 @@ const bootThemeEngine = () => {
   const cinematicToggle = $("toggle-cinematic-mode");
   const audioToggle = $("toggle-system-audio");
 
-  // Apply saved states
   if (randomToggle) randomToggle.checked = prefRandomBoot;
   if (cinematicToggle) cinematicToggle.checked = prefCinematic;
   if (audioToggle) audioToggle.checked = prefAudio;
 
-  // Failsafe: If somehow BOTH were saved as true, enforce Cinematic priority
   if (prefCinematic && prefRandomBoot && randomToggle) {
     randomToggle.checked = false;
     localStorage.setItem("vani-random-boot", "false");
   }
 
-  // Boot Cinematic Engine if active
   if (cinematicToggle && cinematicToggle.checked) {
     enableCinematicMode();
   } else {
     disableCinematicMode();
   }
 
-  // --- TOGGLE 1: RANDOM BOOT LISTENER ---
   randomToggle?.addEventListener("change", (e) => {
     const isOn = e.target.checked;
     localStorage.setItem("vani-random-boot", isOn);
 
-    // 🚨 MUTUAL EXCLUSION: If Random turns ON, turn Auto-Cycle OFF
     if (isOn && cinematicToggle && cinematicToggle.checked) {
       cinematicToggle.checked = false;
       localStorage.setItem("vani-cinematic", "false");
@@ -1450,12 +1301,10 @@ const bootThemeEngine = () => {
     }
   });
 
-  // --- TOGGLE 2: CINEMATIC MODE LISTENER ---
   cinematicToggle?.addEventListener("change", (e) => {
     const isOn = e.target.checked;
     localStorage.setItem("vani-cinematic", isOn);
 
-    // 🚨 MUTUAL EXCLUSION: If Auto-Cycle turns ON, turn Random OFF
     if (isOn && randomToggle && randomToggle.checked) {
       randomToggle.checked = false;
       localStorage.setItem("vani-random-boot", "false");
@@ -1464,27 +1313,21 @@ const bootThemeEngine = () => {
     isOn ? enableCinematicMode() : disableCinematicMode();
   });
 
-  // Audio Listener
   audioToggle?.addEventListener("change", (e) =>
     localStorage.setItem("vani-audio", e.target.checked),
   );
 };
 
-// ⌨️ MOBILE KEYBOARD FIX: Automatically scroll to bottom when keyboard opens
 $("msg-input")?.addEventListener("focus", () => {
   setTimeout(() => {
     const box = $("chat-box");
     if (box) {
       box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
     }
-  }, 300); // 300ms allows the keyboard sliding animation to finish
+  }, 300);
 });
 
-// ==========================================================
-// 🟢 PRESENCE UI UPDATER (PERMANENT RED/GREEN DOTS)
-// ==========================================================
 const updatePresenceUI = () => {
-  // 1. Update the Active Chat Header (Top Bar)
   if (State.activeContact) {
     const isOnline = State.onlineUsers.has(String(State.activeContact));
     const statusEl = $("chat-with-status");
@@ -1496,12 +1339,10 @@ const updatePresenceUI = () => {
     }
   }
 
-  // 2. Update the Sidebar Contacts (Permanent Dots)
   $$("#contacts-list li").forEach((li) => {
     const mobile = li.dataset.mobile;
     const isOnline = State.onlineUsers.has(String(mobile));
 
-    // Ensure the avatar is wrapped so the dot can stick to the corner
     let img = li.querySelector("img");
     if (img && !img.parentElement.classList.contains("avatar-wrapper")) {
       const wrapper = document.createElement("div");
@@ -1516,7 +1357,6 @@ const updatePresenceUI = () => {
     if (wrapper) {
       let indicator = wrapper.querySelector(".presence-dot");
 
-      // If the dot doesn't exist yet, create it permanently!
       if (!indicator) {
         wrapper.insertAdjacentHTML(
           "beforeend",
@@ -1525,21 +1365,17 @@ const updatePresenceUI = () => {
         indicator = wrapper.querySelector(".presence-dot");
       }
 
-      // Update the colors constantly based on network status
       if (isOnline) {
-        indicator.style.background = "#00ff88"; // Neon Green
+        indicator.style.background = "#00ff88";
         indicator.style.boxShadow = "0 0 8px #00ff88";
       } else {
-        indicator.style.background = "#ff4d4d"; // Crimson Red
+        indicator.style.background = "#ff4d4d";
         indicator.style.boxShadow = "none";
       }
     }
   });
 };
 
-// ==========================================================
-// 🟢 PRESENCE ENGINE (ONLINE / OFFLINE TRACKER)
-// ==========================================================
 const initPresence = async () => {
   if (!State.mobile) return;
 
@@ -1548,7 +1384,6 @@ const initPresence = async () => {
     State.presenceChannel = null;
   }
 
-  // Connect to the Global Waiting Room
   State.presenceChannel = supabaseClient.channel("vani_global_presence");
 
   State.presenceChannel
@@ -1564,8 +1399,6 @@ const initPresence = async () => {
     })
     .subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        // 🔐 GHOST PROTOCOL BRAKE:
-        // Notice we check State.profile.vani_id to see if you are logged in as helpline
         if (State.profile && State.profile.vani_id === "helpline") {
           console.log(
             "🕵️ Stealth Mode Activated: Presence broadcasting suppressed for @helpline.",
@@ -1573,7 +1406,6 @@ const initPresence = async () => {
           return;
         }
 
-        // Announce to the network that YOU are online (Only for normal users)
         await State.presenceChannel.track({
           mobile: State.mobile,
           online_at: new Date().toISOString(),
@@ -1582,19 +1414,14 @@ const initPresence = async () => {
     });
 };
 
-// ==========================================================
-// 🛡️ ANTI-SLEEP & TAB THROTTLING WAKE-UP ENGINE
-// ==========================================================
 document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible") {
     if (State && State.mobile) {
       console.log("🔄 VANI Waking up... Syncing Data.");
 
-      // 1. Force a manual fetch of any messages missed while tab was hidden
       await syncContacts();
       if (State.activeContact) await loadHistory();
 
-      // 2. Safely re-announce Presence (Green Dot)
       if (State.presenceChannel && State.presenceChannel.state === "joined") {
         await State.presenceChannel.track({
           mobile: State.mobile,
@@ -1603,14 +1430,10 @@ document.addEventListener("visibilitychange", async () => {
       } else if (typeof initPresence === "function") {
         initPresence();
       }
-
-      // 🚨 FIX: We DO NOT call initRealtime() here anymore!
-      // Supabase automatically keeps the socket alive. Violently restarting it caused the crash.
     }
   } else {
     console.log("💤 VANI Tab hidden... Marking as OFFLINE.");
 
-    // Safely drop the Green Dot for everyone else
     if (
       State &&
       State.presenceChannel &&
@@ -1620,10 +1443,6 @@ document.addEventListener("visibilitychange", async () => {
     }
   }
 });
-
-// ==========================================================
-// GHOST PROFILE SAVING ENGINE (SECURE IDENTITY LOCK)
-// ==========================================================
 
 $("save-ghost-btn")?.addEventListener("click", async (e) => {
   e.preventDefault();
@@ -1635,13 +1454,11 @@ $("save-ghost-btn")?.addEventListener("click", async (e) => {
     return;
   }
 
-  // 1. Instantly unhide modal and show a fetching state so the UI feels fast
   $("ghost-save-number").value = "Fetching Identity...";
   $("ghost-save-name").value = "";
   $("ghost-save-modal").style.display = "flex";
 
   try {
-    // 🚨 SECURE LOOKUP: Fetch the @handle instead of exposing the mobile number
     const { data, error } = await supabaseClient
       .from("profiles")
       .select("vani_id")
@@ -1650,14 +1467,12 @@ $("save-ghost-btn")?.addEventListener("click", async (e) => {
 
     if (error || !data) throw new Error("Matrix identity not found.");
 
-    // Inject the secure handle into the read-only input
     $("ghost-save-number").value = `@${data.vani_id}`;
 
     setTimeout(() => {
       $("ghost-save-name").focus();
     }, 100);
   } catch (err) {
-    // Fallback if the profile is somehow corrupted
     $("ghost-save-number").value = "@unknown_node";
     console.error("Identity Mask Error:", err.message);
   }
@@ -1674,49 +1489,37 @@ $("confirm-ghost-save-btn")?.addEventListener("click", async () => {
   if (!name) return alert("Please enter a name.");
 
   try {
-    // 1. Save to Database
     const { error } = await supabaseClient
       .from("contacts")
       .insert([{ mobile: State.mobile, name, contact, gender: "Other" }]);
     if (error) throw error;
 
-    // 2. Hide UI & Button
     $("ghost-save-modal").style.display = "none";
     $("save-ghost-btn").classList.add("hidden");
 
-    // 3. Seamlessly Update Header Name
     $("chat-with-name").textContent = name;
 
-    // 4. Force a silent Sidebar Redraw
     await syncContacts();
 
-    // 5. Play confirmation ding!
     if (typeof playSound === "function") playSound("receive");
   } catch (err) {
     alert(`Save Error: ${err.message}`);
   }
 });
 
-// ==========================================================
-// 🌐 NETWORK GUARDIAN (OFFLINE / ONLINE MONITOR)
-// ==========================================================
-
 const handleNetworkChange = () => {
   const overlay = $("offline-overlay");
   if (!overlay) return;
 
   if (!navigator.onLine) {
-    // 🛑 WE ARE OFFLINE: Drop the shield
     overlay.style.display = "flex";
     console.warn(
       "📡 NETWORK LOST: Freezing matrix and displaying offline shield.",
     );
   } else {
-    // 🟢 WE ARE ONLINE: Lift the shield and Auto-Heal
     overlay.style.display = "none";
     console.log("📡 NETWORK RESTORED: Re-establishing uplinks...");
 
-    // Auto-Heal the App (Fetch missing messages and reset Presence)
     if (State && State.mobile) {
       if (typeof syncContacts === "function") syncContacts();
       if (State.activeContact && typeof loadHistory === "function")
@@ -1731,15 +1534,12 @@ const handleNetworkChange = () => {
   }
 };
 
-// Listen to the browser's native network events
 window.addEventListener("offline", handleNetworkChange);
 window.addEventListener("online", handleNetworkChange);
 
-// The Manual "Attempt Reconnect" Button Logic
 $("offline-reload-btn")?.addEventListener("click", () => {
   const btn = $("offline-reload-btn");
 
-  // Give tactical visual feedback
   const originalText = btn.textContent;
   btn.textContent = "Scanning Frequencies...";
   btn.style.opacity = "0.5";
@@ -1747,23 +1547,16 @@ $("offline-reload-btn")?.addEventListener("click", () => {
 
   setTimeout(() => {
     if (navigator.onLine) {
-      // Hardware confirms internet is back, trigger a hard reload to ensure clean cache
       location.reload();
     } else {
-      // Still dead. Revert the button so they can try again later.
       btn.textContent = originalText;
       btn.style.opacity = "1";
       btn.style.pointerEvents = "auto";
 
-      // Optional: Play the error/delete sound if you want audio feedback
       if (typeof playSound === "function") playSound("delete");
     }
-  }, 800); // Fake 800ms scan delay for premium UX
+  }, 800);
 });
-
-// ==========================================================
-// 📞 VANI WEBRTC WALKIE-TALKIE ENGINE
-// ==========================================================
 
 const CallState = {
   isActive: false,
@@ -1778,7 +1571,6 @@ const CallState = {
   pendingCandidates: [],
 };
 
-// 1. SIGNALING EMITTER
 const sendCallSignal = (type, data = {}) => {
   if (!State.channel) return;
   State.channel.send({
@@ -1793,7 +1585,6 @@ const sendCallSignal = (type, data = {}) => {
   });
 };
 
-// 2. TIMERS & LOGGING
 const formatDuration = (seconds) => {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
@@ -1817,7 +1608,6 @@ const stopCallTimerAndLog = async (wasAnswered) => {
   $("call-duration-timer").classList.add("hidden");
   $("call-duration-timer").textContent = "00:00";
 
-  // ONLY THE CALLER LOGS TO THE DATABASE
   if (CallState.isCaller) {
     let logString = "[CALL_LOG:MISSED]";
     if (wasAnswered && CallState.startTime) {
@@ -1837,13 +1627,11 @@ const stopCallTimerAndLog = async (wasAnswered) => {
   }
 };
 
-// 3. UI CONTROLLER (SECURE CALLER ID ENGINE)
 const setCallUI = (statusText, showAcceptBtn = false) => {
   $("active-call-matrix").classList.remove("hidden");
   $("active-call-matrix").style.display = "flex";
   $("call-status-text").textContent = statusText;
 
-  // 🚨 PREVENT IDENTITY LEAKS: Temporarily mask the UI while we verify identity
   $("call-target-name").textContent = "Encrypting Identity...";
   $("call-target-avatar").src =
     "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
@@ -1853,7 +1641,6 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
     let callerAvatar =
       "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
 
-    // 1. Check local DOM to see if they are already saved in our directory
     const localContactLi = document.querySelector(
       `li[data-mobile="${CallState.targetMobile}"]`,
     );
@@ -1863,7 +1650,6 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
         localContactLi.querySelector("h3")?.textContent || callerName;
       callerAvatar = localContactLi.querySelector("img")?.src || callerAvatar;
     } else {
-      // 2. If it's a Ghost Node, securely fetch their @handle from the DB
       try {
         const { data } = await supabaseClient
           .from("profiles")
@@ -1880,7 +1666,6 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
       }
     }
 
-    // Inject the safely verified UI
     $("call-target-name").textContent = callerName;
     $("call-target-avatar").src = callerAvatar;
   })();
@@ -1898,10 +1683,8 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
 
 const closeCallUI = () => {
   $("active-call-matrix").classList.add("hidden");
-  $("active-call-matrix").style.display = "none"; // 🚨 Force hide
+  $("active-call-matrix").style.display = "none";
 };
-
-// 4. WEBRTC PIPELINE
 
 const fetchSecureICEServers = async () => {
   try {
@@ -1924,7 +1707,6 @@ const initWebRTC = async () => {
       video: false,
     });
 
-    // 🔒 Dynamically fetch secure, time-limited credentials
     const secureServers = await fetchSecureICEServers();
     CallState.peerConnection = new RTCPeerConnection(secureServers);
 
@@ -1953,7 +1735,6 @@ const initWebRTC = async () => {
           `<span style="color:#00ff88; font-weight:bold; letter-spacing: 4px;">🟢 UPLINK LIVE</span>`;
         $("call-target-avatar").style.borderColor = "#00ff88";
 
-        // REVEAL THE SPEAKER BUTTON WHEN CONNECTED
         $("toggle-speaker-btn").classList.remove("hidden");
 
         VaniCreditsEngine.markCallStarted(CallState.isCaller);
@@ -1975,13 +1756,11 @@ const initWebRTC = async () => {
   }
 };
 
-// 5. CALL ACTIONS
 const startCall = async () => {
   if (!State.activeContact) return;
   if (CallState.isActive || CallState.isRinging)
     return alert("System busy. Finish current transmission.");
 
-  // 🚨 THE NEW QUOTA LOCK CHECK
   if (!VaniCreditsEngine.isCallAllowed()) {
     return alert(
       "Network Locked. Your monthly outgoing call quota (20 minutes) has been exhausted. You can still receive incoming calls.",
@@ -1990,7 +1769,6 @@ const startCall = async () => {
 
   console.log(`📞 Initiating Call to ${State.activeContact}...`);
 
-  // 🚨 Force unlock the Caller's audio context immediately when they click Call!
   const audioEl = document.getElementById("remote-audio-stream");
   if (audioEl) {
     audioEl
@@ -2042,7 +1820,6 @@ const endCall = (wasAnswered = false) => {
 
   VaniCreditsEngine.processCallEnd();
 
-  // Reset State
   CallState.isActive = false;
   CallState.isRinging = false;
   CallState.peerConnection = null;
@@ -2053,7 +1830,6 @@ const endCall = (wasAnswered = false) => {
   CallState.pendingCandidates = [];
 };
 
-// 6. SIGNAL PROCESSOR
 const handleIncomingWebRTCSignal = async (data) => {
   const { sender, type } = data;
 
@@ -2137,7 +1913,6 @@ const handleIncomingWebRTCSignal = async (data) => {
   }
 };
 
-// 7. EVENT BINDINGS
 document.getElementById("start-call-btn")?.addEventListener("click", startCall);
 document
   .getElementById("decline-call-btn")
@@ -2148,7 +1923,6 @@ document
   ?.addEventListener("click", async () => {
     console.log("✅ Call Accepted.");
 
-    // Force the audio element to wake up immediately
     const audioEl = document.getElementById("remote-audio-stream");
     if (audioEl) {
       audioEl
@@ -2189,7 +1963,6 @@ document
     }
   });
 
-// Network Guardian Binding (Uplink Severed)
 window.addEventListener("offline", () => {
   if (CallState.isActive || CallState.isRinging) {
     console.warn("📡 NETWORK LOST: Force terminating active transmission.");
@@ -2197,7 +1970,6 @@ window.addEventListener("offline", () => {
   }
 });
 
-// Expose the Call button dynamically when opening a chat
 window.checkCallButtonVisibility = () => {
   const btn = document.getElementById("start-call-btn");
   if (btn) {
@@ -2209,12 +1981,7 @@ window.checkCallButtonVisibility = () => {
   }
 };
 
-// ==========================================================
-// ☀️ NATURAL LIGHT THEME ENGINE v3 (Cinematic Sync Patcher)
-// ==========================================================
-
 (function injectNaturalLightTheme() {
-  // 1. Remove old style if it exists
   const styleId = "vani-light-theme-engine";
   let style = document.getElementById(styleId);
   if (style) style.remove();
@@ -2222,9 +1989,9 @@ window.checkCallButtonVisibility = () => {
   style = document.createElement("style");
   style.id = styleId;
   style.innerHTML = `
-        /* 🚨 FIX: Removed the destructive global transition that killed your smooth animations! */
+        
 
-        /* --- CORE LIGHT THEME VARIABLES --- */
+        
         body[data-theme="light"] {
             --bg-deep: #f0f2f5; 
             --bg-panel: rgba(255, 255, 255, 0.75); 
@@ -2235,7 +2002,7 @@ window.checkCallButtonVisibility = () => {
             --glass-highlight: rgba(0, 0, 0, 0.05);
         }
 
-        /* --- 1. LOGO & ICON ADAPTATION --- */
+        
         .brand-logo, body[data-theme="light"] .brand-logo {
             background: none !important;
             -webkit-text-fill-color: var(--neon-primary) !important;
@@ -2244,7 +2011,7 @@ window.checkCallButtonVisibility = () => {
             text-shadow: none !important;
         }
 
-        /* --- 1. LOGO & ICON ADAPTATION --- */
+        
         .brand-logo, body[data-theme="light"] .brand-logo {
             background: none !important;
             -webkit-text-fill-color: var(--neon-primary) !important;
@@ -2253,7 +2020,7 @@ window.checkCallButtonVisibility = () => {
             text-shadow: none !important;
         }
 
-        /* OPTICAL FIX: Slightly darkens the active neon color in Light Mode so bright yellows/cyans are readable on white */
+        
         body[data-theme="light"] .brand-logo,
         body[data-theme="light"] .glow-btn,
         body[data-theme="light"] .icon-send-btn,
@@ -2262,7 +2029,7 @@ window.checkCallButtonVisibility = () => {
             filter: brightness(0.85) saturate(1.2) !important;
         }
 
-        /* --- 2. MOBILE BLACK-BOX CRUSHER --- */
+        
         body[data-theme="light"] .mobile-header,
         body[data-theme="light"].in-mobile-chat .chat-header-bar {
             background: rgba(255, 255, 255, 0.95) !important;
@@ -2298,7 +2065,7 @@ window.checkCallButtonVisibility = () => {
             box-shadow: 0 4px 15px rgba(var(--neon-rgb), 0.15) !important;
         }
 
-        /* --- 3. INPUTS & BUBBLES --- */
+        
         body[data-theme="light"] input, 
         body[data-theme="light"] select {
             background: rgba(255, 255, 255, 0.9) !important;
@@ -2322,7 +2089,7 @@ window.checkCallButtonVisibility = () => {
             color: var(--text-main) !important;
         }
 
-        /* --- 4. TOGGLES & SETTINGS FIX --- */
+        
         body[data-theme="light"] .matrix-slider {
             background-color: rgba(0, 0, 0, 0.1) !important;
             border: 1px solid rgba(0, 0, 0, 0.2) !important;
@@ -2343,7 +2110,7 @@ window.checkCallButtonVisibility = () => {
         body[data-theme="light"] .theme-btn { color: var(--text-main) !important; }
         body[data-theme="light"] .theme-btn:hover { color: #fff !important; }
 
-        /* --- 5. MODALS & AMBIENT TEXTURES --- */
+        
         body[data-theme="light"] #active-call-matrix,
         body[data-theme="light"] #offline-overlay,
         body[data-theme="light"] #ghost-save-modal {
@@ -2365,7 +2132,6 @@ window.checkCallButtonVisibility = () => {
     `;
   document.head.appendChild(style);
 
-  // 2. INJECT THE TOGGLE INTO THE SETTINGS MENU
   const settingsPanel = document.querySelector(
     ".settings-controls.glass-panel",
   );
@@ -2391,7 +2157,6 @@ window.checkCallButtonVisibility = () => {
     lightToggle = document.getElementById("toggle-light-theme");
   }
 
-  // 3. APPLY LOGIC & MEMORY (LocalStorage)
   if (lightToggle) {
     const isLightMode = localStorage.getItem("vani-light-theme") === "true";
     lightToggle.checked = isLightMode;
@@ -2419,22 +2184,17 @@ window.checkCallButtonVisibility = () => {
   console.log("☀️ Natural Light Theme Engine v3 Booted Successfully!");
 })();
 
-// ==========================================================
-// ☀️ AUTO-DAY THEME ENGINE (v2.0 - Optimized Logic)
-// ==========================================================
 (function injectAutoDayTheme() {
   let autoDayInterval = null;
 
   const runAutoDayLogic = () => {
     const hour = new Date().getHours();
-    const isDayTime = hour >= 6 && hour < 18; // 6 AM to 6 PM
+    const isDayTime = hour >= 6 && hour < 18;
     const lightToggle = document.getElementById("toggle-light-theme");
 
-    // Determine intended state
     const shouldBeLight = isDayTime;
     const isCurrentlyLight = document.body.hasAttribute("data-theme");
 
-    // Only update if a state change is actually needed (Optimization)
     if (shouldBeLight !== isCurrentlyLight) {
       if (shouldBeLight) {
         document.body.setAttribute("data-theme", "light");
@@ -2443,7 +2203,6 @@ window.checkCallButtonVisibility = () => {
       }
     }
 
-    // Sync UI Toggle state
     if (lightToggle && lightToggle.checked !== shouldBeLight) {
       lightToggle.checked = shouldBeLight;
       localStorage.setItem("vani-light-theme", shouldBeLight.toString());
@@ -2451,9 +2210,9 @@ window.checkCallButtonVisibility = () => {
   };
 
   const enableAutoDay = () => {
-    runAutoDayLogic(); // Run immediately on activation
+    runAutoDayLogic();
     if (!autoDayInterval) {
-      autoDayInterval = setInterval(runAutoDayLogic, 60000); // Re-check every minute
+      autoDayInterval = setInterval(runAutoDayLogic, 60000);
     }
   };
 
@@ -2464,7 +2223,6 @@ window.checkCallButtonVisibility = () => {
     }
   };
 
-  // 1. Inject UI Toggle into Settings
   const settingsPanel = document.querySelector(
     ".settings-controls.glass-panel",
   );
@@ -2488,11 +2246,9 @@ window.checkCallButtonVisibility = () => {
     );
   }
 
-  // 2. Wire up Logic with Mutual Exclusion
   const autoToggle = document.getElementById("toggle-auto-day");
   const lightToggle = document.getElementById("toggle-light-theme");
 
-  // Initialize state on boot
   const syncAutoDayState = () => {
     const isOn = localStorage.getItem("vani-auto-day") === "true";
     if (autoToggle) autoToggle.checked = isOn;
@@ -2500,13 +2256,11 @@ window.checkCallButtonVisibility = () => {
   };
   syncAutoDayState();
 
-  // Event: Toggle Auto-Day
   autoToggle?.addEventListener("change", (e) => {
     const isOn = e.target.checked;
     localStorage.setItem("vani-auto-day", isOn);
 
     if (isOn) {
-      // KILL SWITCH: If user turns Auto-Day ON, disable Manual Light Theme
       if (lightToggle && lightToggle.checked) {
         lightToggle.checked = false;
         localStorage.setItem("vani-light-theme", "false");
@@ -2518,8 +2272,6 @@ window.checkCallButtonVisibility = () => {
     }
   });
 
-  // Event: Patch Light Theme Toggle to turn off Auto-Day if user takes manual control
-  // 🚨 FIX: This now triggers whether you turn it ON or OFF
   lightToggle?.addEventListener("change", (e) => {
     if (autoToggle && autoToggle.checked) {
       autoToggle.checked = false;
@@ -2527,7 +2279,6 @@ window.checkCallButtonVisibility = () => {
       disableAutoDay();
     }
 
-    // Handle manual theme application
     if (e.target.checked) {
       document.body.setAttribute("data-theme", "light");
       localStorage.setItem("vani-light-theme", "true");
@@ -2538,11 +2289,7 @@ window.checkCallButtonVisibility = () => {
   });
 })();
 
-// ==========================================================
-// 🧬 VANI-ID IDENTITY & DISCOVERY ENGINE (Append at Bottom)
-// ==========================================================
 (function initVaniIdentityEngine() {
-  // 1. Inject VANI ID input into Registration Form dynamically
   const regEmail = document.getElementById("reg-email");
   if (regEmail && !document.getElementById("reg-handle")) {
     regEmail.insertAdjacentHTML(
@@ -2553,7 +2300,6 @@ window.checkCallButtonVisibility = () => {
     );
   }
 
-  // 2. Change 'Add Contact' UI to accept Handles instead of Mobile Numbers
   const contactMobileInput = document.getElementById("new-contact-mobile");
   if (contactMobileInput) {
     contactMobileInput.id = "new-contact-handle";
@@ -2562,7 +2308,6 @@ window.checkCallButtonVisibility = () => {
     contactMobileInput.type = "text";
   }
 
-  // 3. Inject the Mandatory "Claim Handle" Modal for Legacy Users
   if (!document.getElementById("claim-handle-modal")) {
     document.body.insertAdjacentHTML(
       "beforeend",
@@ -2584,7 +2329,6 @@ window.checkCallButtonVisibility = () => {
     );
   }
 
-  // 4. Strict Validation Logic (Runs locally before hitting Database)
   window.validateVaniHandle = (handle, name) => {
     const cleanHandle = handle.toLowerCase().replace(/@/g, "").trim();
     const cleanName = name.toLowerCase().trim();
@@ -2596,7 +2340,6 @@ window.checkCallButtonVisibility = () => {
         "Handle can only contain lowercase letters, numbers, and underscores.",
       );
 
-    // Anti-Impersonation Logic
     const reserved = ["admin", "support", "vani", "official", "system"];
     if (reserved.some((r) => cleanHandle.includes(r)))
       throw new Error("Reserved system keyword detected in handle.");
@@ -2604,7 +2347,6 @@ window.checkCallButtonVisibility = () => {
     return cleanHandle;
   };
 
-  // 5. Claim Modal Submission Listener
   document
     .getElementById("claim-handle-btn")
     ?.addEventListener("click", async () => {
@@ -2619,7 +2361,6 @@ window.checkCallButtonVisibility = () => {
           State.profile.name,
         );
 
-        // Attempt to permanently save to Supabase
         const { error } = await supabaseClient
           .from("profiles")
           .update({ vani_id: finalHandle })
@@ -2631,11 +2372,9 @@ window.checkCallButtonVisibility = () => {
               : error.message,
           );
 
-        // Success! Update State and unlock the UI
         State.profile.vani_id = finalHandle;
         document.getElementById("claim-handle-modal").style.display = "none";
 
-        // Resume Boot Sequence
         if (typeof syncContacts === "function") await syncContacts();
         if (typeof initRealtime === "function") initRealtime();
         if (typeof initPresence === "function") initPresence();
@@ -2648,14 +2387,12 @@ window.checkCallButtonVisibility = () => {
       }
     });
 
-  // 6. Profiles Realtime Sync (Watch for Avatar/Name changes globally)
   supabaseClient
     .channel("vani_profiles_sync")
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "profiles" },
       (p) => {
-        // If someone in your contact list changes their profile, auto-refresh the UI!
         if (
           typeof syncContacts === "function" &&
           document.getElementById("app").classList.contains("hidden") === false
@@ -2667,9 +2404,6 @@ window.checkCallButtonVisibility = () => {
     .subscribe();
 })();
 
-// ==========================================================
-// 🚀 INFINITE SCROLL CHAT ENGINE
-// ==========================================================
 let historyPage = 0;
 let isLoadingHistory = false;
 let hasMoreHistory = true;
@@ -2684,7 +2418,7 @@ const attachScrollObserver = () => {
   scrollObserver = new IntersectionObserver(
     async (entries) => {
       if (entries[0].isIntersecting && !isLoadingHistory) {
-        await loadHistory(true); // Fetch next page
+        await loadHistory(true);
       }
     },
     { root: $("chat-box"), threshold: 0.1 },
@@ -2699,13 +2433,11 @@ const loadHistory = async (isLoadMore = false) => {
 
   const box = $("chat-box");
 
-  // Reset state for new chats
   if (!isLoadMore) {
     historyPage = 0;
     hasMoreHistory = true;
     box.innerHTML = `<div id="history-trigger-pad" style="height: 20px; width: 100%; flex-shrink: 0;"></div>`;
 
-    // 🚨 FIX: Reset memory markers for Date Boundaries
     box.dataset.topDate = "";
     box.dataset.bottomDate = "";
   }
@@ -2731,7 +2463,6 @@ const loadHistory = async (isLoadMore = false) => {
     historyPage++;
     const triggerPad = document.getElementById("history-trigger-pad");
 
-    // 🚨 FIX: Process Data Chronologically to calculate dates
     const chronoData = data.reverse();
     let chunkHTML = "";
     let currentChunkDate = isLoadMore ? box.dataset.topDate : "";
@@ -2739,7 +2470,6 @@ const loadHistory = async (isLoadMore = false) => {
     chronoData.forEach((msg, index) => {
       const msgLabel = window.getVaniDateLabel(msg.created_at);
 
-      // Inject Date Divider if the day changes
       if (!currentChunkDate || currentChunkDate !== msgLabel) {
         chunkHTML += `<div class="date-divider" data-date="${msgLabel}" style="display:flex;justify-content:center;margin:20px 0;"><div style="padding:6px 14px;border-radius:99px;background:rgba(255,255,255,0.05);border:1px solid var(--glass-border);color:var(--text-muted);font-size:0.75rem;backdrop-filter:blur(10px)">${msgLabel}</div></div>`;
         currentChunkDate = msgLabel;
@@ -2747,16 +2477,13 @@ const loadHistory = async (isLoadMore = false) => {
 
       chunkHTML += createBubbleHTML(msg);
 
-      // Lock the bottom boundary for live incoming messages
       if (!isLoadMore && index === chronoData.length - 1) {
         box.dataset.bottomDate = msgLabel;
       }
     });
 
-    // Update the top boundary so the NEXT scroll chunk knows where it ended
     box.dataset.topDate = window.getVaniDateLabel(chronoData[0].created_at);
 
-    // Deduplicate middle dividers if infinite scrolling merges two chunks of the exact same day
     if (isLoadMore) {
       const oldTopDivider = triggerPad.nextElementSibling;
       if (oldTopDivider && oldTopDivider.classList.contains("date-divider")) {
@@ -2826,24 +2553,18 @@ const createBubbleHTML = (msg) => {
 </div>`;
 };
 
-// ==========================================================
-// 🎨 FLIP ANIMATION ENGINE
-// ==========================================================
 const animateFLIP = (containerId, domUpdateCallback) => {
   const container = $(containerId);
   if (!container || !container.children.length) return domUpdateCallback();
 
-  // 1. FIRST: Measure current positions
   const firstRects = {};
   Array.from(container.children).forEach((el) => {
     if (el.dataset.mobile)
       firstRects[el.dataset.mobile] = el.getBoundingClientRect();
   });
 
-  // 2. DOM UPDATE: Execute the layout change
   domUpdateCallback();
 
-  // 3. LAST & INVERT: Measure new positions and reverse the math
   Array.from(container.children).forEach((el) => {
     const id = el.dataset.mobile;
     if (id && firstRects[id]) {
@@ -2851,24 +2572,18 @@ const animateFLIP = (containerId, domUpdateCallback) => {
       const deltaY = firstRects[id].top - lastRect.top;
 
       if (deltaY !== 0) {
-        // Instantly fake its position back to where it was
         el.style.transform = `translateY(${deltaY}px)`;
         el.style.transition = "none";
 
-        // 4. PLAY: Animate it gliding to its true location
         requestAnimationFrame(() => {
           el.style.transform = "";
           el.style.transition =
-            "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)"; // Bounce curve
+            "transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)";
         });
       }
     }
   });
 };
-
-// ==========================================================
-// ❤️ VANI LONG-PRESS LIKE ENGINE
-// ==========================================================
 
 window.updateLikeUI = (bubbleWrapper, isLiked) => {
   const bubble = bubbleWrapper.querySelector(".chat-bubble");
@@ -2926,15 +2641,10 @@ window.triggerHeartExplosion = (bubbleWrapper) => {
   }
 };
 
-// ==========================================================
-// 🛡️ UNIFIED MATRIX INTERACTIONS (LIKE & HIDE/DELETE)
-// ==========================================================
-
 window.bindMatrixInteractions = (boxId, tableName) => {
   const box = $(boxId);
   if (!box || box.hasAttribute("data-interactions-bound")) return;
 
-  // 1. DOUBLE TAP TO DELETE / HIDE
   box.addEventListener("dblclick", async (e) => {
     const bubbleWrapper = e.target.closest(".message-enter");
     if (
@@ -2948,15 +2658,12 @@ window.bindMatrixInteractions = (boxId, tableName) => {
     playSound("delete");
     bubbleWrapper.classList.add("message-deleted");
 
-    // 🚨 THE ROUTER: Hide for Strangers, Hard Delete for Saved Contacts
     if (tableName === "random_chats") {
-      // Soft Delete: Flags it as hidden in the DB but keeps the row data intact
       await supabaseClient
         .from(tableName)
         .update({ is_hidden: true })
         .eq("id", bubbleWrapper.dataset.msgId);
     } else {
-      // Hard Delete: Actually removes the row for standard chats
       await supabaseClient
         .from(tableName)
         .delete()
@@ -2973,7 +2680,6 @@ window.bindMatrixInteractions = (boxId, tableName) => {
     }, 200);
   });
 
-  // 2. LONG PRESS TO LIKE
   let pressTimer;
   let isPressing = false;
   let startY = 0;
@@ -3038,23 +2744,19 @@ window.bindMatrixInteractions = (boxId, tableName) => {
 
   box.setAttribute("data-interactions-bound", "true");
 };
-// Bind immediately to the main Chat Box
+
 document.addEventListener("DOMContentLoaded", () => {
   window.bindMatrixInteractions("chat-box", "messages");
 });
 
-// ==========================================================
-// 🎭 ANONYMOUS RANDOM MATRIX ENGINE (RELATIONAL ARCHITECTURE)
-// ==========================================================
-
 let RandomState = {
   userId: "",
-  sessionId: null, // Replaced roomId with sessionId
+  sessionId: null,
   isWaiting: false,
   timeoutId: null,
   queueChannel: null,
-  chatMsgChannel: null, // Channel for messages
-  chatStatusChannel: null, // Channel for disconnects
+  chatMsgChannel: null,
+  chatStatusChannel: null,
 };
 
 const generateStrangerID = () => {
@@ -3140,7 +2842,6 @@ const generateStrangerID = () => {
   return randomWord + Math.floor(1000 + Math.random() * 9000);
 };
 
-// Hook into sidebar
 document
   .querySelector('[data-view="VIEW-RANDOM"]')
   ?.addEventListener("click", () => {
@@ -3187,7 +2888,6 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
   }
 
   if (RandomState.sessionId && RandomState.isWaiting) {
-    // If aborted while waiting, just delete the queue row
     await supabaseClient
       .from("random_sessions")
       .delete()
@@ -3200,7 +2900,6 @@ const abortRandomSearch = async (shouldAutoReconnect = false) => {
 
   document.body.classList.remove("in-random-mobile-chat");
 
-  // Regenerate Identity for next time
   RandomState.userId = generateStrangerID();
   const inputField = $("random-fake-id");
   if (inputField) inputField.value = RandomState.userId;
@@ -3279,7 +2978,6 @@ const launchStrangerChatInterface = (sessionData) => {
       window.bindMatrixInteractions("random-chat-box", "random_chats");
   }
 
-  // 🚨 1. Listen for MESSAGES and UPDATES (Likes/Hides) in `random_chats`
   RandomState.chatMsgChannel = supabaseClient
     .channel(`chat_messages_${sessionData.session_id}`)
     .on(
@@ -3287,7 +2985,7 @@ const launchStrangerChatInterface = (sessionData) => {
       { event: "INSERT", schema: "public", table: "random_chats" },
       (p) => {
         const msg = p.new;
-        // Only inject the message if it isn't already hidden
+
         if (msg.session_id === sessionData.session_id && !msg.is_hidden) {
           const isMe = msg.sender_id === RandomState.userId;
           appendBubble(
@@ -3315,20 +3013,18 @@ const launchStrangerChatInterface = (sessionData) => {
             `[data-msg-id="${msg.id}"]`,
           );
           if (bubbleWrapper) {
-            // 🚨 SYNCHRONIZED HIDE: If the sender hid the message, destroy it on the receiver's screen instantly
             if (msg.is_hidden) {
               bubbleWrapper.classList.add("message-deleted");
               setTimeout(() => bubbleWrapper.remove(), 200);
-              return; // Stop processing further updates for this dead bubble
+              return;
             }
 
-            // SYNCHRONIZED LIKES: Sync heart particles for the stranger
             const wasLiked = bubbleWrapper.dataset.isLiked === "true";
             if (msg.is_liked && !wasLiked) {
               bubbleWrapper.dataset.isLiked = "true";
               window.updateLikeUI(bubbleWrapper, true);
               window.triggerHeartExplosion(bubbleWrapper);
-              // Only play the audio ding if they liked YOUR message
+
               if (
                 msg.sender_id !== RandomState.userId &&
                 typeof playSound === "function"
@@ -3344,7 +3040,6 @@ const launchStrangerChatInterface = (sessionData) => {
     )
     .subscribe();
 
-  // 🚨 2. Listen for DISCONNECT in `random_sessions`
   RandomState.chatStatusChannel = supabaseClient
     .channel(`chat_status_${sessionData.session_id}`)
     .on(
@@ -3440,7 +3135,6 @@ const sendRandomMsg = async (e) => {
   input.focus();
   if (typeof playSound === "function") playSound("send");
 
-  // Send to the NEW `random_chats` table
   const { error } = await supabaseClient.from("random_chats").insert([
     {
       session_id: RandomState.sessionId,
@@ -3456,12 +3150,10 @@ const randomSendBtn = $("random-send-btn");
 const randomMsgInput = $("random-msg-input");
 
 if (randomSendBtn) {
-  // 🚨 COMBINED FIX for Random Matrix
   const handleRandomSendAction = (e) => {
     e.preventDefault();
     if (randomMsgInput) randomMsgInput.focus();
 
-    // Fake the button press animation physically
     randomSendBtn.style.transform = "scale(0.93) translateY(2px)";
     setTimeout(() => (randomSendBtn.style.transform = ""), 150);
 
@@ -3492,10 +3184,6 @@ $("random-disconnect-btn")?.addEventListener("click", async () => {
   }
 });
 
-// ==========================================================
-// 🚀 ONESIGNAL MANAGED PUSH PROTOCOL (A1)
-// ==========================================================
-
 window.OneSignalDeferred = window.OneSignalDeferred || [];
 
 window.OneSignalDeferred.push(async function (OneSignal) {
@@ -3511,25 +3199,17 @@ window.OneSignalDeferred.push(async function (OneSignal) {
   });
 });
 
-// 2. Map the VANI Identity to the Device
-// 🚨 Call this function directly inside evalSession() right after it succeeds!
 async function linkDeviceToOneSignal() {
   if (!State || !State.mobile) return;
 
   OneSignalDeferred.push(async function (OneSignal) {
-    // Ask for permission cleanly via the OS
     await OneSignal.Slidedown.promptPush();
 
-    // Tag this specific device with the user's matrix number
-    // This allows us tocl send a push directly to this number later
     await OneSignal.User.addAlias("vani_mobile", State.mobile);
     console.log(`🔗 Device hard-linked to node: ${State.mobile}`);
   });
 }
 
-// ==========================================================
-// 🛡️ HELPLINE & BOT AUTO-WELCOME / AUTO-SAVE PROTOCOL
-// ==========================================================
 async function triggerHelplineWelcome() {
   console.log("🤖 Initializing System Nodes Uplink Check...");
 
@@ -3537,7 +3217,6 @@ async function triggerHelplineWelcome() {
   const VANIBOT_MOBILE = "0000000000";
 
   try {
-    // 1. Physically check if a message already exists to prevent loops
     const { data: existingMsg } = await supabaseClient
       .from("messages")
       .select("id")
@@ -3550,7 +3229,6 @@ async function triggerHelplineWelcome() {
       return;
     }
 
-    // 2. Inject the Welcome Transmission
     const welcomeText = `Thanks for registering with us, ${State.profile.name || "Operator"}! Welcome to VANI. You can ask any questions or report issues directly in this secure channel. How can we assist you today?`;
 
     const { error: msgError } = await supabaseClient.from("messages").insert({
@@ -3562,7 +3240,6 @@ async function triggerHelplineWelcome() {
 
     if (msgError) throw msgError;
 
-    // 3. Auto-Save BOTH Helpline ("VANI") and VaniBot ("Bot")
     const { data: existingContacts } = await supabaseClient
       .from("contacts")
       .select("contact")
@@ -3596,7 +3273,6 @@ async function triggerHelplineWelcome() {
       await supabaseClient.from("contacts").insert(newContactsToInsert);
     }
 
-    // 4. Update the profile flag
     await supabaseClient
       .from("profiles")
       .update({ welcomed_by_vani: true })
@@ -3615,7 +3291,7 @@ const VaniCreditsEngine = {
   myMobile: null,
   callStartTime: null,
   amITheCaller: false,
-  maxSeconds: 1200, // 20 Minutes (20 * 60)
+  maxSeconds: 1200,
   currentSeconds: 0,
 
   init: function (mobileNumber) {
@@ -3661,39 +3337,31 @@ const VaniCreditsEngine = {
 
     if (!displayEl || !fillPath || !needle) return;
 
-    // 1. Format Text
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     displayEl.innerText = `${minutes}m ${seconds}s`;
 
-    // 2. Math & Geometry (Cap at 100%)
     let percentage = totalSeconds / this.maxSeconds;
     if (percentage > 1) percentage = 1;
 
-    // Circumference of half-circle (r=90) is ~283. Offset shrinks as usage grows.
     const dashoffset = 283 - 283 * percentage;
     fillPath.style.strokeDashoffset = dashoffset;
 
-    // Rotate from -90deg (Empty) to +90deg (Full)
     const rotation = -90 + 180 * percentage;
     needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
 
-    // 3. Dynamic Heatmap Colors
-    // 3. Dynamic Heatmap Colors
     let color = "var(--neon-primary)";
-    if (percentage >= 0.75) color = "#ffaa00"; // 75% = Warning Orange
-    if (percentage >= 1) color = "#ff4d4d"; // 100% = Locked Red
+    if (percentage >= 0.75) color = "#ffaa00";
+    if (percentage >= 1) color = "#ff4d4d";
 
     fillPath.style.stroke = color;
 
-    // 🚨 INJECTED FIX: Apply the color to the needle's parent container so the CSS 'currentColor' inherits it!
     needle.style.color = color;
 
     fillPath.style.filter = `drop-shadow(0 0 10px ${color})`;
     needle.querySelector(".needle-base").style.background = color;
     needle.querySelector(".needle-base").style.boxShadow = `0 0 15px ${color}`;
 
-    // 4. Engage Network Lock if >= 1200
     if (percentage >= 1) {
       if (warning) warning.classList.remove("hidden");
       this.lockOutgoingMatrix(true);
@@ -3749,16 +3417,11 @@ const VaniCreditsEngine = {
   },
 };
 
-// ==========================================================
-// 🚀 VANI PWA: DYNAMIC INSTALL MODAL ENGINE (FIXED)
-// ==========================================================
-
 let deferredInstallPrompt = null;
 const installModal = document.getElementById("pwa-install-modal");
 const acceptBtn = document.getElementById("pwa-accept-btn");
 const declineBtn = document.getElementById("pwa-decline-btn");
 
-// 1. Service Worker Registration
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
@@ -3771,9 +3434,7 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-// 2. Intercept the Install Prompt
 window.addEventListener("beforeinstallprompt", (e) => {
-  // 🚨 THE FIX: Check if already installed or running as an app
   const isStandalone =
     window.matchMedia("(display-mode: standalone)").matches ||
     window.navigator.standalone;
@@ -3784,14 +3445,12 @@ window.addEventListener("beforeinstallprompt", (e) => {
     console.log(
       "🛑 Installation aborted: App is already installed or running in standalone mode.",
     );
-    return; // Stop the modal from ever showing
+    return;
   }
 
-  // Prevent Chrome from showing the mini-infobar natively
   e.preventDefault();
   deferredInstallPrompt = e;
 
-  // Wait 1.5 seconds after boot to show the modal for dramatic, premium pacing
   if (installModal) {
     setTimeout(() => {
       installModal.classList.remove("hidden");
@@ -3802,37 +3461,30 @@ window.addEventListener("beforeinstallprompt", (e) => {
   }
 });
 
-// 3. User Clicks "Install App"
 if (acceptBtn) {
   acceptBtn.addEventListener("click", async () => {
     if (!deferredInstallPrompt) return;
 
-    // Trigger the native OS install prompt
     deferredInstallPrompt.prompt();
     const { outcome } = await deferredInstallPrompt.userChoice;
     console.log(`User PWA Choice: ${outcome}`);
 
-    // Cleanup
     deferredInstallPrompt = null;
     installModal.classList.remove("slide-up-active");
     setTimeout(() => installModal.classList.add("hidden"), 600);
   });
 }
 
-// 4. User Clicks "Not Now"
 if (declineBtn) {
   declineBtn.addEventListener("click", () => {
-    // Slide it away gracefully.
     installModal.classList.remove("slide-up-active");
     setTimeout(() => installModal.classList.add("hidden"), 600);
   });
 }
 
-// 5. Hide completely and save memory if successfully installed
 window.addEventListener("appinstalled", () => {
   console.log("✅ VANI successfully installed to device.");
 
-  // 🚨 THE FIX: Save an eternal flag so it never asks again in the browser
   localStorage.setItem("vani-pwa-installed", "true");
 
   if (installModal) {
@@ -3842,7 +3494,6 @@ window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
 });
 
-// 🚨 VANI SWIPE-TO-REPLY ENGINE
 function initSwipeToReply(messageElement, messageData) {
   let startX;
   let currentX;
@@ -3861,7 +3512,6 @@ function initSwipeToReply(messageElement, messageData) {
       currentX = e.touches[0].clientX;
       let delta = startX - currentX;
 
-      // If swiping left by more than 50px
       if (delta > 50) {
         messageElement.classList.add("swiping");
         messageElement.style.transform = `translateX(${-delta / 2}px)`;
@@ -3874,32 +3524,23 @@ function initSwipeToReply(messageElement, messageData) {
     let delta = startX - e.changedTouches[0].clientX;
 
     if (delta > 100) {
-      // Threshold reached
       triggerReply(messageData);
     }
 
-    // Reset bubble
     messageElement.classList.remove("swiping");
     messageElement.style.transform = "translateX(0)";
   });
 }
 
 function triggerReply(messageData) {
-  // 🚨 Logic to display the "Replying to..." UI bar above input
-  const replyBar = document.getElementById("reply-bar"); // Ensure this element exists in index.html
+  const replyBar = document.getElementById("reply-bar");
   replyBar.classList.remove("hidden");
   replyBar.innerHTML = `Replying to: <span>${messageData.content.substring(0, 20)}...</span>`;
 
-  // Focus input so keyboard stays open
   document.getElementById("msg-input").focus();
 }
 
-// --- SYSTEM BOOT SEQUENCE ---
-// ==========================================================
-
 const bootApp = async () => {
-  // 🚨 THE ANTI-HANG FAILSAFE: 5-Second Nuclear Override
-  // If the database stalls, force the shield down so the user isn't trapped.
   const failsafeTimer = setTimeout(() => {
     const loader = document.getElementById("boot-loader");
     if (loader) {
@@ -3912,26 +3553,22 @@ const bootApp = async () => {
         setTimeout(() => loader.remove(), 800);
       });
     }
-  }, 5000); // Max allowed boot time before aborting
+  }, 5000);
 
   try {
-    // 1. Load user theme preferences immediately so the boot text glows in the correct color
     bootThemeEngine();
 
-    // 2. Verify Supabase successfully loaded
     if (typeof supabase === "undefined") {
       throw new Error(
         "Supabase Database Core failed to load. Check network connection.",
       );
     }
 
-    // 3. Check login status and launch VANI
     await evalSession();
   } catch (err) {
     console.error("🔥 SYSTEM BOOT FAILURE:", err.message);
     alert(err.message);
 
-    // Instantly drop shield on fatal error so they can see the login screen
     const loader = document.getElementById("boot-loader");
     if (loader) {
       loader.style.opacity = "0";
@@ -3939,10 +3576,8 @@ const bootApp = async () => {
       setTimeout(() => loader.remove(), 800);
     }
   } finally {
-    // If evalSession succeeds quickly, cancel the 5-second nuclear failsafe
     clearTimeout(failsafeTimer);
   }
 };
 
-// Fire the boot sequence immediately upon script load!
 bootApp();
