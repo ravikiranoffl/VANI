@@ -893,39 +893,19 @@ async function triggerOneSignalPush(
   senderName,
   messageContent,
 ) {
-  const ONESIGNAL_APP_ID = "30dfa9ba-710b-474d-a12f-a7a1509cb29f";
-  const ONESIGNAL_REST_API_KEY =
-    "os_v2_app_gdp2totrbndu3ijpu6qvbhfst4x6pixofyiejlnvse55xaprufc32wglh7ywvzfsitysvxh65tn5tchsgol7qskr2nm4tw334qk6i3q";
-
-  const payload = {
-    app_id: ONESIGNAL_APP_ID,
-    target_channel: "push",
-
-    include_aliases: {
-      vani_mobile: [recipientMobile],
-    },
-    headings: { en: `VANI: ${senderName}` },
-    contents: { en: messageContent },
-
-    small_icon: "ic_stat_onesignal_default",
-    large_icon:
-      "https://api.dicebear.com/7.x/shapes/svg?seed=vani-neon&backgroundColor=030305",
-    android_accent_color: "FF00f3ff",
-  };
-
   try {
-    const proxyUrl = "https://corsproxy.io/?";
-    const targetUrl = "https://onesignal.com/api/v1/notifications";
-
-    await fetch(proxyUrl + encodeURIComponent(targetUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        Authorization: `Basic ${ONESIGNAL_REST_API_KEY}`,
+    // Calls your new secure Edge Function directly (No proxy needed!)
+    const { data, error } = await supabaseClient.functions.invoke(
+      "trigger-push",
+      {
+        body: { recipientMobile, senderName, messageContent },
       },
-      body: JSON.stringify(payload),
-    });
-    console.log("📡 Push trigger successfully routed through managed server.");
+    );
+
+    if (error) throw error;
+    console.log(
+      "📡 Push trigger successfully routed through secure Edge Node.",
+    );
   } catch (e) {
     console.error("VANI Push Failed:", e);
   }
