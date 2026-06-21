@@ -1,3 +1,5 @@
+const { SupabaseClient } = require("@supabase/supabase-js");
+
 const supabaseClient = supabase.createClient(
   "https://gxuqhaxboagwsktoupyv.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
@@ -764,6 +766,17 @@ const appendBubble = (msg, autoScroll = true, targetBoxId = "chat-box") => {
                 ${duration ? `<p>Duration: ${duration}</p>` : ""}
             </div>
         </div>`;
+  } else if (msg.content.startsWith("[REPLY_TO:")) {
+    // Extract the replied text and the actual new message
+    const splitIndex = msg.content.indexOf("]\n");
+    const replyContext = msg.content.substring(10, splitIndex);
+    const actualMessage = msg.content.substring(splitIndex + 2);
+
+    bubbleHTML = `
+      <div style="background: rgba(0,0,0,0.2); border-left: 3px solid var(--neon-primary); padding: 5px 10px; margin-bottom: 8px; font-size: 0.8rem; border-radius: 4px; color: var(--text-muted); opacity: 0.8;">
+          ${sanitize(replyContext)}
+      </div>
+      <div class="chat-bubble-content">${sanitize(actualMessage)}</div>`;
   } else {
     bubbleHTML = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
   }
@@ -842,6 +855,15 @@ const sendMsg = async (e) => {
 
   const content = input.value.trim();
   if (!content || !State.activeContact) return;
+
+  const replyBar = $("reply-bar");
+  if (replyBar && !replyBar.classList.contains("hidden")) {
+    const replyTarget = replyBar.querySelector("span").innerText;
+    // Wrap the message in a system reply tag
+    content = `[REPLY_TO: ${replyTarget}]\n${content}`;
+    // Dismiss the reply bar
+    replyBar.classList.add("hidden");
+  }
 
   input.value = "";
   input.focus();
@@ -1781,6 +1803,7 @@ const startCall = async () => {
   CallState.isActive = true;
 
   try {
+    await acquireCallWakeLock();
     await initWebRTC();
     setCallUI("Ringing...", false);
 
@@ -1788,6 +1811,11 @@ const startCall = async () => {
     await CallState.peerConnection.setLocalDescription(offer);
 
     sendCallSignal("OFFER", { offer });
+    triggerOneSignalPush(
+      CallState.targetMobile,
+      State.profile.name,
+      "📞 Incoming Voice Call...",
+    );
   } catch (err) {
     console.error("Start Call Error:", err);
     endCall(false);
@@ -1796,6 +1824,7 @@ const startCall = async () => {
 
 const endCall = (wasAnswered = false) => {
   console.log("🛑 Terminating Call Sequence.");
+  releaseCallWakeLock();
 
   if (CallState.isActive || CallState.isRinging) {
     sendCallSignal("HANGUP");
@@ -1850,6 +1879,12 @@ const handleIncomingWebRTCSignal = async (data) => {
       CallState.isCaller = false;
 
       CallState.pendingOffer = data.offer;
+
+      resolveCallerIdentity(sender).then((name) => {
+        const targetNameEl = document.getElementById("call-target-name");
+        if (targetNameEl) targetNameEl.innerText = name;
+      });
+
       setCallUI("Incoming Transmission...", true);
       break;
 
@@ -1934,6 +1969,7 @@ document
     CallState.isRinging = false;
 
     try {
+      await acquireCallWakeLock();
       await initWebRTC();
       await CallState.peerConnection.setRemoteDescription(
         new RTCSessionDescription(CallState.pendingOffer),
@@ -3195,7 +3231,7 @@ window.OneSignalDeferred.push(async function (OneSignal) {
     },
     path: "/VANI/",
     serviceWorkerParam: { scope: "/VANI/" },
-    serviceWorkerPath: "VANI/OneSignalSDKWorker.js",
+    serviceWorkerPath: "VANI/sw.js",
   });
 });
 
@@ -3538,6 +3574,59 @@ function triggerReply(messageData) {
   replyBar.innerHTML = `Replying to: <span>${messageData.content.substring(0, 20)}...</span>`;
 
   document.getElementById("msg-input").focus();
+}
+
+// ==========================================
+// VANI WAKE LOCK ENGINE (PREVENTS CALL DROPS)
+// ==========================================
+let callWakeLock = null;
+
+async function acquireCallWakeLock() {
+  if ("wakeLock" in navigator) {
+    try {
+      callWakeLock = await navigator.wakeLock.request("screen");
+      console.log("🛡️ VANI: Screen Wake Lock Acquired. Call protected.");
+
+      callWakeLock.addEventListener("release", () => {
+        console.log("🛡️ VANI: Screen Wake Lock Released.");
+      });
+    } catch (err) {
+      console.error(`🛡️ VANI Wake Lock Error: ${err.message}`);
+    }
+  }
+}
+
+function releaseCallWakeLock() {
+  if (callWakeLock !== null) {
+    callWakeLock.release().then(() => {
+      callWakeLock = null;
+    });
+  }
+}
+
+// Auto-reacquire if user minimizes and maximizes VANI during a call
+document.addEventListener("visibilitychange", async () => {
+  if (callWakeLock !== null && document.visibilityState === "visible") {
+    await acquireCallWakeLock();
+  }
+});
+
+async function resolveCallerIdentity(callerMobile) {
+  try {
+    const { data, error } = await supabaseClient
+      .from("profiles")
+      .select("vani_id")
+      .eq("mobile", callerMobile)
+      .single();
+
+    if (data && data.vani_id) {
+      return "@" + data.vani_id;
+    }
+    return callerMobile; // Fallback to number if ID not found
+  } catch (e) {
+    console.error("VANI: Failed to resolve caller ID", e);
+    return "Unknown";
+  }
 }
 
 const bootApp = async () => {

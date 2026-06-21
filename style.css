@@ -2088,3 +2088,177 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     transition: opacity 0.2s ease;
     color: var(--neon-primary);
 }
+
+/* ==========================================
+   VANI CALL UI: CSS-ONLY OVERRIDE
+   ========================================== */
+
+/* 1. The Background Environment */
+#active-call-matrix {
+    background: radial-gradient(circle at center, rgba(8, 8, 12, 0.85) 0%, #000 100%) !important;
+    backdrop-filter: blur(35px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(35px) saturate(180%) !important;
+    position: fixed !important;
+}
+
+/* Add CRT Scanlines to the background */
+#active-call-matrix::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* 2. The Main Glass Card */
+#active-call-matrix .glass-panel {
+    background: linear-gradient(180deg, rgba(15, 15, 20, 0.6) 0%, rgba(5, 5, 8, 0.9) 100%) !important;
+    border: 1px solid rgba(var(--neon-rgb), 0.2) !important;
+    box-shadow:
+        0 30px 60px rgba(0, 0, 0, 0.9),
+        inset 0 0 40px rgba(var(--neon-rgb), 0.05) !important;
+    border-radius: 32px !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top Neon Edge Highlight */
+#active-call-matrix .glass-panel::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 10%;
+    width: 80%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--neon-primary), transparent);
+    box-shadow: 0 0 20px var(--neon-primary);
+}
+
+/* 3. Typography & Text Effects */
+#call-target-name {
+    font-size: clamp(1.8rem, 8vw, 2.5rem) !important;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    /* Chromatic Aberration / Glitch Effect */
+    text-shadow:
+        0 0 20px rgba(var(--neon-rgb), 0.6),
+        3px 0px 0px rgba(255, 0, 60, 0.5),
+        -3px 0px 0px rgba(0, 243, 255, 0.5) !important;
+    margin-top: 10px !important;
+}
+
+#call-status-text {
+    color: var(--neon-primary) !important;
+    letter-spacing: 6px !important;
+    font-weight: 800 !important;
+    animation: statusPulse 2s infinite !important;
+}
+
+@keyframes statusPulse {
+
+    0%,
+    100% {
+        opacity: 1;
+        text-shadow: 0 0 10px var(--neon-primary);
+    }
+
+    50% {
+        opacity: 0.4;
+        text-shadow: none;
+    }
+}
+
+#call-duration-timer {
+    font-size: 1.5rem !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    padding: 5px 15px !important;
+    border-radius: 8px !important;
+    border: 1px solid rgba(var(--neon-rgb), 0.3) !important;
+    display: inline-block !important;
+}
+
+/* 4. The Holographic Avatar */
+#call-target-avatar {
+    border: none !important;
+    border-radius: 24px !important;
+    /* Squircle shape instead of circle */
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.8),
+        0 0 50px rgba(var(--neon-rgb), 0.3),
+        inset 0 0 20px rgba(var(--neon-rgb), 0.8) !important;
+    filter: drop-shadow(0 0 15px var(--neon-primary)) contrast(1.1);
+    animation: holoFloat 4s ease-in-out infinite, pulseAvatar 2s infinite !important;
+    transform-origin: center bottom;
+}
+
+@keyframes holoFloat {
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-15px) scale(1.02);
+    }
+}
+
+/* 5. Button Redesign (Tactile Squircles) */
+#decline-call-btn,
+#accept-call-btn,
+#toggle-speaker-btn {
+    border-radius: 20px !important;
+    width: 80px !important;
+    height: 65px !important;
+    transition: all 0.4s var(--bezier-bounce) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* Accept Button Override */
+#accept-call-btn {
+    background: rgba(0, 255, 136, 0.1) !important;
+    border: 2px solid rgba(0, 255, 136, 0.5) !important;
+    box-shadow: 0 10px 25px rgba(0, 255, 136, 0.15), inset 0 0 15px rgba(0, 255, 136, 0.2) !important;
+    color: #00ff88 !important;
+}
+
+#accept-call-btn:hover,
+#accept-call-btn:active {
+    background: #00ff88 !important;
+    color: #000 !important;
+    box-shadow: 0 0 40px #00ff88 !important;
+    transform: translateY(-8px) scale(1.05) !important;
+}
+
+/* Decline Button Override */
+#decline-call-btn {
+    background: rgba(255, 77, 77, 0.1) !important;
+    border: 2px solid rgba(255, 77, 77, 0.5) !important;
+    box-shadow: 0 10px 25px rgba(255, 77, 77, 0.15), inset 0 0 15px rgba(255, 77, 77, 0.2) !important;
+    color: #ff4d4d !important;
+}
+
+#decline-call-btn:hover,
+#decline-call-btn:active {
+    background: #ff4d4d !important;
+    color: #000 !important;
+    box-shadow: 0 0 40px #ff4d4d !important;
+    transform: translateY(-8px) scale(1.05) !important;
+}
+
+/* Speaker Button Override */
+#toggle-speaker-btn {
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    height: 50px !important;
+    /* Slightly smaller than main actions */
+    width: 60px !important;
+}
+
+#toggle-speaker-btn:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-color: #fff !important;
+    color: #fff !important;
+}
