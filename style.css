@@ -1,22 +1,13 @@
 :root {
-    /* Base Colors */
     --bg-deep: #030305;
     --bg-panel: rgba(12, 12, 16, 0.5);
     --bg-panel-hover: rgba(20, 20, 25, 0.7);
-
-    /* Text */
     --text-main: #f8f9fa;
     --text-muted: #8b9bb4;
-
-    /* Borders */
     --glass-border: rgba(255, 255, 255, 0.08);
     --glass-highlight: rgba(255, 255, 255, 0.15);
-
-    /* Dynamic Neon (Overwritten by JS Theme Engine) */
     --neon-primary: #00f3ff;
     --neon-rgb: 0, 243, 255;
-
-    /* Physics */
     --bezier-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
     --bezier-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -33,21 +24,16 @@
     transition: opacity 0.8s var(--bezier-smooth);
 }
 
-/* 🚨 FIX: Solid Fill, 25% Size, Bold Theme-Adopted Text */
 #matrix-boot-text {
     font-family: "Space Grotesk", sans-serif !important;
     font-size: 60px !important;
     font-weight: 700 !important;
-    /* Bold and substantial */
     letter-spacing: 0.1em !important;
     margin: 0 !important;
     padding: 0 !important;
     text-transform: uppercase !important;
-
-    /* Solid Theme Fill */
     color: var(--neon-primary) !important;
     -webkit-text-stroke: 0 !important;
-    /* Kills the shallow outline */
     text-shadow:
         0 0 20px rgba(var(--neon-rgb), 0.6),
         0 0 50px rgba(var(--neon-rgb), 0.4) !important;
@@ -96,7 +82,6 @@ body {
     display: none !important;
 }
 
-/* --- Ambient Background Textures --- */
 .ambient-texture {
     position: fixed;
     top: 0;
@@ -131,7 +116,6 @@ body {
     transition: background 1.5s ease;
 }
 
-/* --- Premium Glassmorphism Utilities --- */
 .glass-panel {
     background: var(--bg-panel);
     backdrop-filter: blur(24px);
@@ -146,7 +130,6 @@ body {
         box-shadow 0.4s ease;
 }
 
-/* --- Layout Architecture --- */
 .chat-container {
     display: flex;
     width: 100vw;
@@ -156,11 +139,10 @@ body {
     position: relative;
 }
 
-/* 1. Sidebar (Left Drawer) */
 .side-nav {
     width: 280px;
     height: 100dvh;
-    /* 🚨 FIX: Changed to dvh (Dynamic Viewport Height) */
+
     background: linear-gradient(180deg,
             rgba(8, 8, 12, 0.8) 0%,
             rgba(3, 3, 5, 0.9) 100%);
@@ -196,7 +178,6 @@ body {
     gap: 8px;
     padding: 0 15px;
     overflow-y: auto;
-    /* 🚨 FIX: Makes links scrollable */
 }
 
 .menu-item {
@@ -239,7 +220,6 @@ body {
 }
 
 .nav-footer {
-    /* 🚨 FIX: Adds dynamic padding so it doesn't hide behind the iOS/Android home bar */
     padding: 20px 15px max(20px, env(safe-area-inset-bottom));
     flex-shrink: 0;
 }
@@ -271,7 +251,6 @@ body {
     font-family: monospace;
 }
 
-/* 2. Main Viewport */
 .main-viewport {
     flex: 1;
     display: flex;
@@ -374,7 +353,6 @@ body {
     letter-spacing: 2px;
 }
 
-/* --- Forms & Common UI --- */
 .form-group {
     display: flex;
     flex-direction: column;
@@ -443,9 +421,6 @@ select {
     transform: translateY(-2px);
 }
 
-/* --- Sub-Views & Layouts --- */
-
-/* CHATS VIEW (PC Dual-Chamber Default) */
 .chat-layout-engine {
     display: flex;
     gap: 25px;
@@ -568,7 +543,6 @@ select {
     box-shadow: 0 0 15px rgba(var(--neon-rgb), 0.2);
 }
 
-/* CONTACTS VIEW */
 .contacts-directory-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -579,7 +553,6 @@ select {
     align-items: start;
 }
 
-/* SETTINGS VIEW */
 .theme-grid-box {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -588,7 +561,6 @@ select {
     flex: 1;
     overflow-y: auto;
     align-content: start;
-    /* 🚨 FIX: Dynamic flex height */
 }
 
 .theme-btn {
@@ -612,7 +584,6 @@ select {
     transform: translateY(-5px) scale(1.03);
 }
 
-/* Custom Scrollbars for Premium feel */
 ::-webkit-scrollbar {
     width: 6px;
 }
@@ -631,11 +602,6 @@ select {
     box-shadow: 0 0 10px var(--neon-primary);
 }
 
-/* ========================================================== */
-/* --- MOBILE MASTER-DETAIL PATTERN (WHATSAPP STYLE) --- */
-/* ========================================================== */
-
-/* Desktop Default: Hide the back button */
 .mobile-back-btn {
     display: none;
     background: rgba(255, 255, 255, 0.05);
@@ -654,10 +620,7 @@ select {
     border-color: var(--neon-primary);
 }
 
-/* Tablet & Mobile Breakpoints */
 @media (max-width: 992px) {
-
-    /* Drawer Navigation Configuration */
     .side-nav {
         position: fixed;
         left: 0;
@@ -679,24 +642,20 @@ select {
         padding: 20px;
     }
 
-    /* Enable Mobile Back Button */
     .mobile-back-btn {
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    /* Redefine layout engine for mobile sliding */
     .chat-layout-engine {
         position: relative;
         overflow: hidden;
         height: 100%;
         display: flex;
         gap: 0;
-        /* Remove PC gap to ensure clean swap */
     }
 
-    /* DEFAULT MOBILE STATE: Master List is 100% width, Detail Chat is hidden */
     .list-panel {
         width: 100% !important;
         height: 100% !important;
@@ -711,7 +670,6 @@ select {
         flex: none;
     }
 
-    /* ACTIVE CHAT STATE: Swap display classes seamlessly */
     .chat-layout-engine.mobile-chat-active .list-panel {
         display: none !important;
     }
@@ -722,7 +680,6 @@ select {
     }
 }
 
-/* Mobile Screen Breakpoints */
 @media (max-width: 768px) {
     .view-header h2 {
         font-size: 1.8rem;
@@ -755,7 +712,6 @@ select {
     }
 }
 
-/* Smooth slide-in animation for active chats */
 @keyframes slideInRight {
     from {
         transform: translateX(50px);
@@ -909,7 +865,7 @@ select {
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
     z-index: 95;
-    /* Sits below the sidebar but above the app */
+
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s var(--bezier-smooth);
@@ -920,19 +876,16 @@ select {
     pointer-events: auto;
 }
 
-/* 2. Z-Index & Header Corrections */
 .mobile-header {
     z-index: 105 !important;
-    /* Forces the hamburger to stay ABOVE the sidebar */
+
     padding: 20px 25px;
-    /* Larger header space */
 }
 
 .side-nav {
     z-index: 100;
 }
 
-/* 3. Loosen the UI: Bigger Tap Targets & Better Spacing */
 .menu-item {
     padding: 18px 20px !important;
     font-size: 1.1rem !important;
@@ -940,13 +893,13 @@ select {
 
 .lb-list li {
     padding: 16px 20px !important;
-    /* Taller contact cards for thumbs */
+
     margin-bottom: 5px;
 }
 
 .chat-bubble {
     padding: 16px 20px !important;
-    /* Easier reading */
+
     line-height: 1.6;
     font-size: 1.05rem;
 }
@@ -955,58 +908,41 @@ select {
     padding: 15px !important;
 }
 
-/* 4. Input Accessibility (Prevents iOS automatic zoom on focus) */
 input,
 select {
     font-size: 16px !important;
     padding: 18px 20px !important;
-    /* Larger input fields */
 }
 
 .glow-btn {
     padding: 18px 25px !important;
-    /* Larger call-to-action buttons */
+
     font-size: 1rem;
     font-family: Outfit;
 }
 
-/* ========================================================== */
-/* --- MOBILE SCROLL & VIEWPORT FIX --- */
-/* ========================================================== */
-
-/* 1. Force Dynamic Viewport Height on Core Containers */
 .chat-container,
 .main-viewport,
 .side-nav {
-    /* 🚨 FIX: Added .side-nav to the absolute lock */
     height: 100dvh !important;
     min-height: -webkit-fill-available;
-    /* Fallback for older iOS */
 }
 
-/* 2. Adjust View Manager for Mobile Header */
 @media (max-width: 992px) {
     .view-manager {
         height: calc(100dvh - 70px) !important;
     }
 
-    /* Push the scroll button up so it doesn't hide behind the input bar */
     .scroll-bottom-btn {
         bottom: 110px !important;
         right: 15px !important;
     }
 
-    /* iOS Safe Area Padding (Native App Feel) */
     .message-input-console {
         padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
     }
 }
 
-/* ========================================================== */
-/* --- FINAL POLISH: WHATSAPP BUBBLES & SEND BUTTON --- */
-/* ========================================================== */
-
-/* Sleek Square Send Button */
 .icon-send-btn {
     padding: 0 !important;
     width: 54px !important;
@@ -1019,14 +955,12 @@ select {
 
 .icon-send-btn svg {
     transform: translateX(-1px) translateY(1px);
-    /* Optical center alignment */
 }
 
-/* WhatsApp Bubble Architecture */
 .chat-bubble {
     position: relative !important;
     padding: 8px 12px 20px 12px !important;
-    /* Extra bottom padding for the floating time */
+
     display: block !important;
 }
 
@@ -1048,23 +982,16 @@ select {
     white-space: nowrap;
 }
 
-/* ========================================================== */
-/* --- THE ANCHORED MOBILE FULL-SCREEN FIX --- */
-/* ========================================================== */
-
 @media (max-width: 992px) {
-
-    /* 1. Hide the bulky desktop header */
     #VIEW-CHATS .view-header {
         display: none !important;
     }
 
-    /* 2. The Four-Corner Anchor (Traps the UI inside the visible screen) */
     .chat-layout-engine.mobile-chat-active .chat-area-viewport {
         position: fixed !important;
         top: 0 !important;
         bottom: 0 !important;
-        /* Pins to bottom instead of using height */
+
         left: 0 !important;
         right: 0 !important;
         height: auto !important;
@@ -1075,44 +1002,34 @@ select {
         flex-direction: column !important;
         background: var(--bg-deep) !important;
         overflow: hidden !important;
-        /* THE LOCK: Disables page scrolling */
     }
 
-    /* 3. Protect the Header */
     .chat-layout-engine.mobile-chat-active .chat-header-bar {
         flex-shrink: 0 !important;
         border-radius: 0 !important;
         padding-top: max(15px, env(safe-area-inset-top)) !important;
     }
 
-    /* 4. The Middle Scroll Zone */
     .chat-layout-engine.mobile-chat-active .chat-box-stream {
         flex: 1 1 auto !important;
         height: 0 !important;
-        /* Forces the browser to calculate from the available space */
+
         overflow-y: auto !important;
-        /* Allows ONLY the messages to scroll */
+
         padding-bottom: 10px !important;
     }
 
-    /* 5. Protect and Pin the Input Bar */
     .chat-layout-engine.mobile-chat-active .message-input-console {
         flex-shrink: 0 !important;
         margin: 0 !important;
         padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
         background: var(--bg-deep) !important;
-        /* Prevents text from showing under the bar */
     }
 }
 
 .chat-bubble {
-    /* Guarantees the bubble is always wide enough for the timestamp */
     min-width: 95px !important;
 }
-
-/* ========================================================== */
-/* --- ADVANCED SETTINGS & CINEMATIC MODE ENGINE --- */
-/* ========================================================== */
 
 .setting-row {
     display: flex;
@@ -1120,7 +1037,6 @@ select {
     align-items: center;
 }
 
-/* Premium Matrix Toggle Switch */
 .matrix-switch {
     position: relative;
     display: inline-block;
@@ -1156,7 +1072,7 @@ select {
     left: 3px;
     bottom: 3px;
     background-color: #4a5568;
-    /* 🚨 FIX: Limit the bouncy math strictly to the transform movement! */
+
     transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     border-radius: 50%;
 }
@@ -1171,10 +1087,6 @@ select {
     background-color: var(--neon-primary);
     box-shadow: 0 0 12px var(--neon-primary);
 }
-
-/* ========================================================== */
-/* --- PREMIUM PROFILE CARD STYLING --- */
-/* ========================================================== */
 
 .profile-panel {
     display: flex;
@@ -1207,7 +1119,7 @@ select {
 
 #profile-mobile,
 #profile-email {
-    font-family: 'Outfit';
+    font-family: "Outfit";
     color: var(--text-muted);
     font-size: 1rem;
 }
@@ -1217,11 +1129,6 @@ select {
     width: 100%;
 }
 
-/* ========================================================== */
-/* --- THE NUCLEAR MOBILE VIEWPORT HIJACK --- */
-/* ========================================================== */
-
-/* The sleek WhatsApp Arrow Button (Applies Everywhere) */
 .icon-send-btn {
     width: 48px !important;
     height: 48px !important;
@@ -1238,26 +1145,21 @@ select {
     transform: translateX(-1px) translateY(1px);
 }
 
-/* TRIGGERED ONLY WHEN MOBILE CHAT IS OPEN */
 @media (max-width: 992px) {
-
-    /* 1. Kill the body scrolling entirely */
     body.in-mobile-chat {
         overflow: hidden !important;
         position: fixed !important;
         width: 100vw !important;
-        /* 🚨 FIX: Changed from 100dvh to 100% so it respects keyboard resizing */
+
         height: 100% !important;
     }
 
-    /* 2. Hide ALL other UI elements */
     body.in-mobile-chat .mobile-header,
     body.in-mobile-chat .view-header,
     body.in-mobile-chat .list-panel {
         display: none !important;
     }
 
-    /* 3. Escaping the Container Trap (Edge-to-Edge) */
     body.in-mobile-chat .view-manager,
     body.in-mobile-chat .chat-layout-engine {
         padding: 0 !important;
@@ -1266,7 +1168,6 @@ select {
         width: 100% !important;
     }
 
-    /* 4. THE CHAT WINDOW (Absolute Full Screen, No Glass) */
     body.in-mobile-chat .chat-area-viewport {
         position: fixed !important;
         top: 0 !important;
@@ -1274,7 +1175,7 @@ select {
         right: 0 !important;
         bottom: 0 !important;
         width: 100vw !important;
-        /* 🚨 FIX: Changed from 100dvh to 'auto'. This pins the box to the top and bottom of the screen, forcing it to shrink natively when the keyboard opens! */
+
         height: auto !important;
         z-index: 999999 !important;
         background: var(--bg-deep) !important;
@@ -1287,10 +1188,9 @@ select {
         padding: 0 !important;
     }
 
-    /* 5. TOP HEADER (Re-attached to Flexbox to prevent overlap) */
     body.in-mobile-chat .chat-header-bar {
         position: relative !important;
-        /* 🚨 FIX: Removed absolute positioning */
+
         width: 100vw !important;
         z-index: 9999 !important;
         display: flex !important;
@@ -1301,21 +1201,18 @@ select {
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
         box-sizing: border-box !important;
         flex-shrink: 0 !important;
-        /* 🚨 FIX: Prevents the header from squishing when the keyboard opens */
     }
 
-    /* 6. MESSAGES AREA (Fluidly fills remaining space safely) */
     body.in-mobile-chat .chat-box-stream {
         flex: 1 1 auto !important;
         height: 0 !important;
         overflow-y: auto !important;
-        /* 🚨 FIX: Changed top padding from 95px back to 15px because the header physically sits above it now */
+
         padding: 15px 15px 15px 15px !important;
         box-sizing: border-box !important;
         -webkit-overflow-scrolling: touch !important;
     }
 
-    /* 7. INPUT BAR (Locked to Bottom, Resizes with Keyboard) */
     body.in-mobile-chat .message-input-console {
         display: flex !important;
         flex-direction: row !important;
@@ -1329,15 +1226,12 @@ select {
     }
 }
 
-/* ========================================================== */
-/* --- DOUBLE-TAP TO DELETE ENGINE --- */
-/* ========================================================== */
 .chat-bubble {
     user-select: none;
-    /* Stops annoying text highlighting on double click */
+
     -webkit-user-select: none;
     touch-action: manipulation;
-    /* Tells mobile browsers to allow fast double-taps */
+
     transition:
         transform 0.2s var(--bezier-bounce),
         opacity 0.2s ease;
@@ -1349,22 +1243,21 @@ select {
     pointer-events: none;
 }
 
-/* --- UNREAD MESSAGE BADGE --- */
 .unread-badge {
     min-width: 24px;
     height: 24px;
     border-radius: 50%;
     background: var(--neon-primary);
-    /* Syncs with Cinematic Theme */
+
     color: var(--bg-deep);
-    /* Dark text for contrast */
+
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 0.75rem;
     font-weight: 800;
     margin-left: auto;
-    /* Pushes it strictly to the right side */
+
     box-shadow: 0 0 10px rgba(var(--neon-rgb), 0.5);
     transition:
         background 0.3s ease,
@@ -1373,7 +1266,6 @@ select {
     z-index: 10;
 }
 
-/* --- UNIFIED TIMELINE CALL LOGS --- */
 .call-log-bubble {
     display: flex;
     align-items: center;
@@ -1420,10 +1312,6 @@ select {
     }
 }
 
-/* ========================================================== */
-/* FULL-PAGE SETTINGS SCROLL FIX */
-/* ========================================================== */
-
 #VIEW-SETTINGS.active {
     display: block !important;
     overflow-y: auto !important;
@@ -1450,10 +1338,6 @@ select {
     height: 100% !important;
 }
 
-/* ========================================================== */
-/* SPACIOUS-MINIMALIST SETTINGS PATCH */
-/* ========================================================== */
-
 .settings-controls .setting-row {
     padding: 22px 5px !important;
     display: flex;
@@ -1475,11 +1359,6 @@ select {
     transform: scale(1.05);
 }
 
-/* ========================================================== */
-/* 💎 PREMIUM HANDLE FONT OVERRIDE */
-/* ========================================================== */
-
-/* 1. Sidebar & Grid Contact Handles (Soft & Clean) */
 #contacts-list p,
 .directory-card p {
     font-family: "Outfit", sans-serif !important;
@@ -1488,14 +1367,12 @@ select {
     font-size: 0.9rem !important;
 }
 
-/* 2. Personal Profile View Handle (Bold & Cyberpunk) */
 #profile-handle-display {
     font-family: "Space Grotesk", sans-serif !important;
     font-weight: 700 !important;
     letter-spacing: 1.5px !important;
 }
 
-/* 3. The Claim Modal @ Symbol and Input (Sharp & Modern) */
 #claim-handle-modal span,
 #claim-handle-input {
     font-family: "Space Grotesk", sans-serif !important;
@@ -1507,19 +1384,13 @@ select {
     font-family: Outfit !important;
 }
 
-/* ========================================================== */
-/* 📱 BULLETPROOF AUTHENTICATION SCROLL FIX */
-/* ========================================================== */
-
-/* 1. Override the inline Flexbox trap that cuts off the top */
-
 #auth-view-wrapper:not(.hidden) {
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
-    /* 🚨 Prevents the top cut-off */
+
     align-items: center !important;
-    /* Centers horizontally */
+
     overflow-y: auto !important;
     height: 100dvh !important;
     padding: 40px 20px !important;
@@ -1527,18 +1398,16 @@ select {
     -webkit-overflow-scrolling: touch !important;
 }
 
-/* 2. Safely center the panels without breaking the scrollbar */
 #login-screen,
 #register-screen {
     margin: auto 0 !important;
-    /* 🚨 MAGIC: Centers vertically ONLY if there is empty space */
+
     flex-shrink: 0 !important;
     width: 100% !important;
     max-width: 420px !important;
     height: auto !important;
 }
 
-/* Save Button Override */
 #save-ghost-btn {
     padding: 10px 15px !important;
     margin-left: 10px !important;
@@ -1548,9 +1417,6 @@ select {
     font-family: Outfit !important;
 }
 
-/* ========================================================== */
-/* 🚀 HARDWARE GPU ACCELERATION (120FPS ANIMATIONS) */
-/* ========================================================== */
 .side-nav,
 .chat-area-viewport,
 .view-section,
@@ -1561,17 +1427,12 @@ select {
     backface-visibility: hidden !important;
 }
 
-/* ========================================================== */
-/* ❤️ HEART LIKE SYSTEM & EXPLOSION PHYSICS (UPGRADED) */
-/* ========================================================== */
-
 .chat-bubble {
     user-select: none !important;
     -webkit-user-select: none !important;
     -webkit-touch-callout: none !important;
 }
 
-/* The Base Heart Badge (Transparent & Glowing) */
 .liked-badge {
     position: absolute;
     bottom: -10px;
@@ -1590,36 +1451,32 @@ select {
     animation: popInBounce 0.5s var(--bezier-bounce) forwards;
 }
 
-/* 1. FRIEND'S MESSAGE (Left Side): Heart on the Bottom-Right */
 .message-enter[data-is-me="false"] .liked-badge {
     right: -5px;
     left: auto;
 }
 
-/* 2. MY MESSAGE (Right Side): Heart on the Bottom-Left */
 .message-enter[data-is-me="true"] .liked-badge {
     left: -5px;
     right: auto;
 }
 
-/* 3. TIMESTAMP FLUSH (Forces time to the extreme right edge for everyone) */
 .chat-bubble-time {
     position: absolute !important;
     bottom: 4px !important;
     right: 10px !important;
-    /* Perfectly pinned to the glass edge */
+
     font-size: 0.65rem !important;
     opacity: 0.7 !important;
 }
 
-/* 🚨 FIX: Dynamic CSS-Variable Burst Engine */
 .heart-particle {
     position: absolute;
     color: var(--neon-primary);
     pointer-events: none;
     z-index: 100;
     filter: drop-shadow(0 0 8px rgba(var(--neon-rgb), 0.8));
-    /* Reads dynamic trajectories injected by JS */
+
     animation: burstOut var(--anim-duration) ease-out forwards;
 }
 
@@ -1645,19 +1502,14 @@ select {
 
     30% {
         opacity: 1;
-        /* Keeps them visible longer before fading */
     }
 
     100% {
-        /* Explodes outward to random X/Y coordinates set by JS */
         transform: translate(var(--tx), var(--ty)) scale(var(--end-scale)) rotate(var(--rot));
         opacity: 0;
     }
 }
 
-/* ========================================================== */
-/* --- RANDOM MATRIX MOBILE FULL-SCREEN TRAP --- */
-/* ========================================================== */
 @media (max-width: 992px) {
     body.in-random-mobile-chat {
         overflow: hidden !important;
@@ -1701,7 +1553,6 @@ select {
     }
 
     body.in-random-mobile-chat #random-chat-interface .message-input-console {
-        /* 🚨 Preserves the Flexbox geometry so the input doesn't shrink! */
         padding-bottom: max(15px, env(safe-area-inset-bottom)) !important;
         display: flex !important;
         flex-direction: row !important;
@@ -1715,21 +1566,11 @@ select {
     font-family: Outfit !important;
 }
 
-/* ========================================================== */
-/* 💎 VANI V4.0: ULTIMATE ARCHITECTURAL OVERRIDE              */
-/* ========================================================== */
-
-/* ----------------------------------------------------------
-   1. HARDWARE ACCELERATION & LIGHTHOUSE PERFORMANCE
-   ---------------------------------------------------------- */
 * {
-    /* Optimizes paint layers for 120fps scrolling */
     -webkit-tap-highlight-color: transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
-
-    /* Accessibility requirement for Lighthouse 100/100 */
     * {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
@@ -1738,16 +1579,13 @@ select {
 
 input:focus-visible,
 button:focus-visible {
-    /* A11Y Keyboard Navigation */
     outline: 2px solid var(--neon-primary) !important;
     outline-offset: 2px !important;
 }
 
-/* ----------------------------------------------------------
-   2. SPRING PHYSICS & KINETIC INTERACTIONS
-   ---------------------------------------------------------- */
 .glow-btn {
-    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+    transition:
+        transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
         box-shadow 0.4s ease,
         background 0.4s ease,
         color 0.4s ease !important;
@@ -1758,20 +1596,21 @@ button:focus-visible {
 }
 
 .lb-list li {
-    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+    transition:
+        transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         background 0.3s ease,
         box-shadow 0.3s ease !important;
 }
 
-/* ----------------------------------------------------------
-   3. DEEP DARK MODE ENHANCEMENTS (Smooth Glass & Orbs)
-   ---------------------------------------------------------- */
 .glass-panel {
-    /* Hyper-smooth frosted glass with saturation boost */
-    background: linear-gradient(145deg, rgba(20, 20, 26, 0.5) 0%, rgba(10, 10, 15, 0.7) 100%) !important;
+    background: linear-gradient(145deg,
+            rgba(20, 20, 26, 0.5) 0%,
+            rgba(10, 10, 15, 0.7) 100%) !important;
     backdrop-filter: blur(28px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(28px) saturate(130%) !important;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
+    box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.4),
+        inset 0 1px 1px rgba(255, 255, 255, 0.08) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
@@ -1794,61 +1633,54 @@ button:focus-visible {
 }
 
 .neon-ambient-glow {
-    /* Adds cinematic movement to the background glow */
     animation: floatOrb 25s infinite cubic-bezier(0.4, 0, 0.2, 1) !important;
     opacity: 0.7 !important;
     mix-blend-mode: screen;
 }
 
-/* ----------------------------------------------------------
-   4. THE NEW "ARCTIC FROST" LIGHT THEME (Pro Override)
-   ---------------------------------------------------------- */
-/* We use `html body[...]` to mathematically overpower the JS injection */
-
 html body[data-theme="light"] {
-    /* Premium Slate & Pearl Palette */
     --bg-deep: #f4f7fb !important;
     --text-main: #0f172a !important;
-    /* Deep Slate for perfect contrast */
+
     --text-muted: #64748b !important;
     --glass-border: rgba(15, 23, 42, 0.08) !important;
     --glass-highlight: rgba(255, 255, 255, 1) !important;
 }
 
-/* Light Theme Background & Mesh */
 html body[data-theme="light"] .ambient-texture {
     background-image:
-        radial-gradient(circle at 10% 10%, rgba(var(--neon-rgb), 0.08) 0%, transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(var(--neon-rgb), 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 10% 10%,
+            rgba(var(--neon-rgb), 0.08) 0%,
+            transparent 40%),
+        radial-gradient(circle at 90% 90%,
+            rgba(var(--neon-rgb), 0.05) 0%,
+            transparent 40%),
         linear-gradient(135deg, #f4f7fb 0%, #e2e8f0 100%) !important;
     z-index: -3 !important;
 }
 
 html body[data-theme="light"] .neon-ambient-glow {
     display: none !important;
-    /* Too messy for clean light mode */
 }
 
-/* Light Theme Panels */
 html body[data-theme="light"] .glass-panel,
 html body[data-theme="light"] .mobile-header,
 html body[data-theme="light"] .chat-header-bar {
     background: rgba(255, 255, 255, 0.65) !important;
     backdrop-filter: blur(30px) saturate(150%) !important;
     -webkit-backdrop-filter: blur(30px) saturate(150%) !important;
-    box-shadow: 0 10px 40px rgba(15, 23, 42, 0.04),
+    box-shadow:
+        0 10px 40px rgba(15, 23, 42, 0.04),
         inset 0 1px 0 rgba(255, 255, 255, 1) !important;
     border: 1px solid rgba(255, 255, 255, 0.8) !important;
 }
 
-/* Light Theme Side Nav */
 html body[data-theme="light"] .side-nav {
     background: rgba(248, 250, 252, 0.85) !important;
     border-right: 1px solid var(--glass-border) !important;
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.02) !important;
 }
 
-/* Typography & Neon Optics Fixes for White Backgrounds */
 html body[data-theme="light"] .brand-logo,
 html body[data-theme="light"] #chat-with-name {
     background: none !important;
@@ -1865,7 +1697,6 @@ html body[data-theme="light"] h3 {
     color: #0f172a !important;
 }
 
-/* Light Theme Inputs */
 html body[data-theme="light"] input,
 html body[data-theme="light"] select,
 html body[data-theme="light"] .message-input-console {
@@ -1886,7 +1717,6 @@ html body[data-theme="light"] input::placeholder {
     color: #94a3b8 !important;
 }
 
-/* Light Theme Chat Bubbles */
 html body[data-theme="light"] .message-enter[data-is-me="false"] .chat-bubble {
     background: #ffffff !important;
     border: 1px solid rgba(15, 23, 42, 0.08) !important;
@@ -1901,13 +1731,12 @@ html body[data-theme="light"] .message-enter[data-is-me="true"] .chat-bubble {
     color: #0f172a !important;
 }
 
-/* Light Theme Buttons - Auto-Adjusts Neon colors so they don't vanish on white */
 html body[data-theme="light"] .glow-btn,
 html body[data-theme="light"] .icon-send-btn {
     background: #ffffff !important;
     color: var(--neon-primary) !important;
     filter: brightness(0.65) saturate(1.5) !important;
-    /* Dims neon to read perfectly on white */
+
     border: 1px solid rgba(15, 23, 42, 0.15) !important;
     box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05) !important;
     font-weight: 800 !important;
@@ -1922,7 +1751,6 @@ html body[data-theme="light"] .icon-send-btn:hover {
     border-color: transparent !important;
 }
 
-/* Light Mode Menus */
 html body[data-theme="light"] .menu-item {
     color: #475569 !important;
 }
@@ -1939,9 +1767,6 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     filter: brightness(0.7) !important;
 }
 
-/* ==========================================================
-   💎 VANI V5.0: REALTIME CREDITS UI ENGINE
-   ========================================================== */
 .credits-display-box {
     display: flex;
     align-items: center;
@@ -1952,7 +1777,9 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     border-radius: 14px;
     margin-top: 15px;
     width: 100%;
-    transition: transform 0.4s var(--bezier-smooth), box-shadow 0.4s ease;
+    transition:
+        transform 0.4s var(--bezier-smooth),
+        box-shadow 0.4s ease;
 }
 
 .credits-display-box:hover {
@@ -1982,22 +1809,18 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
 #credits-amount-display {
     margin: 0;
     font-size: 1.3rem;
-    font-family: 'Outfit' !important;
+    font-family: "Outfit" !important;
     color: var(--text-main);
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition:
+        color 0.3s ease,
+        text-shadow 0.3s ease;
 }
 
-/* Flash animation when the database updates in real-time */
 .credits-flash {
     color: var(--neon-primary) !important;
     text-shadow: 0 0 15px var(--neon-primary) !important;
 }
 
-/* ==========================================================
-   ⏱️ VANI V5.2: ELITE KINETIC QUOTA METER & NETWORK LOCK
-   ========================================================== */
-
-/* 1. Fluid & Responsive Container */
 .speedometer-container {
     position: relative;
     width: clamp(200px, 100%, 280px);
@@ -2009,8 +1832,6 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     animation: hoverFloat 4s ease-in-out infinite;
 }
 
-
-/* 2. SVG Track & Energy Flow */
 .gauge-svg {
     width: 100%;
     height: 100%;
@@ -2018,11 +1839,10 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     transform-origin: bottom center;
 }
 
-/* The inactive background track */
 .gauge-svg path:first-child {
     stroke: rgba(255, 255, 255, 0.04);
     stroke-dasharray: 4 10;
-    /* Dotted tech-matrix look */
+
     animation: trackFlow 30s linear infinite backwards;
 }
 
@@ -2032,13 +1852,12 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     }
 }
 
-/* The active, live data stream */
 #gauge-fill-path {
-    transition: stroke-dashoffset 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
+    transition:
+        stroke-dashoffset 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275),
         stroke 0.5s ease;
     will-change: stroke-dashoffset, stroke;
     animation: pulseEnergy 2s infinite alternate;
-    /* Live-polling heartbeat */
 }
 
 @keyframes pulseEnergy {
@@ -2051,28 +1870,29 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     }
 }
 
-/* 3. The Kinetic Needle */
 .gauge-needle {
     position: absolute;
     bottom: 0;
     left: 50%;
     width: 4px;
     height: 90%;
-    /* Responsive height relative to container */
-    background: linear-gradient(to top, transparent 10%, currentColor 50%, #ffffff 100%);
+
+    background: linear-gradient(to top,
+            transparent 10%,
+            currentColor 50%,
+            #ffffff 100%);
     transform-origin: bottom center;
-    /* -90deg is exactly 0%. The JS overrides this transform inline */
+
     transform: translateX(-50%) rotate(-90deg);
     transition: transform 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
     border-radius: 4px;
     z-index: 2;
     will-change: transform;
     color: var(--neon-primary);
-    /* Inherits JS color logic */
+
     filter: drop-shadow(0 0 8px currentColor);
 }
 
-/* 4. The Glowing Core */
 .needle-base {
     position: absolute;
     bottom: -10px;
@@ -2082,10 +1902,14 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     height: 24px;
     background: #030305;
     border: 3px solid currentColor;
-    /* Syncs color with JS warning states */
+
     border-radius: 50%;
-    box-shadow: 0 0 15px currentColor, inset 0 0 10px currentColor;
-    transition: border-color 0.5s ease, box-shadow 0.5s ease;
+    box-shadow:
+        0 0 15px currentColor,
+        inset 0 0 10px currentColor;
+    transition:
+        border-color 0.5s ease,
+        box-shadow 0.5s ease;
     animation: corePulse 1.5s infinite alternate;
 }
 
@@ -2096,27 +1920,31 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
 
     100% {
         transform: translateX(-50%) scale(1.15);
-        box-shadow: 0 0 25px currentColor, inset 0 0 15px currentColor;
+        box-shadow:
+            0 0 25px currentColor,
+            inset 0 0 15px currentColor;
     }
 }
 
-/* 5. Fluid Typography & Metadata Display */
 #credits-amount-display {
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     font-size: clamp(1.8rem, 5vw, 2.5rem) !important;
     color: var(--text-main);
     margin: 0;
     line-height: 1;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition:
+        color 0.3s ease,
+        text-shadow 0.3s ease;
 }
 
 .credits-flash {
     color: var(--neon-primary) !important;
-    text-shadow: 0 0 20px var(--neon-primary), 0 0 40px rgba(var(--neon-rgb), 0.6) !important;
+    text-shadow:
+        0 0 20px var(--neon-primary),
+        0 0 40px rgba(var(--neon-rgb), 0.6) !important;
     transform: scale(1.05);
 }
 
-/* 6. The Quota Exceeded Network Lock */
 #quota-warning-badge {
     margin-top: 20px;
     background: rgba(255, 77, 77, 0.08);
@@ -2148,7 +1976,6 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     }
 }
 
-/* Visually destroys the call button if quota is empty */
 .btn-network-locked {
     filter: grayscale(1) opacity(0.3) !important;
     pointer-events: none !important;
@@ -2159,9 +1986,6 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     box-shadow: none !important;
 }
 
-/* ==========================================================
-   🚀 VANI PWA: DYNAMIC INSTALL MODAL
-   ========================================================== */
 #pwa-install-modal {
     position: fixed;
     bottom: 0;
@@ -2172,10 +1996,8 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     justify-content: center;
     padding: 20px;
     pointer-events: none;
-    /* Let clicks pass through the invisible background */
 }
 
-/* Base state: Hidden below the screen */
 .pwa-modal-content {
     pointer-events: auto;
     width: 100%;
@@ -2183,14 +2005,17 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     padding: 20px 25px;
     border-radius: 20px;
     border: 1px solid var(--neon-primary);
-    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.8), inset 0 0 20px rgba(var(--neon-rgb), 0.15);
+    box-shadow:
+        0 15px 40px rgba(0, 0, 0, 0.8),
+        inset 0 0 20px rgba(var(--neon-rgb), 0.15);
     background: rgba(8, 8, 12, 0.95) !important;
     transform: translateY(150%);
     opacity: 0;
-    transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+    transition:
+        transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.4s ease;
 }
 
-/* Active state: Slid up and visible */
 #pwa-install-modal.slide-up-active .pwa-modal-content {
     transform: translateY(0);
     opacity: 1;
@@ -2215,7 +2040,7 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
 .pwa-modal-text h3 {
     margin: 0 0 5px 0;
     font-size: 1.25rem;
-    font-family: 'Space Grotesk', sans-serif;
+    font-family: "Space Grotesk", sans-serif;
     color: var(--text-main);
 }
 
@@ -2249,13 +2074,11 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
     }
 }
 
-/* Swipe animation for the message bubble */
 .chat-bubble.swiping {
     transition: transform 0.2s ease-out !important;
     cursor: grabbing !important;
 }
 
-/* Optional: Add a subtle reply icon that appears when swiping */
 .reply-indicator {
     position: absolute;
     right: -40px;
