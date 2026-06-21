@@ -1651,43 +1651,54 @@ const setCallUI = (statusText, showAcceptBtn = false) => {
   $("active-call-matrix").classList.remove("hidden");
   $("active-call-matrix").style.display = "flex";
   $("call-status-text").textContent = statusText;
-
-  $("call-target-name").textContent = "Encrypting Identity...";
-  $("call-target-avatar").src =
-    "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
+  $("call-target-name").textContent = "Resolving Identity...";
 
   (async () => {
-    let callerName = "Unknown";
-    let callerAvatar =
+    let finalName = "Unknown";
+    let finalAvatar =
       "https://static.vecteezy.com/system/resources/thumbnails/005/544/718/small/profile-icon-design-free-vector.jpg";
 
-    const localContactLi = document.querySelector(
-      `li[data-mobile="${CallState.targetMobile}"]`,
-    );
-
-    if (localContactLi) {
-      callerName =
-        localContactLi.querySelector("h3")?.textContent || callerName;
-      callerAvatar = localContactLi.querySelector("img")?.src || callerAvatar;
+    if (CallState.isCaller) {
+      // Outgoing Call: Instantly grab the exact name/avatar from the active chat window
+      const activeName = $("chat-with-name")?.textContent;
+      const activeAvatar = $("chat-target-avatar")?.src;
+      if (activeName && activeName !== "Select Node") finalName = activeName;
+      if (activeAvatar) finalAvatar = activeAvatar;
     } else {
+      // Incoming Call: Check local contacts first, then fallback to database VANI ID
       try {
-        const { data } = await supabaseClient
-          .from("profiles")
-          .select("vani_id, avatar_url")
-          .eq("mobile", CallState.targetMobile)
-          .single();
+        const contactLi = document.querySelector(
+          `li[data-mobile="${CallState.targetMobile}"]`,
+        );
+        if (contactLi) {
+          // Fetch from your saved contacts
+          finalName = contactLi.querySelector("h2")?.textContent || "Unknown";
+          finalAvatar = contactLi.querySelector("img")?.src || finalAvatar;
+        } else {
+          // Fetch from Matrix Database
+          const { data } = await supabaseClient
+            .from("profiles")
+            .select("vani_id, avatar_url")
+            .eq("mobile", CallState.targetMobile)
+            .single();
 
-        if (data) {
-          callerName = data.vani_id ? `@${data.vani_id}` : callerName;
-          callerAvatar = data.avatar_url || callerAvatar;
+          if (data) {
+            finalName = data.vani_id
+              ? `@${data.vani_id}`
+              : CallState.targetMobile;
+            if (data.avatar_url) finalAvatar = data.avatar_url;
+          } else {
+            finalName = CallState.targetMobile;
+          }
         }
       } catch (e) {
-        console.log("Silent Identity Fetch Failed:", e);
+        console.error("Identity Fetch Failed:", e);
+        finalName = CallState.targetMobile || "Unknown";
       }
     }
 
-    $("call-target-name").textContent = callerName;
-    $("call-target-avatar").src = callerAvatar;
+    $("call-target-name").textContent = finalName;
+    $("call-target-avatar").src = finalAvatar;
   })();
 
   if (showAcceptBtn) {
@@ -1877,11 +1888,6 @@ const handleIncomingWebRTCSignal = async (data) => {
       CallState.isCaller = false;
 
       CallState.pendingOffer = data.offer;
-
-      resolveCallerIdentity(sender).then((name) => {
-        const targetNameEl = document.getElementById("call-target-name");
-        if (targetNameEl) targetNameEl.innerText = name;
-      });
 
       setCallUI("Incoming Transmission...", true);
       break;
