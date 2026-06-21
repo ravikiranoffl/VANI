@@ -1,5 +1,3 @@
-const { SupabaseClient } = require("@supabase/supabase-js");
-
 const supabaseClient = supabase.createClient(
   "https://gxuqhaxboagwsktoupyv.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dXFoYXhib2Fnd3NrdG91cHl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0Njk2NjYsImV4cCI6MjA5NjA0NTY2Nn0.jvOUukSys7sbc_Rw7ML-ISdqWEpMx5HMreR3b7v_zTU",
@@ -2550,7 +2548,7 @@ const loadHistory = async (isLoadMore = false) => {
 const createBubbleHTML = (msg) => {
   const isMe = msg.sender_mobile === State.mobile;
   const msgDate = new Date(msg.created_at);
-  let bubbleContent = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
+  let bubbleContent = "";
 
   if (msg.content.startsWith("[CALL_LOG:")) {
     const parts = msg.content
@@ -2569,6 +2567,19 @@ const createBubbleHTML = (msg) => {
                     ${duration ? `<p>Duration: ${duration}</p>` : ""}
                 </div>
             </div>`;
+  } else if (msg.content.startsWith("[REPLY_TO:")) {
+    // 👇 INJECTED: Render old replies correctly
+    const splitIndex = msg.content.indexOf("]\n");
+    const replyContext = msg.content.substring(10, splitIndex);
+    const actualMessage = msg.content.substring(splitIndex + 2);
+
+    bubbleContent = `
+      <div style="background: rgba(0,0,0,0.2); border-left: 3px solid var(--neon-primary); padding: 5px 10px; margin-bottom: 8px; font-size: 0.8rem; border-radius: 4px; color: var(--text-muted); opacity: 0.8;">
+          ${sanitize(replyContext)}
+      </div>
+      <div class="chat-bubble-content">${sanitize(actualMessage)}</div>`;
+  } else {
+    bubbleContent = `<div class="chat-bubble-content">${sanitize(msg.content)}</div>`;
   }
 
   const heartStyle = isMe
