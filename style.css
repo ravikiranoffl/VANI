@@ -2182,8 +2182,7 @@ html body[data-theme="light"] .menu-item.active-menu .menu-icon {
 /* 4. The Holographic Avatar */
 #call-target-avatar {
     border: none !important;
-    border-radius: 24px !important;
-    /* Squircle shape instead of circle */
+    border-radius: 100px !important;
     box-shadow:
         0 15px 35px rgba(0, 0, 0, 0.8),
         0 0 50px rgba(var(--neon-rgb), 0.3),
