@@ -1774,7 +1774,7 @@ const startCall = async () => {
 
   if (!VaniCreditsEngine.isCallAllowed()) {
     return alert(
-      "Network Locked. Your monthly outgoing call quota (20 minutes) has been exhausted. You can still receive incoming calls.",
+      "Network Locked. Your monthly outgoing call quota (60 minutes) has been exhausted. You can still receive incoming calls.",
     );
   }
 
@@ -3324,7 +3324,7 @@ const VaniCreditsEngine = {
   myMobile: null,
   callStartTime: null,
   amITheCaller: false,
-  maxSeconds: 1200,
+  maxSeconds: 3600,
   currentSeconds: 0,
 
   init: function (mobileNumber) {
