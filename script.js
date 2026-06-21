@@ -1597,9 +1597,33 @@ const formatDuration = (seconds) => {
 const startCallTimer = () => {
   CallState.startTime = Date.now();
   $("call-duration-timer").classList.remove("hidden");
+
   CallState.timerInterval = setInterval(() => {
     const diff = Math.floor((Date.now() - CallState.startTime) / 1000);
     $("call-duration-timer").textContent = formatDuration(diff);
+
+    // 👇 INJECTED: The Real-Time Quota Auto-Disconnect
+    if (CallState.isCaller) {
+      // Calculate total usage: Previous History + Current Call Duration
+      const totalSecondsUsed = VaniCreditsEngine.currentSeconds + diff;
+
+      if (totalSecondsUsed >= VaniCreditsEngine.maxSeconds) {
+        clearInterval(CallState.timerInterval);
+        console.warn(
+          "⚠️ SYSTEM HALT: Monthly quota reached. Terminating transmission.",
+        );
+
+        // Sever the WebRTC tunnel immediately
+        endCall(true);
+
+        // Alert the user
+        setTimeout(() => {
+          alert(
+            "Call Terminated: Your 60-minute monthly quota has been completely exhausted.",
+          );
+        }, 500);
+      }
+    }
   }, 1000);
 };
 
